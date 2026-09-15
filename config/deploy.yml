@@ -1,0 +1,117 @@
+# Name of your application. Used to uniquely configure containers.
+service: oath-template
+
+# Name of the container image.
+image: your-dockerhub-username/oath-template
+
+# Deploy to these servers.
+servers:
+  web:
+    hosts:
+      - your-server-ip
+    cmd: "./bin/rails server"
+  # job:
+  #   hosts:
+  #     - 192.168.0.1
+  #   cmd: bin/jobs
+
+# Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
+# Remove this section when using multiple web servers and ensure you terminate SSL at your load balancer.
+#
+# Note: If using Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
+proxy:
+  ssl: true
+  hosts:
+    - example.com
+    - www.example.com
+  # Proxy connects to your container on port 80 by default.
+  app_port: 3000
+  healthcheck:
+    path: /up
+
+# Credentials for your image host.
+registry:
+  # server: localhost:5555
+  # Specify the registry server, if you're not using Docker Hub
+  # server: registry.digitalocean.com / ghcr.io / ...
+  username: your-registry-username
+
+  # Always use an access token rather than real password (pulled from .kamal/secrets).
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# Configure builder setup.
+builder:
+  arch: arm64
+  context: .
+  # Pass in additional build args needed for your Dockerfile.
+  # args:
+  #   RUBY_VERSION: <%= ENV["RBENV_VERSION"] || ENV["rvm_ruby_string"] || "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}" %>
+
+# Inject ENV variables into containers (secrets come from .kamal/secrets).
+env:
+  clear:
+    APP_HOST: "example.com"
+    APP_PROTOCOL: "https"
+    RAILS_ENV: production
+    RAILS_LOG_LEVEL: info
+    SMTP_PORT: "587"
+  secret:
+    - RAILS_MASTER_KEY
+    - DATABASE_URL
+    - CACHE_DATABASE_URL
+    - QUEUE_DATABASE_URL
+    - CABLE_DATABASE_URL
+    - SMTP_ADDRESS
+    - SMTP_USERNAME
+    - SMTP_PASSWORD
+    - GOOGLE_CLIENT_ID
+    - GOOGLE_CLIENT_SECRET
+
+# Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
+# "bin/kamal app logs -r job" will tail logs from the first server in the job section.
+#
+# aliases:
+#   shell: app exec --interactive --reuse "bash"
+
+# Use a different ssh user than root
+#
+ssh:
+  user: deploy
+  keys:
+    - ~/.ssh/your-ssh-key
+  keys_only: true
+
+# Use a persistent storage volume.
+#
+# volumes:
+#   - "app_storage:/app/storage"
+
+# Bridge fingerprinted assets, like JS and CSS, between versions to avoid
+# hitting 404 on in-flight requests. Combines all files from new and old
+# version inside the asset_path.
+#
+# asset_path: /app/public/assets
+
+# Configure rolling deploys by setting a wait time between batches of restarts.
+#
+# boot:
+#   limit: 10 # Can also specify as a percentage of total hosts, such as "25%"
+#   wait: 2
+
+# Use accessory services (secrets come from .kamal/secrets).
+#
+# accessories:
+accessories:
+  db:
+    image: postgres:15
+    host: your-server-ip
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        POSTGRES_DB: oath_template_production
+        POSTGRES_USER: oath_template
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - postgres_data:/var/lib/postgresql/data

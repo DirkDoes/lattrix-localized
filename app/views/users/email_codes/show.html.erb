@@ -1,0 +1,8 @@
+<main class="app-auth"><se-card class="app-auth-card"><div class="app-stack">
+  <header><se-title level="section">Check your email</se-title><se-text muted>We sent a verification code. It expires in 10 minutes.</se-text></header>
+  <%= form_with url: users_email_code_path, method: :patch, class: "app-form", html: { novalidate: true } do %>
+    <se-input label="Verification code" name="code" autocomplete="one-time-code" error="<%= @code_error %>"></se-input>
+    <footer class="app-form-actions"><se-button type="submit" variant="brand" text="Verify email"></se-button></footer>
+  <% end %>
+  <se-button variant="link" href="<%= current_user ? edit_settings_user_path(current_user) : new_user_session_path %>" text="Back / request another code"></se-button>
+</div></se-card></main>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="currentColor">
+  <g transform="translate(35, 0) skewX(-20)">
+    <path d="M 4 10 H 20 A 4 4 0 0 1 24 14 V 52 H 37 A 4 4 0 0 1 41 56 V 72 A 4 4 0 0 1 37 76 H 4 A 4 4 0 0 1 0 72 V 14 A 4 4 0 0 1 4 10 Z" />
+    <path d="M 32 24 H 82 A 4 4 0 0 1 86 28 V 44 A 4 4 0 0 1 82 48 H 69 V 86 A 4 4 0 0 1 65 90 H 49 A 4 4 0 0 1 45 86 V 48 H 32 A 4 4 0 0 1 28 44 V 28 A 4 4 0 0 1 32 24 Z" />
+  </g>
+</svg>

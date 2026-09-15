@@ -1,0 +1,72 @@
+<se-card><div class="app-stack">
+  <header class="app-method-heading">
+    <div><se-title level="section">Sign-in methods</se-title><se-text muted>Verify your identity to edit these settings. Keep at least one sign-in method enabled.</se-text></div>
+    <% if user == current_user %>
+      <% if security_verified? %><se-badge tone="success" text="Identity verified"></se-badge><% else %>
+        <%= form_with url: users_security_verification_path, method: :post do %><se-button type="submit" variant="primary" icon="lock" text="Verify identity"></se-button><% end %>
+      <% end %>
+    <% end %>
+  </header>
+  <% connected_methods = user.available_methods %>
+  <% identities = user.auth_identities.index_by(&:provider) %>
+  <div class="app-method-list">
+    <div class="app-method-row">
+      <div class="app-method-label">
+        <se-icon class="app-method-icon" name="mail"></se-icon>
+        <div class="app-method-details"><se-text>Email</se-text><se-text muted><%= user.email %></se-text>
+          <% if connected_methods.include?("email_code") %><se-text muted>Email-code sign-in is enabled.</se-text>
+          <% end %>
+        </div>
+        <se-badge tone="<%= user.email_verified_at ? "success" : "warning" %>" text="<%= user.email_verified_at ? "Email verified" : "Not verified" %>"></se-badge>
+      </div>
+      <% if user == current_user %><se-button variant="primary" text="Edit email" data-open-email-modal <%= "disabled" unless security_verified? %>></se-button><% end %>
+    </div>
+  <% (AuthenticationPolicy.methods - ["email_code"]).each do |method| %>
+    <% linked = connected_methods.include?(method) %>
+    <div class="app-method-row">
+      <div class="app-method-label">
+        <se-icon class="app-method-icon" name="<%= authentication_icon(method) %>"></se-icon>
+        <div class="app-method-details"><se-text><%= method == "github" ? "GitHub" : method.capitalize %></se-text>
+          <% if linked && identities[method]&.display_name.present? %><se-text muted><%= identities[method].display_name %></se-text><% end %>
+        </div>
+        <se-badge tone="<%= linked ? "success" : "gray" %>" text="<%= method == "password" ? (linked ? "Enabled" : "Disabled") : (linked ? "Connected" : "Not connected") %>"></se-badge>
+      </div>
+      <% if user == current_user %><div class="app-row-actions">
+        <% if method == "password" %>
+          <se-button variant="primary" text="<%= linked ? "Change password" : "Set password" %>" data-open-password-modal <%= "disabled" unless security_verified? %>></se-button>
+        <% elsif !linked %>
+          <%= form_with url: link_authentication_method_path(method), method: :post do %><se-button type="submit" variant="primary" icon="link" text="Connect" <%= "disabled" unless security_verified? %>></se-button><% end %>
+        <% end %>
+        <% if linked %>
+          <%= form_with url: authentication_methods_path(provider: method), method: :delete do %><se-button type="submit" variant="danger" <% unless method == "password" %>icon="unlink"<% end %> text="<%= method == "password" ? "Disable password" : "Disconnect" %>" <%= "disabled" unless security_verified? && connected_methods.size > 1 %>></se-button><% end %>
+        <% end %>
+      </div><% end %>
+    </div>
+  <% end %>
+  </div>
+  <% if user == current_user %>
+    <% if security_verified? && AuthenticationPolicy.providers.key?(params[:connect]) %>
+      <% provider = params[:connect] %>
+      <se-modal id="connect-provider-modal" title="Connect <%= provider == "github" ? "GitHub" : provider.capitalize %>" size="small" icon="link" tone="brand" cancel-label="Cancel" confirm-label="Continue" open>
+        <%= form_with url: public_send("user_#{AuthenticationPolicy::PROVIDERS.fetch(provider)}_omniauth_authorize_path"), method: :post, data: { turbo: false } do %>
+          <se-text>Continue to choose the account you want to connect as a sign-in method.</se-text>
+        <% end %>
+      </se-modal>
+    <% end %>
+    <se-modal id="email-modal" title="Change email" size="medium" cancel-label="Cancel" confirm-label="Send verification code" <%= "open" if @email_change_error %>>
+      <%= form_with url: users_change_email_path, class: "app-form", html: { novalidate: true } do %>
+        <se-text muted>Your current email remains active until you verify the new address.</se-text>
+        <se-input type="email" label="New email address" name="user[email]" value="<%= params.dig(:user, :email) if @email_change_error %>" error="<%= @email_change_error %>"></se-input>
+      <% end %>
+    </se-modal>
+  <% end %>
+  <% if user == current_user && AuthenticationPolicy.enabled?("password") %>
+    <se-modal id="password-modal" title="<%= user.encrypted_password.present? ? "Change password" : "Set password" %>" size="medium" cancel-label="Cancel" confirm-label="Save password" <%= "open" if user.errors[:password].any? || user.errors[:password_confirmation].any? %>>
+      <%= form_with url: authentication_methods_path, method: :patch, class: "app-form", html: { novalidate: true } do %>
+        <input type="text" name="username" value="<%= user.email %>" autocomplete="username" hidden>
+        <se-input type="password" label="New password" name="user[password]" autocomplete="new-password" error="<%= user.errors[:password].first %>"></se-input>
+        <se-input type="password" label="Confirm password" name="user[password_confirmation]" autocomplete="new-password" error="<%= user.errors[:password_confirmation].first %>"></se-input>
+      <% end %>
+    </se-modal>
+  <% end %>
+</div></se-card>

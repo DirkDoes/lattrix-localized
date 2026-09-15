@@ -1,0 +1,3 @@
+<% overlay_flash_messages.each do |flash_message| %>
+  <se-toast tone="<%= flash_message[:tone] %>" message="<%= flash_message[:message] %>" open></se-toast>
+<% end %>

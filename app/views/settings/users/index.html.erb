@@ -1,0 +1,12 @@
+<section class="app-page">
+  <header class="app-heading"><se-title level="page">Users</se-title></header>
+  <nav class="app-row-actions" aria-label="User access status">
+    <se-button variant="<%= @inactive ? "ghost" : "brand" %>" href="<%= settings_users_path %>" text="Active users"></se-button>
+    <se-button variant="<%= @inactive ? "brand" : "ghost" %>" href="<%= settings_users_path(status: "inactive") %>" text="Inactive users"></se-button>
+  </nav>
+  <se-collection type="table" columns="minmax(10rem, 1fr) minmax(14rem, 2fr) 8rem 6rem" mobile-columns="minmax(8rem, 1fr) 5.5rem 4rem">
+    <se-list-header><span>Name<span layout-mode="mobile-only"> / email</span></span><span layout-mode="desktop-only">Email</span><span>Role</span><span>Action</span></se-list-header>
+    <% @users.each do |user| %><se-list-row><span><strong><%= user.name %></strong><small layout-mode="mobile-only"><%= user.email %></small><% if @inactive %><se-badge tone="<%= user.banned_at ? "error" : "warning" %>" text="<%= user.banned_at ? "Banned" : "Unverified email" %>"></se-badge><% end %></span><span layout-mode="desktop-only"><%= user.email %></span><se-badge tone="brand" text="<%= user.role.capitalize %>"></se-badge><se-button variant="ghost" href="<%= edit_settings_user_path(user) %>" text="Edit"></se-button></se-list-row><% end %>
+  </se-collection>
+  <% if @users.empty? %><se-card><se-empty-state tone="brand" title="No <%= @inactive ? "inactive" : "active" %> users" text="Users will appear here when their access matches this view."></se-empty-state></se-card><% end %>
+</section>

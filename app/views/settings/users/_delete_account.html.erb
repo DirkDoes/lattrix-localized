@@ -1,0 +1,20 @@
+<se-card><div class="app-method-heading">
+  <div>
+  <se-title level="section">Delete account</se-title>
+  <se-text muted>Permanently delete your account and its connected sign-in methods. This cannot be undone. If you are the last owner, appoint another owner first.</se-text>
+  </div>
+  <se-button variant="danger" text="Delete my account" data-open-delete-modal></se-button>
+</div></se-card>
+<se-modal id="delete-account-warning" title="Delete your account?" size="small" icon="alert" tone="error" cancel-label="Cancel" confirm-label="Yes, continue" confirm-variant="danger">
+  <%= form_with url: users_security_verification_path, method: :post do %>
+    <%= hidden_field_tag :next, "delete" %>
+    <se-text>This permanently removes your account. You will type a confirmation before anything is deleted. We may first send a code to confirm it's you.</se-text>
+  <% end %>
+</se-modal>
+<se-modal id="delete-account-confirmation" title="Confirm permanent deletion" size="medium" cancel-label="Cancel" confirm-label="Delete permanently" confirm-variant="danger" <%= "open" if params[:account_action] == "delete" && security_verified? && session[:account_deletion_user] == current_user.id %>>
+  <%= form_with url: user_registration_path, method: :delete, class: "app-form", html: { novalidate: true } do %>
+    <se-text>Type the following words exactly. Do not paste them.</se-text>
+    <se-text class="app-deletion-phrase" data-no-copy>DELETE MY ACCOUNT</se-text>
+    <se-input name="confirmation" label="Confirmation text" autocomplete="off" data-deletion-confirmation></se-input>
+  <% end %>
+</se-modal>

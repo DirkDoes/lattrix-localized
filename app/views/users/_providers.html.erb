@@ -1,0 +1,5 @@
+<% AuthenticationPolicy.providers.each do |name, strategy| %>
+  <%= form_with url: public_send("user_#{strategy}_omniauth_authorize_path"), method: :post, class: "app-provider-form", data: { turbo: false } do %>
+    <se-button type="submit" variant="primary" icon="<%= authentication_icon(name) %>" text="Continue with <%= name == "github" ? "GitHub" : name.capitalize %>"></se-button>
+  <% end %>
+<% end %>

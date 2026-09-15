@@ -1,0 +1,16 @@
+one_password:
+  user: one
+  provider: password
+  provider_uid: one
+one_email:
+  user: one
+  provider: email_code
+  provider_uid: one
+two_password:
+  user: two
+  provider: password
+  provider_uid: two
+two_email:
+  user: two
+  provider: email_code
+  provider_uid: two

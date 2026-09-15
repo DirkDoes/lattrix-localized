@@ -1,0 +1,67 @@
+name: rails_templ_oath
+
+services:
+  mailcatcher:
+    image: sj26/mailcatcher@sha256:572048324658d2198e0a96785cca4f0260f2c4cadb2cb057bd837b9ee0c60533
+    ports:
+      - "127.0.0.1:${MAILCATCHER_WEB_PORT:-1080}:1080"
+    healthcheck:
+      test: ["CMD", "ruby", "-rsocket", "-e", "TCPSocket.new('127.0.0.1', 1025).close"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-oath_template}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-oath_template_development}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oath_template} -d ${POSTGRES_DB:-oath_template_development}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    volumes:
+      - .:/rails
+      - bundle_cache:/usr/local/bundle
+      - node_modules:/rails/node_modules
+    ports:
+      - "${WEB_HOST_PORT:-3021}:3000"
+    depends_on:
+      mailcatcher:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+      APP_HOST: ${APP_HOST:-localhost}
+      APP_PROTOCOL: ${APP_PROTOCOL:-http}
+      APP_PORT: ${WEB_HOST_PORT:-3021}
+      MAILCATCHER_HOST: mailcatcher
+      DATABASE_URL: ${DATABASE_URL:-postgres://oath_template:password@db:5432/oath_template_development}
+      RAILS_ENV: development
+      AUTH_METHODS: ${AUTH_METHODS:-password,email_code}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MAILER_FROM: ${MAILER_FROM:-noreply@example.com}
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  bundle_cache:
+  node_modules:

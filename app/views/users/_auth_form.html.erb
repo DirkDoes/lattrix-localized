@@ -1,0 +1,35 @@
+<% password_mode = AuthenticationPolicy.enabled?("password") && (params[:method] == "password" || @password_mode || !AuthenticationPolicy.enabled?("email_code")) %>
+<main class="app-auth"><se-card class="app-auth-card"><div class="app-stack" data-controller="auth-form">
+  <header><se-title level="section"><%= registration ? "Create account" : "Log in" %></se-title><se-text muted>Welcome to your workspace.</se-text></header>
+  <%= render "users/providers" unless registration %>
+  <% if !registration && AuthenticationPolicy.providers.any? && (AuthenticationPolicy.enabled?("email_code") || AuthenticationPolicy.enabled?("password")) %><hr class="app-auth-divider"><% end %>
+  <% if AuthenticationPolicy.enabled?("email_code") && AuthenticationPolicy.enabled?("password") %>
+    <se-segmented-control aria-label="Email sign-in method" value="<%= password_mode ? "password" : "email_code" %>" options='<%= [{ id: "email_code", label: "Email code" }, { id: "password", label: "Password" }].to_json %>' data-action="change->auth-form#switch"></se-segmented-control>
+  <% end %>
+  <% if AuthenticationPolicy.enabled?("email_code") %>
+    <div data-auth-form-target="panel" data-method="email_code" <%= "hidden" if password_mode %>>
+      <%= render "users/email_codes/form", registration: registration %>
+    </div>
+  <% end %>
+  <% if AuthenticationPolicy.enabled?("password") %>
+    <div data-auth-form-target="panel" data-method="password" <%= "hidden" unless password_mode %>>
+    <%= form_with model: user, as: :user, url: registration ? registration_path(:user) : session_path(:user, method: "password"), class: "app-form", html: { novalidate: true } do %>
+      <div class="app-form-fields">
+        <% if registration %><se-input label="Name" name="user[name]" value="<%= user.name %>" error="<%= user.errors[:name].first %>"></se-input><% end %>
+        <se-input type="email" label="Email address" name="user[email]" value="<%= user.email %>" icon="mail" error="<%= @email_error || user.errors[:email].first %>"></se-input>
+        <se-input type="password" label="Password" name="user[password]" error="<%= user.errors[:password].first %>"></se-input>
+        <% if registration %><se-input type="password" label="Confirm password" name="user[password_confirmation]" error="<%= user.errors[:password_confirmation].first %>"></se-input><se-text muted>We will email you a code to verify your email before creating your account.</se-text><% end %>
+      </div>
+      <footer class="app-form-actions"><se-button type="submit" variant="brand" text="<%= registration ? "Create account" : "Log in" %>"></se-button></footer>
+    <% end %>
+    </div>
+  <% end %>
+</div>
+<nav class="app-auth-links">
+  <% if registration %>
+    <se-button variant="link" href="<%= new_user_session_path %>" text="Already have an account?"></se-button>
+  <% elsif AuthenticationPolicy.enabled?("email_code") || AuthenticationPolicy.enabled?("password") %>
+    <se-button variant="link" href="<%= new_user_registration_path %>" text="Create an account"></se-button>
+    <% if AuthenticationPolicy.enabled?("password") %><span>/</span><se-button variant="link" href="<%= new_user_password_path %>" text="Forgot password?"></se-button><% end %>
+  <% end %>
+</nav></se-card></main>

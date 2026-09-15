@@ -1,0 +1,24 @@
+<section class="app-page app-account-page">
+  <header class="app-heading"><se-title level="page"><%= @user == current_user ? "Personal settings" : "Edit user" %></se-title><se-button variant="ghost" href="<%= settings_access? ? settings_users_path : overview_path %>" text="Back"></se-button></header>
+  <se-card>
+    <%= form_with model: @user, url: settings_user_path(@user), class: "app-form", html: { novalidate: true } do %>
+      <se-title level="section">Account details</se-title>
+      <% @user.errors[:base].each do |error| %><se-text><%= error %></se-text><% end %>
+      <div class="app-form-fields">
+        <se-input label="Name" name="user[name]" value="<%= @user.name %>" error="<%= @user.errors[:name].first %>"></se-input>
+        <% if @can_edit_role %><se-select label="Role" name="user[role]" value="<%= @user.role %>" error="<%= @user.errors[:role].first %>" options="<%= @role_options.map { |role| { id: role, label: role.capitalize } }.to_json %>"></se-select><% end %>
+        <% if @user == current_user %><se-theme-switch label="Appearance" name="user[theme_preference]" mode="ternary" variant="segmented" value="<%= @user.theme_preference %>"></se-theme-switch><% end %>
+      </div>
+      <footer class="app-form-actions"><se-button variant="ghost" href="<%= overview_path %>" text="Cancel"></se-button><se-button type="submit" variant="brand" text="Save changes"></se-button></footer>
+    <% end %>
+  </se-card>
+  <%= render "settings/users/authentication_methods", user: @user %>
+  <% if @user == current_user %>
+    <%= render "settings/users/delete_account" %>
+  <% end %>
+  <% if @user != current_user && settings_access? %><se-card><div class="app-stack">
+    <se-title level="section">Manage access</se-title>
+    <%= form_with url: ban_settings_user_path(@user), method: :patch do %><se-button type="submit" variant="ghost" text="<%= @user.banned_at ? "Restore access" : "Ban user" %>"></se-button><% end %>
+    <%= form_with url: settings_user_path(@user), method: :delete, data: { turbo_confirm: "Permanently delete this user? They may register again if registration is open. Ban them to prevent access." } do %><se-button type="submit" variant="ghost" text="Delete user"></se-button><% end %>
+  </div></se-card><% end %>
+</section>

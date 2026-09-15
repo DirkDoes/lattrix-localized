@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  access_granted_at: <%= Time.current %>
+  email: one@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "Password123!") %>
+  name: One User
+  role: viewer
+  theme_preference: system
+
+two:
+  access_granted_at: <%= Time.current %>
+  email: two@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "Password123!") %>
+  name: Two User
+  role: admin
+  theme_preference: dark

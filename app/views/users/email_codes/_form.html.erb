@@ -1,0 +1,9 @@
+<%= form_with url: users_email_code_path, class: "app-form", html: { novalidate: true } do %>
+  <% if local_assigns[:registration] || params[:registration] == "true" %>
+    <%= hidden_field_tag :registration, "true" %>
+    <se-input label="Name" name="user[name]" value="<%= @name %>" error="<%= @name_error %>"></se-input>
+  <% end %>
+  <se-input type="email" label="Email address" name="user[email]" value="<%= @email %>" icon="mail" error="<%= @email_error %>"></se-input>
+  <se-text muted>Verify your email to sign in or create an account.</se-text>
+  <footer class="app-form-actions"><se-button type="submit" variant="brand" text="Email me a code"></se-button></footer>
+<% end %>

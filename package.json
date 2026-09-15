@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "simple-elements": "github:DirkDoes/simple-elements#v0.7.0"
+  }
+}

@@ -1,0 +1,15 @@
+# Omakase Ruby styling for Rails
+inherit_gem: { rubocop-rails-omakase: rubocop.yml }
+
+# Overwrite or add rules to create your own house style
+
+# Enforce [:symbol] over %i[symbol] - explicit bracket syntax
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/WordArray:
+  EnforcedStyle: brackets
+
+# Max line length 120 characters
+Layout/LineLength:
+  Max: 120

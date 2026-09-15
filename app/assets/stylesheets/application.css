@@ -1,0 +1,36 @@
+html, body { width: 100%; height: 100%; margin: 0; }
+body { color: var(--se-text); background: var(--se-bg); font-family: var(--se-font); }
+.se-page-layout { height: 100%; }
+.app-content { padding-block: 3rem; }
+.app-page { display: grid; width: min(100%, 72rem); margin: auto; gap: 1.5rem; }
+.app-account-page { max-width: 48rem; }
+.app-method-list { display: grid; }
+.app-method-list .app-method-row { padding-block: 1rem; border-top: 1px solid var(--se-border); }
+.app-method-icon { flex: none; width: 1.5rem; height: 1.5rem; }
+.app-auth { display: grid; min-height: 100%; place-items: center; box-sizing: border-box; padding: 2rem; }
+.app-auth-card { display: block; width: min(100%, 28rem); box-sizing: border-box; }
+.app-form { display: grid; gap: 1.5rem; }
+.app-form > header { display: grid; gap: .375rem; }
+.app-form-fields { display: grid; gap: 1.25rem; }
+.app-form-actions { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; padding-top: 1.25rem; border-top: 1px solid var(--se-border); }
+.app-auth .app-form-actions se-button { flex: 1; }
+.app-provider-form { display: flex; }
+.app-provider-form se-button { flex: 1; }
+.app-auth-links { display: flex; justify-content: center; gap: .5rem; margin-top: 1.25rem; color: var(--se-faint); font-size: .875rem; }
+.app-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.app-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.app-stack { display: grid; gap: 1.25rem; }
+.app-row-actions { display: flex; align-items: center; gap: .5rem; }
+.app-row-actions form { margin: 0; }
+.app-method-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.app-method-label { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.app-auth-divider { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--se-border); }
+.app-auth se-segmented-control .se-segmented__options { display: grid; }
+se-sidebar > footer { display: grid; gap: .75rem; }
+#logout-form { display: none; }
+@media (max-width: 767px) { .app-auth { padding: 1rem; } .app-content { padding-block: 1.5rem; } .app-grid { grid-template-columns: 1fr; } }
+.app-deletion-phrase { user-select: none; }
+.app-method-details { min-width: 0; overflow-wrap: anywhere; }
+.app-method-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.app-method-heading > div { flex: 1; min-width: 0; }
+.app-method-heading > form, .app-method-heading > se-badge { flex: none; }
