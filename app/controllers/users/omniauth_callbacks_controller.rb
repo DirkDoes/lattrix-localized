@@ -58,6 +58,7 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     end
     raise EmailChallenge::Invalid unless user.active_for_authentication?
     identity.update!(display_name: display_name) if identity
+    ProfilePhoto.import(user, provider, auth.info.image)
     reset_session
     sign_in(user)
     redirect_to overview_path

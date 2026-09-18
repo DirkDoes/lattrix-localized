@@ -1,4 +1,14 @@
 Rails.application.routes.draw do
+  resource :profile_photo, only: [:update, :destroy]
+  get "profile_photos/:id", to: "profile_photos#show", as: :profile_photo_image
+  resources :workspaces, only: [:index, :create, :show] do
+    get :members, on: :member
+    resources :projects, only: [:index, :create, :show] do
+      get :translations, on: :member
+    end
+    resources :workspace_invites, only: :create
+  end
+  resources :workspace_invites, only: [:index, :update]
   get "up" => "rails/health#show", as: :rails_health_check
 
   devise_for :users, controllers: { omniauth_callbacks: "users/omniauth_callbacks", sessions: "users/sessions", registrations: "users/registrations", passwords: "users/passwords" }
@@ -11,6 +21,7 @@ Rails.application.routes.draw do
   post "authentication_methods/:provider/link", to: "users/authentication_methods#link", as: :link_authentication_method
 
   namespace :settings do
+    resources :workspaces, only: :index
     resources :users, only: [:index, :edit, :update, :destroy] do
       patch :ban, on: :member
     end

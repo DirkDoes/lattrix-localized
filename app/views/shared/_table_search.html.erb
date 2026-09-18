@@ -1,0 +1,4 @@
+<%= form_with url: url, method: :get, class: "app-row-actions", data: { controller: "table-search", action: "input->table-search#schedule submit->table-search#search" }, html: { role: "search", novalidate: true } do %>
+  <% if local_assigns[:status] %><%= hidden_field_tag :status, status %><% end %>
+  <se-input type="search" name="q" value="<%= @query %>" placeholder="<%= placeholder %>" aria-label="<%= placeholder %>" class="app-table-search"></se-input>
+<% end %>

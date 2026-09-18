@@ -1,12 +1,26 @@
 <section class="app-page">
-  <header class="app-heading"><se-title level="page">Users</se-title></header>
-  <nav class="app-row-actions" aria-label="User access status">
-    <se-button variant="<%= @inactive ? "ghost" : "brand" %>" href="<%= settings_users_path %>" text="Active users"></se-button>
-    <se-button variant="<%= @inactive ? "brand" : "ghost" %>" href="<%= settings_users_path(status: "inactive") %>" text="Inactive users"></se-button>
-  </nav>
-  <se-collection type="table" columns="minmax(10rem, 1fr) minmax(14rem, 2fr) 8rem 6rem" mobile-columns="minmax(8rem, 1fr) 5.5rem 4rem">
-    <se-list-header><span>Name<span layout-mode="mobile-only"> / email</span></span><span layout-mode="desktop-only">Email</span><span>Role</span><span>Action</span></se-list-header>
-    <% @users.each do |user| %><se-list-row><span><strong><%= user.name %></strong><small layout-mode="mobile-only"><%= user.email %></small><% if @inactive %><se-badge tone="<%= user.banned_at ? "error" : "warning" %>" text="<%= user.banned_at ? "Banned" : "Unverified email" %>"></se-badge><% end %></span><span layout-mode="desktop-only"><%= user.email %></span><se-badge tone="brand" text="<%= user.role.capitalize %>"></se-badge><se-button variant="ghost" href="<%= edit_settings_user_path(user) %>" text="Edit"></se-button></se-list-row><% end %>
+  <header class="app-heading">
+    <div class="app-method-label">
+      <se-title level="page">Users</se-title>
+      <%= form_with url: settings_users_path, method: :get, data: { segmented_navigation: true } do %>
+        <%= hidden_field_tag :q, @query %>
+        <se-segmented-control aria-label="User access status" name="status" value="<%= @banned ? 'banned' : 'active' %>" options='[{"id":"active","label":"Active users"},{"id":"banned","label":"Banned users"}]'></se-segmented-control>
+      <% end %>
+    </div>
+    <%= render "shared/table_search", url: settings_users_path, status: (@banned ? "banned" : "active"), placeholder: "Search users" %>
+  </header>
+  <div class="app-stack" data-table-results>
+  <% if @users.any? %>
+  <se-collection type="table" columns="minmax(10rem, 1fr) minmax(14rem, 2fr) 8rem 8rem 6rem" mobile-columns="minmax(8rem, 1fr) 5.5rem 4rem">
+    <se-list-header><span>Name<span layout-mode="mobile-only"> / email</span></span><span layout-mode="desktop-only">Email</span><span>Role</span><span layout-mode="desktop-only">Email status</span><span>Action</span></se-list-header>
+    <% @users.each do |user| %><se-list-row><span><strong><%= user.name %></strong><small layout-mode="mobile-only"><%= user.email %></small><span layout-mode="mobile-only"><se-badge tone="<%= user.email_verified_at ? "success" : "warning" %>" text="<%= user.email_verified_at ? "Verified" : "Unverified" %>"></se-badge></span></span><span layout-mode="desktop-only"><%= user.email %></span><se-badge tone="brand" text="<%= user.role.capitalize %>"></se-badge><span layout-mode="desktop-only"><se-badge tone="<%= user.email_verified_at ? "success" : "warning" %>" text="<%= user.email_verified_at ? "Verified" : "Unverified" %>"></se-badge></span><se-button variant="ghost" href="<%= edit_settings_user_path(user) %>" text="Edit"></se-button></se-list-row><% end %>
   </se-collection>
-  <% if @users.empty? %><se-card><se-empty-state tone="brand" title="No <%= @inactive ? "inactive" : "active" %> users" text="Users will appear here when their access matches this view."></se-empty-state></se-card><% end %>
+  <%= render "shared/table_pagination", url: settings_users_path(q: @query, status: (@banned ? "banned" : "active")) %>
+  <% elsif @query.present? %>
+    <se-empty-illustration variant="search" title="No users found" text="Try another name or email address."></se-empty-illustration>
+  <% else %>
+    <se-empty-illustration variant="team-2" illustration-label="<%= @banned ? 'Banned' : 'Users' %>" title="<%= @banned ? 'No banned users' : 'No active users' %>" text="<%= @banned ? 'Accounts you ban will appear here. No accounts are currently banned.' : 'Accounts that are not banned will appear here.' %>"></se-empty-illustration>
+  <% end %>
+
+  </div>
 </section>

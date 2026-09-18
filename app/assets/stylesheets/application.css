@@ -1,8 +1,10 @@
 html, body { width: 100%; height: 100%; margin: 0; }
 body { color: var(--se-text); background: var(--se-bg); font-family: var(--se-font); }
 .se-page-layout { height: 100%; }
+
 .app-content { padding-block: 3rem; }
 .app-page { display: grid; width: min(100%, 72rem); margin: auto; gap: 1.5rem; }
+.app-page > * { min-width: 0; }
 .app-account-page { max-width: 48rem; }
 .app-method-list { display: grid; }
 .app-method-list .app-method-row { padding-block: 1rem; border-top: 1px solid var(--se-border); }
@@ -17,7 +19,7 @@ body { color: var(--se-text); background: var(--se-bg); font-family: var(--se-fo
 .app-provider-form { display: flex; }
 .app-provider-form se-button { flex: 1; }
 .app-auth-links { display: flex; justify-content: center; gap: .5rem; margin-top: 1.25rem; color: var(--se-faint); font-size: .875rem; }
-.app-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.app-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
 .app-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
 .app-stack { display: grid; gap: 1.25rem; }
 .app-row-actions { display: flex; align-items: center; gap: .5rem; }
@@ -34,3 +36,30 @@ se-sidebar > footer { display: grid; gap: .75rem; }
 .app-method-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .app-method-heading > div { flex: 1; min-width: 0; }
 .app-method-heading > form, .app-method-heading > se-badge { flex: none; }
+.app-shell { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.app-shell > se-topbar { flex: none; }
+.app-shell se-topbar > [data-end] { flex: none; }
+.app-shell se-topbar > [data-start] { min-width: 0; flex: 1; }
+.app-shell se-topbar se-layout-brand { width: auto; flex: none; }
+.app-shell se-topbar se-layout-brand .se-layout-brand__logo { width: auto; height: 3.5rem; }
+.app-scope-row { position: relative; display: flex; flex: 1; min-height: 0; }
+.app-scope-row > main { flex: 1; min-width: 0; overflow: auto; }
+@media (max-width: 767px) {
+  .app-shell se-topbar se-layout-brand .se-layout-brand__logo { width: 2.5rem; height: 2.5rem; }
+  .app-shell se-topbar se-layout-brand[data-wide-icon] .se-layout-brand__asset--full-light,
+  .app-shell se-topbar se-layout-brand[data-wide-icon] .se-layout-brand__asset--full-dark { display: none; }
+}
+
+/* The upload preview uses the same centered cover crop as the profile avatar. */
+.app-photo-preview { display: grid; justify-items: center; gap: 1rem; }
+.app-photo-preview[hidden], [data-profile-photo-upload][hidden] { display: none; }
+.app-photo-frame { position: relative; width: min(100%, 18rem); aspect-ratio: 1; overflow: hidden; background: var(--se-surface-soft); }
+.app-photo-frame > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.app-photo-circle { position: absolute; inset: 0; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 6rem rgb(0 0 0 / .5); pointer-events: none; }
+
+/* Shared illustration size; the library caps the artwork at its container width. */
+se-empty-illustration { --se-illustration-width: 32rem; margin-block-start: clamp(1rem, 6vh, 4rem); }
+
+.app-project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.app-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+@media (max-width: 767px) { .app-project-grid, .app-form-row { grid-template-columns: 1fr; } }

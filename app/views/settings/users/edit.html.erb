@@ -1,5 +1,6 @@
 <section class="app-page app-account-page">
   <header class="app-heading"><se-title level="page"><%= @user == current_user ? "Personal settings" : "Edit user" %></se-title><se-button variant="ghost" href="<%= settings_access? ? settings_users_path : overview_path %>" text="Back"></se-button></header>
+  <%= render "settings/users/profile_photo", user: @user %>
   <se-card>
     <%= form_with model: @user, url: settings_user_path(@user), class: "app-form", html: { novalidate: true } do %>
       <se-title level="section">Account details</se-title>

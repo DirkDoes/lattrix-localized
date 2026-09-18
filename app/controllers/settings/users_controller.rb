@@ -1,4 +1,5 @@
 class Settings::UsersController < Settings::BaseController
+  include TableResults
   before_action :ensure_users_index_access, only: [:index]
   before_action :ensure_user_edit_access, only: [:edit, :update]
   require_settings_access only: [:ban, :destroy]
@@ -6,9 +7,9 @@ class Settings::UsersController < Settings::BaseController
   before_action :set_role_options, only: [:edit, :update]
 
   def index
-    @inactive = params[:status] == "inactive"
-    active = manageable_users.where(banned_at: nil).where.not(email_verified_at: nil)
-    @users = (@inactive ? manageable_users.where.not(id: active.select(:id)) : active).order(:email)
+    @banned = params[:status] == "banned"
+    active = manageable_users.where(banned_at: nil)
+    @users = table_results((@banned ? manageable_users.where.not(banned_at: nil) : active).order(:email, :id), columns: %w[users.name users.email])
   end
 
   def edit
@@ -92,7 +93,7 @@ class Settings::UsersController < Settings::BaseController
   end
 
   def manageable_users
-    owner? ? User.all : User.where(role: :viewer).or(User.where(id: current_user.id))
+    owner? ? User.all : User.where(role: :guest).or(User.where(id: current_user.id))
   end
 
   def set_role_options
@@ -103,9 +104,9 @@ class Settings::UsersController < Settings::BaseController
       if owner?
         User.roles.keys
       elsif @user.admin?
-        %w[admin viewer]
+        %w[admin guest]
       else
-        %w[viewer]
+        %w[guest]
       end
   end
 

@@ -1,9 +1,12 @@
 class User < ApplicationRecord
+  # ponytail: small converted thumbnails live in the DB; move to object storage if avatar volume becomes material.
   THEME_PREFERENCES = %w[system light dark].freeze
   devise :database_authenticatable, :registerable, :recoverable, :rememberable,
     :validatable, :omniauthable, omniauth_providers: AuthenticationPolicy.providers.values.map(&:to_sym)
-  enum :role, { viewer: 0, admin: 1, owner: 2 }
+  enum :role, { guest: 0, admin: 1, owner: 2 }
   has_many :auth_identities, dependent: :destroy
+  has_many :workspace_memberships, dependent: :destroy
+  has_many :workspaces, through: :workspace_memberships
   attr_accessor :password_optional
   before_validation :normalize_identity
   before_create :promote_first_user

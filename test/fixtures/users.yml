@@ -5,7 +5,7 @@ one:
   email: one@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, "Password123!") %>
   name: One User
-  role: viewer
+  role: guest
   theme_preference: system
 
 two:

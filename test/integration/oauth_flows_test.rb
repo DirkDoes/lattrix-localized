@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class OauthFlowsTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
@@ -20,10 +21,10 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth.clear
   end
 
-  def provider_auth(provider, email: "external@example.com", uid: "account-123", verified: true)
+  def provider_auth(provider, email: "external@example.com", uid: "account-123", verified: true, image: nil)
     strategy = AuthenticationPolicy::PROVIDERS.fetch(provider)
     OmniAuth.config.mock_auth[strategy.to_sym] = OmniAuth::AuthHash.new(
-      provider: strategy, uid: uid, info: { email: email, name: "External User" },
+      provider: strategy, uid: uid, info: { email: email, name: "External User", image: image },
       extra: { raw_info: { email_verified: verified, verified: verified },
         all_emails: [{ "email" => email, "primary" => true, "verified" => verified }] })
     post "/users/auth/#{strategy}"
@@ -49,6 +50,27 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
         provider_auth(provider, email: "changed-#{provider}@example.com")
       end
       assert_redirected_to overview_path
+      sign_out user
+    end
+  end
+
+  test "all verified provider registrations import photos and respect removal on subsequent login" do
+    png = Vips::Image.black(16, 16).pngsave_buffer
+    %w[google github discord].each do |provider|
+      ProfilePhoto.stub(:fetch, png) do
+        provider_auth(provider, email: "photo-#{provider}@example.com", image: "https://example.com/avatar")
+      end
+      assert_redirected_to overview_path
+      user = User.find_by!(email: "photo-#{provider}@example.com")
+      assert user.profile_photo.present?
+      delete profile_photo_path
+      assert user.reload.profile_photo_customized?
+      sign_out user
+      ProfilePhoto.stub(:fetch, ->(*) { flunk "Removed photo must stay removed" }) do
+        provider_auth(provider, email: user.email, image: "https://example.com/avatar")
+      end
+      assert_redirected_to overview_path
+      assert_nil user.reload.profile_photo
       sign_out user
     end
   end
@@ -138,12 +160,12 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "new provider accounts receive access as viewers" do
+  test "new provider accounts receive access as guests" do
     provider_auth("github", email: "new-provider@example.com")
     assert_redirected_to overview_path
     get overview_path
     assert_response :success
-    assert User.find_by!(email: "new-provider@example.com").viewer?
+    assert User.find_by!(email: "new-provider@example.com").guest?
   end
 
   test "provider signup can immediately use email code without a separate security check" do

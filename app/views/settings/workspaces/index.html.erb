@@ -1,0 +1,22 @@
+<section class="app-page">
+  <header class="app-heading">
+    <se-title level="page">Workspaces</se-title>
+    <%= render "shared/table_search", url: settings_workspaces_path, placeholder: "Search workspaces" %>
+  </header>
+  <div class="app-stack" data-table-results>
+  <% if @workspaces.any? %>
+    <se-collection type="table" columns="minmax(12rem, 2fr) minmax(10rem, 1fr) 7rem" mobile-columns="minmax(0, 1fr) 6rem">
+      <se-list-header><span>Name</span><span layout-mode="desktop-only">Slug</span><span>Visibility</span></se-list-header>
+      <% @workspaces.each do |workspace| %>
+        <se-list-row><span><se-button variant="link" text="<%= workspace.name %>" href="<%= workspace_path(workspace) %>"></se-button></span><span layout-mode="desktop-only"><%= workspace.slug %></span><se-badge tone="gray" text="<%= workspace.visibility.capitalize %>"></se-badge></se-list-row>
+      <% end %>
+    </se-collection>
+  <%= render "shared/table_pagination", url: settings_workspaces_path(q: @query) %>
+  <% elsif @query.present? %>
+    <se-empty-illustration variant="search" title="No workspaces found" text="Try another workspace name or slug."></se-empty-illustration>
+  <% else %>
+    <se-empty-illustration variant="folders-2" title="No workspaces yet" text="Workspaces will appear here when they are created."></se-empty-illustration>
+  <% end %>
+
+  </div>
+</section>

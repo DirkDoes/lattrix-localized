@@ -85,7 +85,7 @@ class AuthenticationPolicyTest < ActionDispatch::IntegrationTest
     patch settings_user_path(admin), params: { user: { role: "owner" } }
     assert_response :unprocessable_entity
     assert admin.reload.admin?
-    patch settings_user_path(@user), params: { user: { name: "Hijacked", role: "viewer" } }
+    patch settings_user_path(@user), params: { user: { name: "Hijacked", role: "guest" } }
     assert_redirected_to settings_users_path
     assert @user.reload.owner?
     assert_equal "One User", @user.name

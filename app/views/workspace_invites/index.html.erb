@@ -1,0 +1,28 @@
+<section class="app-page">
+  <header class="app-heading">
+    <div><se-title level="page">Workspace invites</se-title><se-text muted>Invitations for <%= current_user.email %>.</se-text></div>
+    <se-button variant="secondary" href="<%= workspaces_path %>" text="Workspaces" icon="folder"></se-button>
+  </header>
+  <% if @invites.empty? %>
+    <se-card><se-empty-state icon="mail" title="You're all caught up" text="No pending workspace invitations. New invitations will appear here."></se-empty-state></se-card>
+  <% else %>
+    <div class="app-grid">
+      <% @invites.each do |invite| %>
+        <se-card><div class="app-stack">
+          <header><se-title level="card"><%= invite.workspace.name %></se-title><se-text muted small>You've been invited to join this workspace.</se-text></header>
+          <div><se-badge tone="brand" text="Viewer"></se-badge></div>
+          <footer class="app-form-actions">
+            <%= form_with url: workspace_invite_path(invite), method: :patch do %>
+              <%= hidden_field_tag :decision, "decline" %>
+              <se-button type="submit" variant="secondary" text="Decline"></se-button>
+            <% end %>
+            <%= form_with url: workspace_invite_path(invite), method: :patch do %>
+              <%= hidden_field_tag :decision, "accept" %>
+              <se-button type="submit" variant="brand" icon="check" text="Accept invitation"></se-button>
+            <% end %>
+          </footer>
+        </div></se-card>
+      <% end %>
+    </div>
+  <% end %>
+</section>

@@ -1,0 +1,26 @@
+<section class="app-page">
+  <%= render "workspaces/navigation" %>
+  <header class="app-heading">
+    <se-title level="page">Projects</se-title>
+    <% if @projects.any? && %w[admin owner].include?(@membership&.role) %><se-button text="Create project" icon="plus" data-open-modal="project-create-modal"></se-button><% end %>
+  </header>
+  <% if @projects.any? %>
+    <div class="app-grid app-project-grid"><% @projects.each do |project| %><se-project-card title="<%= project.name %>" metadata="<%= project.effective_visibility.capitalize %>" href="<%= workspace_project_path(@workspace, project) %>"></se-project-card><% end %></div>
+  <% else %>
+    <se-empty-illustration variant="folders" title="No projects yet" text="Projects keep your translations organized. Create your first project to get started in this workspace.">
+      <% if %w[admin owner].include?(@membership&.role) %><se-button text="Create project" icon="plus" data-open-modal="project-create-modal"></se-button><% end %>
+    </se-empty-illustration>
+  <% end %>
+  <% if %w[admin owner].include?(@membership&.role) %>
+    <se-modal id="project-create-modal" title="Create project" size="medium" cancel-label="Cancel" confirm-label="Create project" <%= "open" if @project.errors.any? %>>
+      <%= form_with model: [@workspace, @project], class: "app-form", data: { controller: "project-slug", action: "input->project-slug#update" }, html: { novalidate: true } do %>
+        <div class="app-form-row">
+        <se-input data-project-slug-target="name" label="Project name" name="project[name]" value="<%= @project.name %>" error="<%= @project.errors[:name].first %>"></se-input>
+        <se-input data-project-slug-target="slug" label="Slug" name="project[slug]" value="<%= @project.slug %>" error="<%= @project.errors[:slug].first %>" hint="Generated from the name until you edit it. Use lowercase letters, numbers and underscores."></se-input>
+        </div>
+        <se-select label="Visibility" name="project[visibility]" value="<%= @project.visibility %>" error="<%= @project.errors[:visibility].first %>" options='[{"id":"private","label":"Private"},{"id":"public","label":"Public"}]'></se-select>
+        <% if @workspace.visibility == "private" %><se-text muted>Projects in this private workspace stay private, even when set to public.</se-text><% end %>
+      <% end %>
+    </se-modal>
+  <% end %>
+</section>

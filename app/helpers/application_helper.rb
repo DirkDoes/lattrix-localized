@@ -1,4 +1,8 @@
 module ApplicationHelper
+  def profile_photo_url_for(user)
+    profile_photo_image_path(user.signed_id(purpose: :profile_photo), v: Digest::SHA256.hexdigest(user.profile_photo)) if user.profile_photo.present?
+  end
+
   def authentication_icon(method)
     case method
     when "github"

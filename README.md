@@ -1,4 +1,4 @@
-# OathTemplate
+# Lattrix Localized
 
 Rails starter template with Devise auth, Docker-based local development, and Kamal deployment scaffolding.
 

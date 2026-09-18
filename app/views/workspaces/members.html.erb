@@ -1,0 +1,35 @@
+<section class="app-page">
+  <%= render "workspaces/navigation" %>
+  <header class="app-heading">
+    <se-title level="page">Members</se-title>
+    <div class="app-method-label">
+      <%= render "shared/table_search", url: members_workspace_path(@workspace), placeholder: "Search members" %>
+      <% if @membership.can_invite? %><se-button variant="brand" icon="send" text="Invite" data-open-modal="workspace-invite-modal"></se-button><% end %>
+    </div>
+  </header>
+  <section class="app-stack" aria-label="Members" data-table-results>
+    <% if @memberships.any? %>
+    <se-collection type="table" columns="minmax(10rem, 1fr) minmax(14rem, 2fr) 7rem" mobile-columns="minmax(0, 1fr) 6rem">
+      <se-list-header><span>Name<span layout-mode="mobile-only"> / email</span></span><span layout-mode="desktop-only">Email</span><span>Role</span></se-list-header>
+      <% @memberships.each do |membership| %>
+        <se-list-row>
+          <span><strong><%= membership.user.name %></strong><small layout-mode="mobile-only"><%= membership.user.email %></small></span>
+          <span layout-mode="desktop-only"><%= membership.user.email %></span>
+          <se-badge tone="brand" text="<%= membership.role.capitalize %>"></se-badge>
+        </se-list-row>
+      <% end %>
+    </se-collection>
+    <%= render "shared/table_pagination", url: members_workspace_path(@workspace, q: @query) %>
+    <% else %>
+      <se-empty-illustration variant="search" title="No members found" text="Try another name or email address."></se-empty-illustration>
+    <% end %>
+
+  </section>
+  <% if @membership.can_invite? %>
+    <se-modal id="workspace-invite-modal" title="Invite someone" subtitle="Invite a teammate to join this workspace as a viewer." size="medium" icon="mail" tone="brand" cancel-label="Cancel" confirm-label="Invite user" <%= "open" if @invite_error %>>
+      <%= form_with url: workspace_workspace_invites_path(@workspace), class: "app-form", html: { novalidate: true } do %>
+        <se-input type="email" label="Email address" name="email" value="<%= @invite_email %>" error="<%= @invite_error %>" hint="They can accept from Workspace invites after signing in with this email."></se-input>
+      <% end %>
+    </se-modal>
+  <% end %>
+</section>

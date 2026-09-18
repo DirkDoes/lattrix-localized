@@ -135,7 +135,7 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     admin = users(:two)
     admin.update!(email_verified_at: Time.current)
     sign_in admin
-    patch settings_user_path(@user), params: { user: { name: "Renamed", email: "stolen@example.com", password: "hacked", theme_preference: "dark", role: "viewer" } }
+    patch settings_user_path(@user), params: { user: { name: "Renamed", email: "stolen@example.com", password: "hacked", theme_preference: "dark", role: "guest" } }
     assert_equal "Renamed", @user.reload.name
     assert_equal "one@example.com", @user.email
     assert_equal "system", @user.theme_preference
@@ -147,7 +147,7 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
 
   test "last active owner cannot be banned demoted or deleted" do
     @user.update!(role: :owner)
-    assert_not @user.update(role: :viewer)
+    assert_not @user.update(role: :guest)
     @user.reload
     assert_not @user.update(banned_at: Time.current)
     @user.reload
@@ -190,15 +190,16 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     assert_select "se-modal[open] se-input[error=?]", "can't be blank"
   end
 
-  test "active and inactive user lists are separated" do
+  test "active and banned user lists are separated" do
     admin = users(:two)
     admin.update!(email_verified_at: Time.current)
     @user.update!(banned_at: Time.current)
     sign_in admin
     get settings_users_path
     assert_select "se-list-row", text: /One User/, count: 0
-    get settings_users_path(status: "inactive")
-    assert_select "se-badge[text='Banned']", count: 1
+    get settings_users_path(status: "banned")
+    assert_select "se-list-row", text: /One User/, count: 1
+    assert_select "se-badge[text='Banned']", count: 0
   end
 
 

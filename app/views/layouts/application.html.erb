@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html data-theme="light" data-se-theme="clean" data-theme-preference="system">
   <head>
-    <title><%= content_for(:title) || "OathTemplate" %></title>
+    <title><%= content_for(:title) || "Lattrix Localized" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %><%= csp_meta_tag %><%= yield :head %>
-    <link rel="icon" href="/icon.svg?v=lt" type="image/svg+xml"><link rel="apple-touch-icon" href="/icon.png?v=lt">
+    <link rel="icon" href="/icons/lattrix/lattrix-icon-small-light.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/lattrix/lattrix-icon-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="/icon.png?v=lt">
     <%= javascript_include_tag "ui", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags "auth_forms" %>
     <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %>

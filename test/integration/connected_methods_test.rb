@@ -26,7 +26,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
     user = User.find_by!(email: "new-password@example.com")
     assert_equal %w[email_code password], user.available_methods.sort
     assert user.email_verified_at
-    assert user.viewer?
+    assert user.guest?
     get overview_path
     assert_response :success
     post link_authentication_method_path("email_code")
@@ -109,13 +109,13 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
     assert_equal %w[email_code password], @user.available_methods.sort
   end
 
-  test "first verified user is owner and subsequent users are viewers" do
+  test "first verified user is owner and subsequent users are guests" do
     AuthIdentity.delete_all
     User.delete_all
     first = User.register_verified!(email: "first@example.com", method: "email_code")
     second = User.register_verified!(email: "second@example.com", method: "email_code")
     assert first.owner?
-    assert second.viewer?
+    assert second.guest?
   end
 
   test "both registration and login offer segmented forms and keep validation on server" do

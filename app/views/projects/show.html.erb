@@ -1,0 +1,4 @@
+<section class="app-page">
+  <header class="app-heading"><div><se-title level="page"><%= @project.name %></se-title><se-text muted>Project dashboard</se-text></div><se-badge text="<%= @project.effective_visibility.capitalize %>" tone="gray"></se-badge></header>
+  <se-card><se-empty-state icon="languages" title="Ready for localization" text="Your project is ready. Translation editing will be added next."></se-empty-state><se-button variant="link" text="View translations" href="<%= translations_workspace_project_path(@workspace, @project) %>"></se-button></se-card>
+</section>
