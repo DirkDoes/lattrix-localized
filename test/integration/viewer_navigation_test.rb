@@ -18,18 +18,18 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     sign_in @viewer
   end
 
-  test "viewer landing and personal settings retain the header without global navigation" do
+  test "viewer landing and personal settings retain the header with global navigation" do
     get overview_path
     assert_select "se-topbar se-profile"
     assert_select "se-empty-illustration[variant=translation-2][title][text]"
     assert_select "se-title[level=page]", text: "Welcome back, #{@viewer.name}"
     assert_select "se-card", count: 0
-    assert_select "se-sidebar", count: 0
-    assert_select "se-sidebar-toggle", count: 0
+    assert_select "se-sidebar", count: 1
+    assert_select "se-sidebar-toggle", count: 1
     get edit_settings_user_path(@viewer)
     assert_response :success
     assert_select "se-profile"
-    assert_select "se-sidebar", count: 0
+    assert_select "se-sidebar", count: 1
     assert_select "se-button[data-open-delete-modal]"
     get workspaces_path
     assert_select "se-workspace-card", count: 0
@@ -43,7 +43,7 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
   test "shared public links allow reading but not private data or mutations" do
     get workspace_path(@public)
     assert_response :success
-    assert_select "se-sidebar", count: 0
+    assert_select "se-sidebar", count: 1
     get workspace_projects_path(@public)
     assert_select "se-project-card", count: 1
     assert_select "se-project-card[title='Shared project']"
@@ -51,8 +51,8 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     get translations_workspace_project_path(@public, @project)
     assert_response :success
     assert_select "se-sidebar", count: 1
-    assert_select "se-sidebar-chapter", count: 1
-    assert_select "se-sidebar-chapter[title=Workspace]", count: 0
+    assert_select "se-sidebar-chapter", count: 2
+    assert_select "se-sidebar-chapter[title=Workspace][layout-mode=mobile-only]", count: 1
     assert_select "se-sidebar-chapter[title=Administration]", count: 0
     get workspace_project_path(@public, @hidden)
     assert_response :not_found
@@ -72,12 +72,12 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     assert_select "se-workspace-card[title='Private team']"
   end
 
-  test "only owners have the all-workspaces directory" do
+  test "admins and owners have the all-workspaces directory" do
     get settings_workspaces_path
-    assert_redirected_to settings_users_path
+    assert_redirected_to overview_path
     sign_in @admin
     get settings_workspaces_path
-    assert_redirected_to settings_users_path
+    assert_response :success
     @admin.update!(role: :owner)
     get settings_workspaces_path
     assert_response :success
@@ -96,13 +96,13 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     assert_select "se-collection", count: 0
     assert_select "se-empty-illustration[variant=team-2][illustration-label=Banned][title='No banned users']"
     get settings_users_path
-    assert_select "se-list-row", text: /#{Regexp.escape(unverified.email)}/, count: 1
+    assert_select "se-list-row se-profile[subtitle=?]", unverified.email, count: 1
     assert_select "se-badge[text=Unverified]"
     assert_select "se-badge[text=Verified]"
     @viewer.update!(banned_at: Time.current)
     get settings_users_path(status: "banned")
     assert_select "se-list-row", count: 1
-    assert_select "se-list-row", text: /#{Regexp.escape(unverified.email)}/, count: 0
+    assert_select "se-list-row se-profile[subtitle=?]", unverified.email, count: 0
     assert_select "se-badge[text=Banned]", count: 0
   end
 end

@@ -1,8 +1,4 @@
 <section class="app-page">
   <header><se-title level="page">Welcome back, <%= current_user.name %></se-title></header>
-  <% if current_user.guest? %>
-    <se-empty-illustration variant="translation-2" title="Ready to explore" text="Open a workspace or project link shared with you, or accept an invitation to join a team. This account cannot create workspaces or browse a public workspace directory."></se-empty-illustration>
-  <% else %>
-    <se-empty-illustration variant="translation-2" title="Your dashboard is taking shape" text="This dashboard is still in development. Use the sidebar to open your workspaces and continue your localization projects."></se-empty-illustration>
-  <% end %>
+  <se-empty-illustration variant="translation-2" title="Your dashboard is taking shape" text="This dashboard is still in development. Use the sidebar to open your workspaces or check your invitations."></se-empty-illustration>
 </section>

@@ -5,7 +5,7 @@ module Sluggable
     normalizes :slug, with: ->(slug) { slug.strip.downcase }
     before_validation :assign_slug, on: :create
     validates :slug, presence: true, length: { maximum: 100 },
-      format: { with: ->(record) { record.is_a?(Project) ? /\A[a-z0-9]+(?:[-_][a-z0-9]+)*\z/ : /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/ } },
+      format: { with: /\A[a-z0-9]+(?:[-_][a-z0-9]+)*\z/ },
       exclusion: { in: %w[new edit] }
   end
 
@@ -17,7 +17,7 @@ module Sluggable
 
   def assign_slug
     return if slug.present?
-    separator = is_a?(Project) ? "_" : "-"
+    separator = "_"
     base = name.to_s.parameterize(separator: separator).first(90).sub(/[-_]+\z/, "").presence || self.class.model_name.singular
     base = "#{base}-1" if %w[new edit].include?(base)
     scope = self.class.all

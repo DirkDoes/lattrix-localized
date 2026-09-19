@@ -3,7 +3,7 @@ class User < ApplicationRecord
   THEME_PREFERENCES = %w[system light dark].freeze
   devise :database_authenticatable, :registerable, :recoverable, :rememberable,
     :validatable, :omniauthable, omniauth_providers: AuthenticationPolicy.providers.values.map(&:to_sym)
-  enum :role, { guest: 0, admin: 1, owner: 2 }
+  enum :role, { guest: 0, admin: 1, owner: 2, member: 3 }
   has_many :auth_identities, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
@@ -11,7 +11,8 @@ class User < ApplicationRecord
   before_validation :normalize_identity
   before_create :promote_first_user
   before_update :guard_owner_change
-  before_destroy :guard_last_owner, prepend: true
+  before_destroy :guard_workspace_ownership, prepend: true
+  before_destroy :guard_owner_deletion, prepend: true
   after_save :sync_password_identity
   after_save :sync_email_identity
   validates :theme_preference, inclusion: { in: THEME_PREFERENCES }
@@ -63,7 +64,42 @@ class User < ApplicationRecord
     end
   end
 
+  # Administrative deletion keeps every workspace and transfers only otherwise ownerless ones.
+  def destroy_with_workspace_transfer!(successor)
+    raise ArgumentError, "An active global owner is required" unless successor.owner? && successor.application_access?
+    with_lock do
+      raise ActiveRecord::RecordNotDestroyed.new("Demote this owner before deleting their account.", self) if owner?
+      Workspace.where(id: workspace_memberships.select(:workspace_id)).order(:id).lock.each do |workspace|
+        membership = workspace.workspace_memberships.find_by(user: self, role: "owner")
+        next unless membership
+        if workspace.workspace_memberships.where(role: "owner").where.not(user: self).exists?
+          membership.update!(role: "translator")
+        elsif (replacement = workspace.workspace_memberships.find_by(user: successor))
+          replacement.update!(role: "owner")
+          membership.update!(role: "translator")
+        else
+          membership.update!(user: successor)
+        end
+      end
+      workspace_memberships.reset
+      destroy!
+      EmailChallenge.where(email: email).delete_all
+    end
+  end
+
   private
+
+  def guard_workspace_ownership
+    return unless workspace_memberships.where(role: "owner").exists?
+    errors.add(:base, "Transfer your workspace ownership before deleting your account.")
+    throw :abort
+  end
+
+  def guard_owner_deletion
+    return unless role_in_database == "owner"
+    errors.add(:base, "Demote this owner before deleting their account.")
+    throw :abort
+  end
 
   # Email-code eligibility follows verified email; environment flags still gate its use.
   def sync_email_identity

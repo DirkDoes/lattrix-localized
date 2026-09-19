@@ -34,6 +34,7 @@ class Users::RegistrationsController < Devise::RegistrationsController
   end
 
   def destroy
+    authorize current_user, :manage_account?
     unless security_verified? && session[:account_deletion_user] == current_user.id
       return redirect_to edit_settings_user_path(current_user), alert: "Start account deletion again to confirm it's you."
     end

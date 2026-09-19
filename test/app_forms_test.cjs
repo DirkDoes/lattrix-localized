@@ -9,17 +9,22 @@ vm.runInNewContext(fs.readFileSync('app/assets/javascripts/app_forms.js', 'utf8'
   setTimeout: callback => { timer = callback; return 1; },
   clearTimeout: () => { timer = null; }
 });
-const slug = new controllers['project-slug']();
-slug.nameTarget = { value: 'My Translation Project', contains: target => target === 'name' };
-slug.slugTarget = { value: '', getAttribute: () => '', contains: target => target === 'slug' };
+const slug = new controllers['slug-mirror']();
+slug.sourceTarget = { value: 'My Translation Project', contains: target => target === 'name' };
+slug.destinationTarget = { value: '', getAttribute: () => '', contains: target => target === 'slug' };
+slug.separatorValue = "_";
 slug.connect();
 slug.update({ target: 'name' });
-assert.equal(slug.slugTarget.value, 'my_translation_project');
-slug.slugTarget.value = 'custom_slug';
+assert.equal(slug.destinationTarget.value, 'my_translation_project');
+slug.destinationTarget.value = 'custom-slug';
 slug.update({ target: 'slug' });
-slug.nameTarget.value = 'Changed Name';
+slug.sourceTarget.value = 'Changed Name';
 slug.update({ target: 'name' });
-assert.equal(slug.slugTarget.value, 'custom_slug');
+assert.equal(slug.destinationTarget.value, 'custom-slug');
+slug.edited = false;
+slug.separatorValue = "-";
+slug.update({ target: 'name' });
+assert.equal(slug.destinationTarget.value, 'changed-name');
 const search = new controllers['table-search']();
 let submissions = 0;
 search.element = { requestSubmit: () => submissions++ };

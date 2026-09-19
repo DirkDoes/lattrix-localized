@@ -11,9 +11,19 @@
   </header>
   <div class="app-stack" data-table-results>
   <% if @users.any? %>
-  <se-collection type="table" columns="minmax(10rem, 1fr) minmax(14rem, 2fr) 8rem 8rem 6rem" mobile-columns="minmax(8rem, 1fr) 5.5rem 4rem">
-    <se-list-header><span>Name<span layout-mode="mobile-only"> / email</span></span><span layout-mode="desktop-only">Email</span><span>Role</span><span layout-mode="desktop-only">Email status</span><span>Action</span></se-list-header>
-    <% @users.each do |user| %><se-list-row><span><strong><%= user.name %></strong><small layout-mode="mobile-only"><%= user.email %></small><span layout-mode="mobile-only"><se-badge tone="<%= user.email_verified_at ? "success" : "warning" %>" text="<%= user.email_verified_at ? "Verified" : "Unverified" %>"></se-badge></span></span><span layout-mode="desktop-only"><%= user.email %></span><se-badge tone="brand" text="<%= user.role.capitalize %>"></se-badge><span layout-mode="desktop-only"><se-badge tone="<%= user.email_verified_at ? "success" : "warning" %>" text="<%= user.email_verified_at ? "Verified" : "Unverified" %>"></se-badge></span><se-button variant="ghost" href="<%= edit_settings_user_path(user) %>" text="Edit"></se-button></se-list-row><% end %>
+  <se-collection type="table" columns="minmax(12rem, 1fr) 7rem 8rem 6rem" mobile-columns="minmax(0, 1fr) 5rem 4.5rem">
+    <se-list-header><span>User</span><span>Role</span><span layout-mode="desktop-only">Email status</span><span aria-label="Actions"><span layout-mode="desktop-only">Actions</span></span></se-list-header>
+    <% @users.each do |user| %>
+      <se-list-row>
+        <span class="app-user-identity">
+          <%= render "shared/table_profile", user: user, show_email: true %>
+          <span layout-mode="mobile-only" class="app-verification-status" role="img" aria-label="<%= user.email_verified_at ? 'Email verified' : 'Email unverified' %>" title="<%= user.email_verified_at ? 'Email verified' : 'Email unverified' %>"><se-icon name="<%= user.email_verified_at ? 'circle-check' : 'alert' %>"></se-icon></span>
+        </span>
+        <se-badge tone="brand" text="<%= user.role.capitalize %>"></se-badge>
+        <span layout-mode="desktop-only"><se-badge tone="<%= user.email_verified_at ? 'success' : 'warning' %>" text="<%= user.email_verified_at ? 'Verified' : 'Unverified' %>"></se-badge></span>
+        <span class="app-table-actions"><%= render "shared/row_actions", name: user.name, edit_url: (edit_settings_user_path(user) if policy(user).edit?), action_url: (ban_settings_user_path(user) if policy(user).ban?), action_method: :patch, action_label: (user.banned_at ? "Restore access" : "Ban user"), action_icon: (user.banned_at ? "check" : "x"), refresh_table: true %></span>
+      </se-list-row>
+    <% end %>
   </se-collection>
   <%= render "shared/table_pagination", url: settings_users_path(q: @query, status: (@banned ? "banned" : "active")) %>
   <% elsif @query.present? %>

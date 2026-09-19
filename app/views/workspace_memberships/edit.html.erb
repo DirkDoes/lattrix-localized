@@ -1,0 +1,24 @@
+<section class="app-page">
+  <%= render "workspaces/navigation" %>
+  <header class="app-heading"><se-title level="page">Edit member</se-title></header>
+  <se-card>
+  <%= form_with model: @membership, url: workspace_workspace_membership_path(@workspace, @membership), class: "app-form", html: { novalidate: true } do %>
+    <se-text><%= @membership.user.name %></se-text>
+    <% @membership.errors[:base].each do |error| %><se-text role="alert"><%= error %></se-text><% end %>
+    <se-select name="workspace_membership[role]" label="Workspace role" value="<%= @membership.role %>" <%= "disabled" if @role_options == ["owner"] %> options="<%= @role_options.map { |role| { id: role, label: role.capitalize } }.to_json %>"></se-select>
+    <se-text muted>Owners can manage all roles. Admins can manage Viewers and Translators. At least one owner must remain.</se-text>
+    <div class="app-form-actions"><se-button variant="ghost" text="Cancel" href="<%= members_workspace_path(@workspace) %>"></se-button><se-button type="submit" variant="brand" text="Save changes" <%= "disabled" if @role_options == ["owner"] %>></se-button></div>
+  <% end %>
+  </se-card>
+  <% if policy(@membership).destroy? %>
+    <se-card><div class="app-method-heading">
+      <div><se-title level="section">Remove member</se-title><se-text muted>This removes their workspace membership. Their account remains available.</se-text></div>
+      <se-button variant="danger" text="Remove member" data-open-modal="workspace-member-remove"></se-button>
+    </div></se-card>
+    <se-modal id="workspace-member-remove" title="Remove this member?" size="small" icon="alert" tone="warning" cancel-label="Cancel" confirm-label="Remove member" confirm-variant="danger" data-submit-form>
+      <%= form_with url: workspace_workspace_membership_path(@workspace, @membership), method: :delete do %>
+        <se-text>Remove <%= @membership.user.name %> from <%= @workspace.name %>?</se-text>
+      <% end %>
+    </se-modal>
+  <% end %>
+</section>

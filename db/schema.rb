@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,10 +92,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_120000) do
   create_table "workspace_invites", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.uuid "invited_by_id"
+    t.string "role", default: "viewer", null: false
     t.datetime "updated_at", null: false
     t.uuid "workspace_id", null: false
+    t.index ["invited_by_id"], name: "index_workspace_invites_on_invited_by_id"
     t.index ["workspace_id", "email"], name: "index_workspace_invites_on_workspace_id_and_email", unique: true
     t.index ["workspace_id"], name: "index_workspace_invites_on_workspace_id"
+    t.check_constraint "role::text = ANY (ARRAY['viewer'::character varying, 'translator'::character varying]::text[])", name: "workspace_invite_role"
   end
 
   create_table "workspace_memberships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -117,12 +121,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_120000) do
     t.datetime "updated_at", null: false
     t.string "visibility", default: "private", null: false
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
-    t.check_constraint "slug::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text AND length(slug::text) <= 100 AND (slug::text <> ALL (ARRAY['new'::character varying, 'edit'::character varying]::text[]))", name: "workspaces_slug_format"
+    t.check_constraint "slug::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text AND length(slug::text) <= 100 AND (slug::text <> ALL (ARRAY['new'::character varying, 'edit'::character varying]::text[]))", name: "workspaces_slug_format"
     t.check_constraint "visibility::text = ANY (ARRAY['public'::character varying, 'private'::character varying]::text[])", name: "workspace_visibility"
   end
 
   add_foreign_key "auth_identities", "users"
   add_foreign_key "projects", "workspaces"
+  add_foreign_key "workspace_invites", "users", column: "invited_by_id", on_delete: :nullify
   add_foreign_key "workspace_invites", "workspaces"
   add_foreign_key "workspace_memberships", "users"
   add_foreign_key "workspace_memberships", "workspaces"

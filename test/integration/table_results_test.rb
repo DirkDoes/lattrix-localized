@@ -45,11 +45,11 @@ class TableResultsTest < ActionDispatch::IntegrationTest
     get settings_workspaces_path(q: "result workspace", page: 2)
     assert_select "se-list-row", count: 3
     assert_select "se-pagination[pages='2']"
-    get settings_workspaces_path(q: "result-workspace-22")
+    get settings_workspaces_path(q: "result_workspace_22")
     assert_select "se-list-row", count: 1
     get members_workspace_path(@workspace, q: "result person")
     assert_select "se-list-row", count: 20
-    assert_select "se-button[text=Invite]"
+    assert_select "se-menu[data-members-menu]"
     get members_workspace_path(@workspace, q: "result person", page: 999999)
     assert_select "se-pagination[page='2'][pages='2']"
     assert_select "se-list-row", count: 3
@@ -70,6 +70,6 @@ class TableResultsTest < ActionDispatch::IntegrationTest
     get members_workspace_path(@workspace, q: "result")
     assert_response :not_found
     get settings_workspaces_path(q: "result")
-    assert_redirected_to settings_users_path
+    assert_redirected_to overview_path
   end
 end

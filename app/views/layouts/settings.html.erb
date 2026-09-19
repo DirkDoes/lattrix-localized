@@ -1,16 +1,17 @@
 <%
   project_scope = controller_name == "projects" && %w[show translations].include?(action_name)
-  show_sidebar = !current_user.guest? || project_scope
-  profile_name = current_user.name.presence || current_user.email.split("@").first.humanize
-  profile_initials = profile_name.split.map(&:first).join.first(2).upcase
-  theme_preference = current_user.theme_preference.presence_in(User::THEME_PREFERENCES) || "system"
+  profile_name = current_user&.name.presence || "Your account"
+  initials = profile_initials(profile_name)
+  theme_preference = current_user&.theme_preference.presence_in(User::THEME_PREFERENCES) || "system"
+  sidebar_workspaces = current_user ? policy_scope(Workspace).where(id: current_user.workspaces.select(:id)).order(:name).to_a : []
+  show_sidebar = current_user.present? || project_scope
 %>
 <!DOCTYPE html>
 <html data-theme="<%= theme_preference == "dark" ? "dark" : "light" %>" data-se-theme="<%= theme_preference == "dark" ? "flat" : "clean" %>" data-theme-preference="<%= theme_preference %>">
   <head>
     <title><%= content_for(:title) || "Lattrix Localized" %></title><meta name="viewport" content="width=device-width,initial-scale=1"><%= csrf_meta_tags %><%= csp_meta_tag %><link rel="icon" href="/icons/lattrix/lattrix-icon-small-light.svg" type="image/svg+xml">
     <link rel="icon" href="/icons/lattrix/lattrix-icon-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="/icon.png?v=lt">
-    <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %><%= javascript_include_tag "simple-elements", defer: true, "data-turbo-track": "reload" %><%= javascript_include_tag "ui", defer: true, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %><%= javascript_include_tag "navigation_state", "simple-elements", defer: true, "data-turbo-track": "reload" %><%= javascript_include_tag "ui", defer: true, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags "app_forms" %>
   </head>
   <body>
@@ -33,12 +34,14 @@
           <% end %>
         </section>
         <section data-end>
-          <se-profile data-profile-menu data-account-url="<%= edit_settings_user_path(current_user) %>" name="<%= profile_name %>" subtitle="<%= current_user.email %>" initials="<%= profile_initials %>" image="<%= profile_photo_url_for(current_user) %>" options='[{"id":"account","label":"Personal settings","icon":"settings"},{"id":"logout","label":"Log out","icon":"log-out","danger":true}]'></se-profile>
+          <% if current_user %>
+          <se-profile data-profile-menu data-account-url="<%= edit_settings_user_path(current_user) %>" name="<%= profile_name %>" initials="<%= initials %>" image="<%= profile_photo_url_for(current_user) %>" options='[{"id":"account","label":"Personal settings","icon":"settings"},{"id":"logout","label":"Log out","icon":"log-out","danger":true}]'></se-profile>
+          <% else %><se-button text="Log in" href="<%= new_user_session_path %>"></se-button><% end %>
         </section>
       </se-topbar>
       <div class="app-scope-row">
         <% if show_sidebar %>
-        <se-sidebar id="app-sidebar" layout-mode="responsive" collapsible <%= "collapsed" if cookies[:sidebar_collapsed] == "true" %>>
+        <se-sidebar id="app-sidebar" data-navigation-user="<%= current_user&.id || 'anonymous' %>" layout-mode="responsive" collapsible <%= "collapsed" if cookies[:sidebar_collapsed] == "true" %>>
           <% if project_scope %>
             <header layout-mode="mobile-only">
             <se-breadcrumbs variant="header" data-current-href="<%= workspace_project_path(@workspace, @project) %>" options="<%= [
@@ -54,20 +57,25 @@
                 <se-sidebar-button label="Translations" icon="languages" href="<%= translations_workspace_project_path(@workspace, @project) %>" <%= "active" if action_name == "translations" %>></se-sidebar-button>
               </se-sidebar-chapter>
             <% end %>
-            <% unless current_user.guest? %>
+            <% if current_user %>
             <se-sidebar-chapter title="Workspace" <%= 'layout-mode=mobile-only' if project_scope %>>
-              <se-sidebar-group variant="page" label="Workspaces" icon="folder" href="<%= workspaces_path %>" <%= "active" if controller_path == "workspaces" && action_name == "index" %>>
-                <% current_user.workspaces.order(:name).each do |sidebar_workspace| %>
+              <% if sidebar_workspaces.any? %>
+              <se-sidebar-group id="workspaces-navigation" variant="page" label="Workspaces" icon="folder" href="<%= workspaces_path %>" <%= "active" if controller_path == "workspaces" && action_name == "index" %>>
+                <% sidebar_workspaces.each do |sidebar_workspace| %>
                   <se-sidebar-button label="<%= sidebar_workspace.name %>" href="<%= workspace_path(sidebar_workspace) %>" icon="folder" <%= "active" if @workspace&.id == sidebar_workspace.id %>></se-sidebar-button>
                 <% end %>
               </se-sidebar-group>
+              <% else %>
+                <se-sidebar-button label="Workspaces" icon="folder" href="<%= workspaces_path %>" <%= "active" if controller_path == "workspaces" && action_name == "index" %>></se-sidebar-button>
+              <% end %>
+              <se-sidebar-button href="<%= workspace_invites_path %>" label="Invitations" icon="mail" <%= "active" if controller_name == "workspace_invites" && action_name == "index" && params[:workspace_id].blank? %>></se-sidebar-button>
               <se-sidebar-button href="<%= overview_path %>" label="Dashboard" icon="dashboard" <%= "active" if controller_name == "overview" %>></se-sidebar-button>
             </se-sidebar-chapter>
             <% end %>
-            <% if settings_access? %>
-              <se-sidebar-chapter title="Administration" <%= 'layout-mode=mobile-only' if project_scope %>>
+            <% if policy(User).index? %>
+              <se-sidebar-chapter id="administration-navigation" title="Administration" collapsible collapsed <%= 'layout-mode=mobile-only' if project_scope %>>
                 <se-sidebar-button href="<%= settings_users_path %>" label="Users" icon="users" <%= "active" if controller_name == "users" && action_name == "index" %>></se-sidebar-button>
-                <% if owner? %><se-sidebar-button href="<%= settings_workspaces_path %>" label="Workspaces" icon="folder" <%= "active" if controller_path == "settings/workspaces" %>></se-sidebar-button><% end %>
+                <se-sidebar-button href="<%= settings_workspaces_path %>" label="Workspaces" icon="folder" <%= "active" if controller_path == "settings/workspaces" %>></se-sidebar-button>
               </se-sidebar-chapter>
             <% end %>
           </section>
@@ -76,6 +84,6 @@
         <main class="se-page-layout__content app-content"><%= yield %></main>
       </div>
     </div>
-    <%= button_to "Log out", destroy_user_session_path, method: :delete, form: { id: "logout-form", hidden: true } %>
+    <% if current_user %><%= button_to "Log out", destroy_user_session_path, method: :delete, form: { id: "logout-form", hidden: true } %><% end %>
   </body>
 </html>

@@ -1,0 +1,26 @@
+<section class="app-page">
+  <%= render "workspaces/navigation" %>
+  <header class="app-heading">
+    <se-title level="page">Pending invitations</se-title>
+    <%= render "shared/table_search", url: workspace_workspace_invites_path(@workspace), placeholder: "Search invitations" %>
+  </header>
+  <section class="app-stack" data-table-results>
+    <% if @invites.any? %>
+      <se-collection type="table" columns="minmax(12rem, 1fr) 7rem 10rem minmax(8rem, 1fr) 7rem" mobile-columns="minmax(0, 1fr) 7rem">
+        <se-list-header><span>Email</span><span layout-mode="desktop-only">Role</span><span layout-mode="desktop-only">Invited</span><span layout-mode="desktop-only">Invited by</span><span>Action</span></se-list-header>
+        <% @invites.each do |invite| %>
+          <se-list-row>
+            <span><%= invite.email %><small layout-mode="mobile-only"><%= invite.role.capitalize %> · <%= time_ago_in_words(invite.created_at) %> ago<br>By <%= invite.invited_by&.name || "Not recorded" %></small></span>
+            <span layout-mode="desktop-only"><se-badge text="<%= invite.role.capitalize %>"></se-badge></span>
+            <span layout-mode="desktop-only" title="<%= invite.created_at.iso8601 %>"><%= time_ago_in_words(invite.created_at) %> ago</span>
+            <span layout-mode="desktop-only"><%= invite.invited_by&.name || "Not recorded" %></span>
+            <%= form_with url: workspace_workspace_invite_path(@workspace, invite), method: :delete do %><se-button type="submit" variant="ghost" text="Revoke" icon="x"></se-button><% end %>
+          </se-list-row>
+        <% end %>
+      </se-collection>
+      <%= render "shared/table_pagination", url: workspace_workspace_invites_path(@workspace, q: @query) %>
+    <% else %>
+      <se-empty-illustration variant="inbox" title="No pending invitations" text="<%= @query.present? ? 'No invitations match your search.' : 'New invitations will appear here until they are accepted, declined, or revoked.' %>"></se-empty-illustration>
+    <% end %>
+  </section>
+</section>

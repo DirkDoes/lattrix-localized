@@ -42,3 +42,15 @@ The role of this file is to describe common mistakes and confusion points that a
 - Email verification grants email-code eligibility, not recent security proof. Security proof is bound to the user and current primary email and expires without sliding renewal. Provider login does not grant it.
 
 - Simple Elements v0.13.2 modal serializes child content with innerHTML. Already-initialized se-select children retain data-ready but lose listeners and selected state. Fix by preserving/moving child nodes in the library; do not patch its internals from the app.
+
+- Workspace/project visibility controls are mounted from inert templates by `modal-fields` after se-modal composition, so its current serialization cannot discard their listeners. Remove this deferred mounting when the library preserves child nodes.
+
+- Simple Elements v0.13.2 se-select renders an absolutely positioned menu inside the modal's scrollable body. It has no documented portal/popover option, so menus expand/clip that body. This needs a library-level top-layer menu implementation; do not add app CSS overrides of select/modal internals.
+
+- Sidebar groups and chapters do not emit the sidebar's collapsechange event. navigation_state.js restores their public collapsed attributes before library initialization and observes subsequent changes. Put a stable unique id on new collapsible sidebar elements. Load this deferred script before simple-elements; restoring attributes after initialization would leave chapter aria-expanded stale.
+
+- Authorization uses Pundit policies in app/policies. Follow docs/authorization.md: controllers must authorize resources and policy_scope collections before search/pagination; views must use those same policies. New resource controllers need verify_authorized and verify_policy_scoped hooks. Keep authentication/challenge flows separate, and preserve model-level last-owner and capacity protections.
+
+- Simple Elements v0.13.2 se-menu has no icon-only trigger API (it always adds More). Its absolute menu is clipped by table cells with overflow:hidden and the collection overflow boundary. Use pencil edit links until the library supports top-layer menus inside tables; do not override internal table/menu CSS.
+
+- v0.13.3 supersedes the v0.13.2 modal/select notes above: modals preserve child nodes and select menus use the top layer. The app's modal-fields workaround has been removed.

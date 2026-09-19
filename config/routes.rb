@@ -1,12 +1,14 @@
 Rails.application.routes.draw do
   resource :profile_photo, only: [:update, :destroy]
   get "profile_photos/:id", to: "profile_photos#show", as: :profile_photo_image
-  resources :workspaces, only: [:index, :create, :show] do
+  resources :workspaces, only: [:index, :create, :show, :update, :destroy] do
+    get :settings, on: :member
     get :members, on: :member
     resources :projects, only: [:index, :create, :show] do
       get :translations, on: :member
     end
-    resources :workspace_invites, only: :create
+    resources :workspace_invites, only: [:index, :create, :destroy]
+    resources :workspace_memberships, only: [:edit, :update, :destroy]
   end
   resources :workspace_invites, only: [:index, :update]
   get "up" => "rails/health#show", as: :rails_health_check

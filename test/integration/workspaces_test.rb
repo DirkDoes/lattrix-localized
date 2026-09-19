@@ -7,7 +7,8 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     @owner = users(:one)
     @recipient = users(:two)
     [ @owner, @recipient ].each { |user| user.update!(email_verified_at: Time.current) }
-    @owner.update!(role: :admin)
+    @owner.update!(role: :member)
+    @recipient.update!(role: :guest)
     sign_in @owner
     post workspaces_path, params: { workspace: { name: "Localization", visibility: "private", role: "viewer" } }
     @workspace = Workspace.order(:created_at).last
@@ -40,7 +41,7 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
   test "email-only invites do not disclose account existence and are idempotent" do
     [ @recipient.email.upcase, "future@example.com", @owner.email ].each do |email|
       assert_difference "WorkspaceInvite.count" do
-        post workspace_workspace_invites_path(@workspace), params: { email: " #{email} ", role: "owner" }
+        post workspace_workspace_invites_path(@workspace), params: { email: " #{email} ", role: "viewer" }
       end
       assert_redirected_to members_workspace_path(@workspace)
       assert_equal "User has been invited.", flash[:notice]
@@ -61,14 +62,16 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
 
   test "workspace roles authorize invites independently of global role" do
     membership = @workspace.workspace_memberships.find_by!(user: @owner)
+    backup = User.register_verified!(email: "backup@example.com")
+    @workspace.workspace_memberships.create!(user: backup, role: "owner")
     %w[viewer translator].each do |role|
       membership.update!(role: role)
       assert_no_difference "WorkspaceInvite.count" do
         post workspace_workspace_invites_path(@workspace), params: { email: @recipient.email }
       end
-      assert_response :forbidden
+      assert_response(role == "viewer" ? :not_found : :forbidden)
       get members_workspace_path(@workspace)
-      assert_select "se-button[data-open-modal=workspace-invite-modal]", count: 0
+      assert_select "se-menu[data-members-menu]", count: 0
       assert_select "se-modal#workspace-invite-modal", count: 0
     end
     membership.update!(role: "admin")
@@ -136,14 +139,14 @@ class WorkspacesTest < ActionDispatch::IntegrationTest
     assert_select "se-title[level=page]", text: @workspace.name
     assert_select "se-empty-illustration"
     assert_select "se-collection", count: 0
-    assert_select "se-button[data-open-modal=workspace-invite-modal]", count: 0
+    assert_select "se-menu[data-members-menu]", count: 0
     assert_select "se-button[text='All workspaces']", count: 0
     get members_workspace_path(@workspace)
     assert_select "se-nav-tabs[value=members]"
     assert_select "se-title[level=page]", text: "Members"
     assert_select "se-title[level=section]", count: 0
     assert_select "se-collection[type=table]"
-    assert_select "se-button[data-open-modal=workspace-invite-modal]"
+    assert_select "se-menu[data-members-menu]"
     sign_in @recipient
     get members_workspace_path(@workspace)
     assert_response :not_found

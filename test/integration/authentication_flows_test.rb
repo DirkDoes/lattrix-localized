@@ -196,9 +196,9 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     @user.update!(banned_at: Time.current)
     sign_in admin
     get settings_users_path
-    assert_select "se-list-row", text: /One User/, count: 0
+    assert_select "se-list-row se-profile[name='One User']", count: 0
     get settings_users_path(status: "banned")
-    assert_select "se-list-row", text: /One User/, count: 1
+    assert_select "se-list-row se-profile[name='One User']", count: 1
     assert_select "se-badge[text='Banned']", count: 0
   end
 

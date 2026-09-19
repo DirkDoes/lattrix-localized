@@ -18,6 +18,7 @@ class Users::EmailCodesController < ApplicationController
   end
 
   def security
+    authorize current_user, :manage_account?
     session[:security_next] = params[:next] == "delete" ? "delete" : nil
     if security_verified?
       return finish_security_check
@@ -31,6 +32,7 @@ class Users::EmailCodesController < ApplicationController
   end
 
   def change_email
+    authorize current_user, :manage_account?
     unless security_verified?
       return redirect_to edit_settings_user_path(current_user), alert: "Complete the security check before changing your email."
     end

@@ -1,6 +1,6 @@
 <main class="app-auth"><se-card class="app-auth-card"><div class="app-stack">
   <se-title level="section">You don't have access to this application</se-title>
-  <se-text muted>You are signed in as <%= current_user.email %>.</se-text>
+  <se-text muted>You are signed in as <%= current_user.name %>.</se-text>
   <se-badge tone="error" text="Access suspended"></se-badge>
   <se-text muted>Contact the application administrator if you believe you should have access.</se-text>
   <%= form_with url: destroy_user_session_path, method: :delete, class: "app-provider-form" do %>

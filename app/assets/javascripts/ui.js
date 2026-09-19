@@ -68,13 +68,7 @@ document.addEventListener("confirm", (event) => {
 
 
 
-document.addEventListener("collapsechange", (event) => {
 
-  if (event.target.id !== "app-sidebar") return;
-
-  document.cookie = `sidebar_collapsed=${event.detail.collapsed}; Path=/; Max-Age=31536000; SameSite=Lax`;
-
-});
 
 
 
@@ -209,4 +203,25 @@ document.addEventListener("change", (event) => {
   const url = new URL(event.target.dataset.paginationUrl, window.location.origin);
   url.searchParams.set("page", event.detail.page);
   window.location.assign(url);
+});
+
+document.addEventListener("dragstart", (event) => {
+  if (event.target.closest("se-layout-brand")) event.preventDefault();
+});
+
+document.addEventListener("confirm", (event) => {
+  if (event.target.matches("se-modal[data-submit-form]")) event.target.querySelector("form").requestSubmit();
+  if (event.target.matches("se-modal[data-confirm-next]")) document.getElementById(event.target.dataset.confirmNext).open();
+});
+
+document.addEventListener("select", (event) => {
+  if (!event.target.matches("se-menu[data-row-actions]")) return;
+  if (event.detail.id === "edit") window.location.assign(event.target.dataset.editUrl);
+  if (event.detail.id === "action") event.target.parentElement.querySelector("form[data-row-action-form]").requestSubmit();
+});
+
+document.addEventListener("select", (event) => {
+  if (!event.target.matches("se-menu[data-members-menu]")) return;
+  if (event.detail.id === "invite") document.getElementById("workspace-invite-modal").open();
+  if (event.detail.id === "invites") window.location.assign(event.target.dataset.invitesUrl);
 });

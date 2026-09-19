@@ -55,6 +55,6 @@ class AccountDeletionTest < ActionDispatch::IntegrationTest
       delete user_registration_path, params: { confirmation: "DELETE MY ACCOUNT" }
     end
     assert_redirected_to edit_settings_user_path(@user)
-    assert_match "At least one active owner", flash[:alert]
+    assert_match "Demote this owner", flash[:alert]
   end
 end

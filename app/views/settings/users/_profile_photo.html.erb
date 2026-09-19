@@ -11,7 +11,7 @@
         </div>
       <% end %>
     </div>
-    <se-profile name="<%= user.name %>" subtitle="<%= user.email %>" initials="<%= user.name.to_s.first(2).upcase %>" image="<%= profile_photo_url_for(user) %>"></se-profile>
+    <se-profile name="<%= user.name %>" subtitle="<%= user.email %>" initials="<%= profile_initials(user.name) %>" image="<%= profile_photo_url_for(user) %>"></se-profile>
     <% if user == current_user %><se-text muted small>Your uploaded picture takes priority. Removing it also stops automatic provider photos.</se-text><% end %>
   </div>
 </se-card>

@@ -1,7 +1,8 @@
 class OverviewController < ApplicationController
   layout "settings"
+  after_action :verify_authorized
 
   def show
-    # Protected overview page - requires authentication
+    authorize :application, :access?
   end
 end

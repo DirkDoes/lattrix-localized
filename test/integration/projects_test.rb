@@ -5,7 +5,7 @@ class ProjectsTest < ActionDispatch::IntegrationTest
 
   test "sidebar collapse preference survives navigation" do
     owner = users(:one)
-    owner.update!(email_verified_at: Time.current, role: :admin)
+    owner.update!(email_verified_at: Time.current, role: :member)
     sign_in owner
     cookies[:sidebar_collapsed] = "true"
     get workspaces_path
@@ -19,9 +19,10 @@ class ProjectsTest < ActionDispatch::IntegrationTest
 
   test "projects stay scoped, creation is authorized, and navigation follows the scope" do
     owner = users(:one)
-    owner.update!(email_verified_at: Time.current, role: :admin)
+    owner.update!(email_verified_at: Time.current, role: :member)
     workspace = Workspace.create!(name: "Team", visibility: "private")
     membership = workspace.workspace_memberships.create!(user: owner, role: "owner")
+    workspace.workspace_memberships.create!(user: users(:two), role: "owner")
     sign_in owner
     get workspace_projects_path(workspace)
     assert_select "header se-button[data-open-modal=project-create-modal]", count: 0

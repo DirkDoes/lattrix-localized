@@ -1,4 +1,5 @@
 class Users::AuthenticationMethodsController < ApplicationController
+  before_action { authorize current_user, :manage_account? }
   before_action :require_security_verification
 
   def link

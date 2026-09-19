@@ -16,7 +16,8 @@ class SlugsTest < ActionDispatch::IntegrationTest
     assert_not duplicate.valid?
     assert duplicate.errors.of_kind?(:slug, :taken)
     other = Workspace.create!(name: "Acme Team")
-    assert_equal "acme-team-2", other.slug
+    assert_equal "acme_team", other.slug
+    assert_equal "acme_team-2", Workspace.create!(name: "Acme Team").slug
     other.workspace_memberships.create!(user: owner, role: "owner")
     post workspace_projects_path(workspace), params: { project: { name: "Website", slug: "website" } }
     assert_redirected_to "/workspaces/acme-team/projects/website"
@@ -26,7 +27,7 @@ class SlugsTest < ActionDispatch::IntegrationTest
     get translations_workspace_project_path(workspace, project)
     assert_response :success
     assert_equal "/workspaces/acme-team/projects/website/translations", request.path
-    %w[new edit with_underscore].each do |slug|
+    %w[new edit double__underscore].each do |slug|
       assert_not Workspace.new(name: "Name", slug: slug).valid?
     end
     assert_raises ActiveRecord::RecordNotUnique do

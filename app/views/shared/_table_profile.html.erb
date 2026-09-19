@@ -1,0 +1,1 @@
+<se-profile class="app-table-profile" name="<%= user.name %>" <%= tag.attributes(subtitle: user.email) if show_email %> initials="<%= profile_initials(user.name) %>" image="<%= profile_photo_url_for(user) %>"></se-profile>

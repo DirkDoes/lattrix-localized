@@ -1,6 +1,5 @@
 class Workspace < ApplicationRecord
   include Sluggable
-  scope :visible_to, ->(user) { where(visibility: "public").or(where(id: user.workspaces.select(:id))) }
 
   has_many :projects, dependent: :destroy
   has_many :workspace_memberships, dependent: :destroy
