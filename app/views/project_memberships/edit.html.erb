@@ -1,0 +1,31 @@
+<section class="app-page">
+  <%= render "projects/navigation" %>
+  <div class="app-stack app-settings-body">
+  <header class="app-heading"><se-title level="page">Edit member</se-title></header>
+  <se-card>
+  <%= form_with model: @membership, url: project_project_membership_path(@project, @membership), class: "app-form", data: {controller: "membership-languages"}, html: { novalidate: true } do %>
+    <se-text><%= @membership.user.name %></se-text>
+    <% @membership.errors[:base].each do |error| %><se-text role="alert"><%= error %></se-text><% end %>
+    <se-select data-membership-languages-target="role" data-action="change->membership-languages#update" name="project_membership[role]" label="Project role" value="<%= @membership.role %>" <%= "disabled" if @role_options == ["owner"] %> options="<%= @role_options.map { |role| { id: role, label: role.capitalize } }.to_json %>"></se-select>
+    <se-text muted>Owners can manage all roles. Admins can manage Viewers and Translators. At least one owner must remain.</se-text>
+    <div data-membership-languages-target="assignments" <%= 'hidden' unless @membership.role == 'translator' %>>
+      <input type="hidden" name="language_ids[]" value="">
+      <se-select multiple searchable name="language_ids[]" label="Assigned languages" placeholder="No languages assigned" value="<%= @membership.language_ids.join(',') %>" options="<%= @project.languages.order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
+      <se-text muted>No selection means this translator cannot edit translations.</se-text>
+    </div>
+    <div class="app-form-actions"><se-button variant="ghost" text="Cancel" href="<%= members_project_path(@project) %>"></se-button><se-button type="submit" variant="brand" text="Save changes" <%= "disabled" if @role_options == ["owner"] %>></se-button></div>
+  <% end %>
+  </se-card>
+  <% if policy(@membership).destroy? %>
+    <se-card><div class="app-method-heading">
+      <div><se-title level="section">Remove member</se-title><se-text muted>This removes their project membership. Their account remains available.</se-text></div>
+      <se-button variant="danger" text="Remove member" data-open-modal="project-member-remove"></se-button>
+    </div></se-card>
+    <se-modal id="project-member-remove" title="Remove this member?" size="small" icon="alert" tone="warning" cancel-label="Cancel" confirm-label="Remove member" confirm-variant="danger" data-submit-form>
+      <%= form_with url: project_project_membership_path(@project, @membership), method: :delete do %>
+        <se-text>Remove <%= @membership.user.name %> from <%= @project.name %>?</se-text>
+      <% end %>
+    </se-modal>
+  <% end %>
+  </div>
+</section>

@@ -1,0 +1,33 @@
+<% editing = key.present?; modal_id = editing ? "key-edit-#{key.id}" : "key-create" %>
+<se-modal id="<%= modal_id %>" title="<%= editing ? 'Edit key' : 'Add key' %>" size="medium" cancel-label="Cancel" confirm-label="<%= editing ? 'Save key' : 'Add key' %>" <%= 'data-submit-form' if editing %>>
+  <%= form_with url: editing ? project_sheet_recording_path(@project,@sheet,key) : project_sheet_recordings_path(@project,@sheet), method: editing ? :patch : :post, class: "app-form", data: {turbo: false, controller: "key-form key-editor", action: "submit->key-form#submit", key_editor_preview_value: preview_project_sheet_recordings_path(@project,@sheet), key_editor_parents_value: parents_project_sheet_recordings_path(@project,@sheet), key_editor_default_value: @sheet.default_language_id, key_editor_delimiter_value: @sheet.delimiter, key_editor_id_value: key&.id} do %>
+    <% if editing %><input type="hidden" name="version" value="<%= key.lock_version %>"><% end %>
+    <input type="hidden" name="separated" value="<%= parent || editing ? '1' : '0' %>" data-key-editor-target="separated">
+    <div <%= 'hidden' unless parent || editing %> data-key-editor-target="parentArea">
+      <input type="hidden" name="parent_id" value="<%= parent&.id %>" data-key-editor-target="parent" data-path="<%= parent ? key_path(parent) : '' %>">
+      <se-select label="Parent key" searchable remote clearable placeholder="Top level" empty-text="Type at least 3 characters." value="<%= parent&.id %>" options="<%= (parent ? [{id: parent.id, label: key_path(parent)}] : []).to_json %>" data-key-editor-target="parentPicker" data-action="search->key-editor#searchParents change->key-editor#chooseParent"></se-select>
+    </div>
+    <div class="app-form-row key-name-row">
+      <se-input label="Key name" name="name" value="<%= key&.recordable&.name %>" data-key-editor-target="name" data-action="input->key-editor#preview"></se-input>
+      <span data-key-editor-target="combinedToggle"><se-button variant="secondary" icon="unlink" text="Separate parent" data-action="click->key-editor#toggleParent"></se-button></span><span hidden data-key-editor-target="separatedToggle"><se-button variant="secondary" icon="link" text="Use full path" data-action="click->key-editor#toggleParent"></se-button></span>
+    </div>
+    <div class="app-row-actions" role="status" data-key-editor-target="preview"><se-badge tone="gray" text="Add a key"></se-badge></div>
+    <se-input type="textarea" autosize fixed name="description" label="Description (optional)" value="<%= key&.recordable&.description %>"></se-input>
+    <% if @sheet.pluralization_enabled? %>
+      <input type="hidden" name="pluralized" value="0">
+      <se-tooltip content="Plural values belong to category keys. Translations entered here go to other. Enabling plurals moves existing parent values there and rejects conflicts."><se-checkbox variant="switch" label="Pluralized translation" name="pluralized" value="1" data-key-editor-target="plural" data-action="change->key-editor#pluralChanged" <%= 'checked' if key&.recordable&.pluralized %>></se-checkbox></se-tooltip>
+    <% end %>
+    <div data-key-editor-target="translations" hidden><se-collection type="table" columns="minmax(0,1fr) minmax(0,1fr) auto" data-key-editor-target="rows"><se-list-header><span>Language</span><span>Translation</span><span></span></se-list-header></se-collection></div>
+    <span data-key-editor-target="addTranslation"><se-button variant="secondary" icon="plus" text="Add language translation" data-action="click->key-editor#addLanguage"></se-button></span>
+    <template data-key-editor-target="rowTemplate">
+      <se-list-row class="key-translation-row">
+        <div class="app-table-control"><se-select size="small" aria-label="Language" data-controller="control-label" options="<%= @languages.map { |language| {id: language.id, label: language.name} }.to_json %>" data-language></se-select></div>
+        <div class="app-table-control"><se-input size="small" type="textarea" autosize fixed aria-label="Translation" data-controller="control-label" placeholder="" data-text></se-input></div>
+        <se-button variant="mini" icon="trash" aria-label="Remove translation row" data-action="click->key-editor#removeLanguage"></se-button>
+      </se-list-row>
+    </template>
+    <% values = editing && !(@sheet.pluralization_enabled? && key.recordable.pluralized) ? key.children.active.texts.includes(:recordable).map { |value| {language_id: value.recordable.language_id, text: value.recordable.text, version: value.lock_version, translation_id: value.id} } : [] %>
+    <input type="hidden" data-key-editor-target="initial" value="<%= values.to_json %>">
+    <% if editing %><se-text muted>Changing the name or parent also changes every nested key’s path.</se-text><% end %>
+  <% end %>
+</se-modal>

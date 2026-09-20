@@ -24,28 +24,28 @@ class AdministrativeAccountActionsTest < ActionDispatch::IntegrationTest
     assert_nil @target.reload.banned_at
   end
 
-  test "deleting a nonowner transfers sole ownership and preserves shared workspaces" do
-    sole = Workspace.create!(name: "Sole")
-    sole.workspace_memberships.create!(user: @target, role: "owner")
-    project = sole.projects.create!(name: "Keep project")
-    joined = Workspace.create!(name: "Already joined")
-    joined.workspace_memberships.create!(user: @target, role: "owner")
-    joined.workspace_memberships.create!(user: @actor, role: "viewer")
-    shared = Workspace.create!(name: "Shared")
-    shared.workspace_memberships.create!(user: @target, role: "owner")
+  test "deleting a nonowner transfers sole ownership and preserves shared projects" do
+    sole = Project.create!(name: "Sole")
+    sole.project_memberships.create!(user: @target, role: "owner")
+    sheet = sole.sheets.create!(name: "Keep sheet")
+    joined = Project.create!(name: "Already joined")
+    joined.project_memberships.create!(user: @target, role: "owner")
+    joined.project_memberships.create!(user: @actor, role: "viewer")
+    shared = Project.create!(name: "Shared")
+    shared.project_memberships.create!(user: @target, role: "owner")
     remaining = User.register_verified!(email: "remaining@example.com")
-    shared.workspace_memberships.create!(user: remaining, role: "owner")
-    invite = sole.workspace_invites.create!(email: "future@example.com", invited_by: @target)
+    shared.project_memberships.create!(user: remaining, role: "owner")
+    invite = sole.project_invites.create!(email: "future@example.com", invited_by: @target)
     delete settings_user_path(@target)
     assert_redirected_to settings_users_path
     assert_not User.exists?(@target.id)
-    assert_equal "owner", sole.workspace_memberships.find_by!(user: @actor).role
-    assert_equal "owner", joined.workspace_memberships.find_by!(user: @actor).role
-    assert_equal [remaining.id], shared.workspace_memberships.pluck(:user_id)
-    assert Project.exists?(project.id)
+    assert_equal "owner", sole.project_memberships.find_by!(user: @actor).role
+    assert_equal "owner", joined.project_memberships.find_by!(user: @actor).role
+    assert_equal [remaining.id], shared.project_memberships.pluck(:user_id)
+    assert Sheet.exists?(sheet.id)
     assert_nil invite.reload.invited_by_id
-    assert_equal 1, sole.workspace_memberships.count
-    assert_equal 1, joined.workspace_memberships.count
+    assert_equal 1, sole.project_memberships.count
+    assert_equal 1, joined.project_memberships.count
   end
 
   test "even another owner cannot delete an owner before demotion" do

@@ -1,0 +1,4 @@
+  <se-modal id="key-remove-<%= key.id %>" title="Remove this subtree?" size="small" cancel-label="Cancel" confirm-label="Remove subtree" data-submit-form>
+    <se-text>This removes this key, all nested keys, and their translations from the sheet. Their records are retained, but restoring may require resolving conflicts.</se-text>
+    <%= form_with url: project_sheet_recording_path(@project,@sheet,key), method: :delete, data: {turbo: false, controller: "key-form", action: "submit->key-form#submit"} do %><input type="hidden" name="version" value="<%= key.lock_version %>"><% end %>
+  </se-modal>

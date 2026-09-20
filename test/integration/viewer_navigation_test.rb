@@ -10,19 +10,19 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     assert_equal 0, @viewer.role_before_type_cast
     @admin = users(:two)
     @admin.update!(email_verified_at: Time.current)
-    @public = Workspace.create!(name: "Shared public", visibility: "public")
-    @private = Workspace.create!(name: "Private team")
-    @project = @public.projects.create!(name: "Shared project", visibility: "public")
-    @hidden = @public.projects.create!(name: "Private project")
-    @private_project = @private.projects.create!(name: "Hidden by workspace", visibility: "public")
+    @public = Project.create!(name: "Shared public", visibility: "public")
+    @private = Project.create!(name: "Private team")
+    @sheet = @public.sheets.create!(name: "Shared sheet", visibility: "public")
+    @hidden = @public.sheets.create!(name: "Private sheet")
+    @private_sheet = @private.sheets.create!(name: "Hidden by project", visibility: "public")
     sign_in @viewer
   end
 
   test "viewer landing and personal settings retain the header with global navigation" do
-    get overview_path
+    get projects_path
     assert_select "se-topbar se-profile"
-    assert_select "se-empty-illustration[variant=translation-2][title][text]"
-    assert_select "se-title[level=page]", text: "Welcome back, #{@viewer.name}"
+    assert_select "se-empty-illustration[title][text]"
+    assert_select "se-title[level=page]", text: "Projects"
     assert_select "se-card", count: 0
     assert_select "se-sidebar", count: 1
     assert_select "se-sidebar-toggle", count: 1
@@ -31,60 +31,60 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     assert_select "se-profile"
     assert_select "se-sidebar", count: 1
     assert_select "se-button[data-open-delete-modal]"
-    get workspaces_path
+    get projects_path
     assert_select "se-workspace-card", count: 0
-    assert_select "se-modal#workspace-create-modal", count: 0
-    assert_no_difference "Workspace.count" do
-      post workspaces_path, params: { workspace: { name: "Not allowed" } }
+    assert_select "se-modal#project-create-modal", count: 0
+    assert_no_difference "Project.count" do
+      post projects_path, params: { project: { name: "Not allowed" } }
     end
     assert_response :forbidden
   end
 
   test "shared public links allow reading but not private data or mutations" do
-    get workspace_path(@public)
+    get project_sheets_path(@public)
     assert_response :success
     assert_select "se-sidebar", count: 1
-    get workspace_projects_path(@public)
+    get project_sheets_path(@public)
     assert_select "se-project-card", count: 1
-    assert_select "se-project-card[title='Shared project']"
-    assert_select "se-button[data-open-modal=project-create-modal]", count: 0
-    get translations_workspace_project_path(@public, @project)
+    assert_select "se-project-card[title='Shared sheet']"
+    assert_select "se-button[data-open-modal=sheet-create-modal]", count: 0
+    get translations_project_sheet_path(@public, @sheet)
     assert_response :success
     assert_select "se-sidebar", count: 1
-    assert_select "se-sidebar-chapter", count: 2
-    assert_select "se-sidebar-chapter[title=Workspace][layout-mode=mobile-only]", count: 1
+    assert_select "se-sidebar-chapter", count: 1
+    assert_select "se-sidebar-chapter[title=Project]:not([layout-mode])", count: 1
     assert_select "se-sidebar-chapter[title=Administration]", count: 0
-    get workspace_project_path(@public, @hidden)
+    get translations_project_sheet_path(@public, @hidden)
     assert_response :not_found
-    get workspace_project_path(@private, @private_project)
+    get translations_project_sheet_path(@private, @private_sheet)
     assert_response :not_found
-    get members_workspace_path(@public)
+    get members_project_path(@public)
     assert_response :not_found
-    post workspace_projects_path(@public), params: { project: { name: "Not allowed" } }
+    post project_sheets_path(@public), params: { sheet: { name: "Not allowed" } }
     assert_response :forbidden
-    post workspace_workspace_invites_path(@public), params: { email: "someone@example.com" }
+    post project_project_invites_path(@public), params: { email: "someone@example.com" }
     assert_response :not_found
-    @private.workspace_memberships.create!(user: @viewer, role: "viewer")
-    get workspace_project_path(@private, @private_project)
+    @private.project_memberships.create!(user: @viewer, role: "viewer")
+    get translations_project_sheet_path(@private, @private_sheet)
     assert_response :success
-    get workspaces_path
+    get projects_path
     assert_select "se-workspace-card", count: 1
     assert_select "se-workspace-card[title='Private team']"
   end
 
-  test "admins and owners have the all-workspaces directory" do
-    get settings_workspaces_path
-    assert_redirected_to overview_path
+  test "admins and owners have the all-projects directory" do
+    get settings_projects_path
+    assert_redirected_to projects_path
     sign_in @admin
-    get settings_workspaces_path
+    get settings_projects_path
     assert_response :success
     @admin.update!(role: :owner)
-    get settings_workspaces_path
+    get settings_projects_path
     assert_response :success
     assert_select "se-list-row", count: 2
     assert_select "se-workspace-card", count: 0
-    assert_select "se-button[variant=link][href=?]", workspace_path(@private)
-    assert_select "se-sidebar-chapter[title=Administration] se-sidebar-button[href=?]", settings_workspaces_path
+    assert_select "se-button[variant=link][href=?]", project_path(@private)
+    assert_select "se-sidebar-chapter[title=Administration] se-sidebar-button[href=?]", settings_projects_path
   end
 
   test "banned tab excludes unverified accounts and replaces an empty table with illustration" do

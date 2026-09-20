@@ -1,0 +1,39 @@
+<% show_emails = policy(@project).view_member_emails? %>
+<% manage_members = policy(@project).update? %>
+<section class="app-page">
+  <%= render "projects/navigation" %>
+  <header class="app-heading">
+    <se-title level="page">Members</se-title>
+    <div class="app-method-label">
+      <%= render "shared/table_search", url: members_project_path(@project), placeholder: "Search members" %>
+      <% if policy(@project.project_invites.new).create? %><se-menu icon-only label="Member actions" data-members-menu data-invites-url="<%= project_project_invites_path(@project) %>" options='[{"id":"invite","label":"Invite member","icon":"send"},{"id":"invites","label":"See invites","icon":"mail"}]'></se-menu><% end %>
+    </div>
+  </header>
+  <section class="app-stack" aria-label="Members" data-table-results>
+    <% if @memberships.any? %>
+      <se-collection type="table" columns="<%= manage_members ? 'minmax(12rem, 1fr) 7rem 6rem' : 'minmax(12rem, 1fr) 7rem' %>" mobile-columns="<%= manage_members ? 'minmax(0, 1fr) 6rem 4.5rem' : 'minmax(0, 1fr) 6rem' %>">
+        <se-list-header><span>User</span><span>Role</span><% if manage_members %><span aria-label="Actions"><span layout-mode="desktop-only">Actions</span></span><% end %></se-list-header>
+        <% @memberships.each do |membership| %>
+          <se-list-row>
+            <span><%= render "shared/table_profile", user: membership.user, show_email: show_emails %></span>
+            <se-badge tone="brand" text="<%= membership.role.capitalize %>"></se-badge>
+            <% if manage_members %><span class="app-table-actions"><%= render "shared/row_actions", name: membership.user.name, edit_url: (edit_project_project_membership_path(@project, membership) if policy(membership).edit?), action_url: (project_project_membership_path(@project, membership) if policy(membership).destroy?), action_method: :delete, action_label: "Remove member", action_icon: "unlink" %></span><% end %>
+          </se-list-row>
+        <% end %>
+      </se-collection>
+      <%= render "shared/table_pagination", url: members_project_path(@project, q: @query) %>
+    <% else %>
+      <se-empty-illustration variant="search" title="No members found" text="<%= show_emails ? 'Try another name or email address.' : 'Try another name.' %>"></se-empty-illustration>
+    <% end %>
+  </section>
+  <% if policy(@project.project_invites.new).create? %>
+    <se-modal id="project-invite-modal" title="Invite someone" subtitle="Choose the access they will receive when they join." size="medium" icon="mail" tone="brand" cancel-label="Cancel" confirm-label="Invite" <%= "open" if @invite_error || @invite_role_error %>>
+      <%= form_with url: project_project_invites_path(@project), class: "app-form", html: { novalidate: true } do %>
+        <se-input type="email" label="Email address" name="email" value="<%= @invite_email %>" error="<%= @invite_error %>" hint="They can accept from Invitations after signing in with this email."></se-input>
+          <se-select label="Project role" name="role" value="<%= @invite_role || 'viewer' %>" options="<%= ProjectInvite::ROLES.map { |role| { id: role, label: role.capitalize } }.to_json %>"></se-select>
+        <% if @invite_role_error %><se-text role="alert"><%= @invite_role_error %></se-text><% end %>
+        <se-text muted>Only Viewers and Translators can be invited. An owner can grant Admin or Owner access after they join.</se-text>
+      <% end %>
+    </se-modal>
+  <% end %>
+</section>

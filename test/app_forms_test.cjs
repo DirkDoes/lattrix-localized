@@ -3,19 +3,19 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const controllers = {};
 let timer;
-vm.runInNewContext(fs.readFileSync('app/assets/javascripts/app_forms.js', 'utf8').replace(/^import .*;\r?\n/, ''), {
+vm.runInNewContext(fs.readFileSync('app/assets/javascripts/app_forms.js', 'utf8').replace(/^(?:import .*;|window\.Turbo\.session.*;|registerTranslations.*;)\r?\n/gm, ""), {
   Application: { start: () => ({ register: (name, klass) => { controllers[name] = klass; } }) },
   Controller: class {},
   setTimeout: callback => { timer = callback; return 1; },
   clearTimeout: () => { timer = null; }
 });
 const slug = new controllers['slug-mirror']();
-slug.sourceTarget = { value: 'My Translation Project', contains: target => target === 'name' };
+slug.sourceTarget = { value: 'My Translation Sheet', contains: target => target === 'name' };
 slug.destinationTarget = { value: '', getAttribute: () => '', contains: target => target === 'slug' };
 slug.separatorValue = "_";
 slug.connect();
 slug.update({ target: 'name' });
-assert.equal(slug.destinationTarget.value, 'my_translation_project');
+assert.equal(slug.destinationTarget.value, 'my_translation_sheet');
 slug.destinationTarget.value = 'custom-slug';
 slug.update({ target: 'slug' });
 slug.sourceTarget.value = 'Changed Name';

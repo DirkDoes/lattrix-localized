@@ -30,7 +30,7 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     assert_difference "User.count", 1 do
       patch users_email_code_path, params: { code: code }
     end
-    assert_redirected_to overview_path
+    assert_redirected_to projects_path
     user = User.find_by!(email: "new@example.com")
     assert user.email_verified_at
     assert_match(/\A[0-9a-f-]{36}\z/, user.id)
@@ -60,7 +60,7 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     assert_no_difference "User.count" do
       patch users_email_code_path, params: { code: code_from_mail }
     end
-    assert_redirected_to overview_path
+    assert_redirected_to projects_path
     get edit_settings_user_path(@user)
     assert_response :success
   end
@@ -104,7 +104,7 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
   test "ban denies application access but allows password and email authentication and sign out" do
     sign_in @user
     @user.update!(banned_at: Time.current)
-    get overview_path
+    get projects_path
     assert_response :forbidden
     get settings_users_path
     assert_response :forbidden
@@ -116,18 +116,18 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     delete destroy_user_session_path
     assert_response :redirect
     post user_session_path, params: { user: { email: @user.email, password: "Password123!" } }
-    assert_redirected_to overview_path
-    get overview_path
+    assert_redirected_to projects_path
+    get projects_path
     assert_response :forbidden
     assert_select "se-badge[text='Access suspended']"
     delete destroy_user_session_path
     post users_email_code_path, params: { user: { email: @user.email } }
     patch users_email_code_path, params: { code: code_from_mail }
-    assert_redirected_to overview_path
-    get overview_path
+    assert_redirected_to projects_path
+    get projects_path
     assert_response :forbidden
     @user.update!(banned_at: nil)
-    get overview_path
+    get projects_path
     assert_response :success
   end
 

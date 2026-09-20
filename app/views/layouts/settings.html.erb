@@ -1,14 +1,14 @@
 <%
-  project_scope = controller_name == "projects" && %w[show translations].include?(action_name)
   profile_name = current_user&.name.presence || "Your account"
   initials = profile_initials(profile_name)
   theme_preference = current_user&.theme_preference.presence_in(User::THEME_PREFERENCES) || "system"
-  sidebar_workspaces = current_user ? policy_scope(Workspace).where(id: current_user.workspaces.select(:id)).order(:name).to_a : []
-  show_sidebar = current_user.present? || project_scope
+  sidebar_projects = current_user ? policy_scope(Project).where(id: current_user.projects.select(:id)).order(:name).to_a : []
+  show_sidebar = current_user.present?
 %>
 <!DOCTYPE html>
 <html data-theme="<%= theme_preference == "dark" ? "dark" : "light" %>" data-se-theme="<%= theme_preference == "dark" ? "flat" : "clean" %>" data-theme-preference="<%= theme_preference %>">
   <head>
+    <%= javascript_include_tag "theme", "data-turbo-track": "reload" %>
     <title><%= content_for(:title) || "Lattrix Localized" %></title><meta name="viewport" content="width=device-width,initial-scale=1"><%= csrf_meta_tags %><%= csp_meta_tag %><link rel="icon" href="/icons/lattrix/lattrix-icon-small-light.svg" type="image/svg+xml">
     <link rel="icon" href="/icons/lattrix/lattrix-icon-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="/icon.png?v=lt">
     <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %><%= javascript_include_tag "navigation_state", "simple-elements", defer: true, "data-turbo-track": "reload" %><%= javascript_include_tag "ui", defer: true, "data-turbo-track": "reload" %>
@@ -17,68 +17,45 @@
   <body>
     <%= render "shared/toasts" %>
     <div class="app-shell">
-      <se-topbar>
+      <se-topbar layout-mode="<%= show_sidebar ? 'mobile-only' : 'always' %>">
         <section data-start>
           <% if show_sidebar %><se-sidebar-toggle for="app-sidebar" layout-mode="mobile-only"></se-sidebar-toggle><% end %>
-          <se-layout-brand
-            icon="/icons/lattrix/lattrix-text-localized-light.svg"
-            dark-icon="/icons/lattrix/lattrix-text-localized-dark.svg"
-            compact-icon="/icons/lattrix/lattrix-icon-localized-light.svg"
-            compact-dark-icon="/icons/lattrix/lattrix-icon-localized-dark.svg"
-            href="<%= overview_path %>"></se-layout-brand>
-          <% if project_scope %>
-            <se-breadcrumbs layout-mode="desktop-only" variant="header" data-current-href="<%= workspace_project_path(@workspace, @project) %>" options="<%= [
-              { label: @workspace.name, href: workspace_path(@workspace) },
-              { label: @project.name, href: workspace_project_path(@workspace, @project) }
-            ].to_json %>"></se-breadcrumbs>
-          <% end %>
+          <%= render "shared/layout_brand" %>
+
         </section>
         <section data-end>
           <% if current_user %>
-          <se-profile data-profile-menu data-account-url="<%= edit_settings_user_path(current_user) %>" name="<%= profile_name %>" initials="<%= initials %>" image="<%= profile_photo_url_for(current_user) %>" options='[{"id":"account","label":"Personal settings","icon":"settings"},{"id":"logout","label":"Log out","icon":"log-out","danger":true}]'></se-profile>
+          <%= render "shared/layout_profile", profile_name: profile_name, initials: initials %>
           <% else %><se-button text="Log in" href="<%= new_user_session_path %>"></se-button><% end %>
         </section>
       </se-topbar>
       <div class="app-scope-row">
         <% if show_sidebar %>
-        <se-sidebar id="app-sidebar" data-navigation-user="<%= current_user&.id || 'anonymous' %>" layout-mode="responsive" collapsible <%= "collapsed" if cookies[:sidebar_collapsed] == "true" %>>
-          <% if project_scope %>
-            <header layout-mode="mobile-only">
-            <se-breadcrumbs variant="header" data-current-href="<%= workspace_project_path(@workspace, @project) %>" options="<%= [
-              { label: @workspace.name, href: workspace_path(@workspace) },
-              { label: @project.name, href: workspace_project_path(@workspace, @project) }
-            ].to_json %>"></se-breadcrumbs>
-            </header>
-          <% end %>
+        <se-sidebar id="app-sidebar" data-navigation-user="<%= current_user&.id || 'anonymous' %>" layout-mode="responsive" <%= "collapsed" if cookies[:sidebar_collapsed] == "true" %>>
+          <header layout-mode="desktop-only"><%= render "shared/layout_brand", collapsible: true %></header>
           <section>
-            <% if project_scope %>
-              <se-sidebar-chapter title="<%= @project.name %>">
-                <se-sidebar-button label="Dashboard" icon="dashboard" href="<%= workspace_project_path(@workspace, @project) %>" <%= "active" if action_name == "show" %>></se-sidebar-button>
-                <se-sidebar-button label="Translations" icon="languages" href="<%= translations_workspace_project_path(@workspace, @project) %>" <%= "active" if action_name == "translations" %>></se-sidebar-button>
-              </se-sidebar-chapter>
-            <% end %>
             <% if current_user %>
-            <se-sidebar-chapter title="Workspace" <%= 'layout-mode=mobile-only' if project_scope %>>
-              <% if sidebar_workspaces.any? %>
-              <se-sidebar-group id="workspaces-navigation" variant="page" label="Workspaces" icon="folder" href="<%= workspaces_path %>" <%= "active" if controller_path == "workspaces" && action_name == "index" %>>
-                <% sidebar_workspaces.each do |sidebar_workspace| %>
-                  <se-sidebar-button label="<%= sidebar_workspace.name %>" href="<%= workspace_path(sidebar_workspace) %>" icon="folder" <%= "active" if @workspace&.id == sidebar_workspace.id %>></se-sidebar-button>
+            <se-sidebar-chapter title="Project">
+              <% if sidebar_projects.any? %>
+              <se-sidebar-group id="projects-navigation" variant="page" label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>>
+                <% sidebar_projects.each do |sidebar_project| %>
+                  <se-sidebar-button label="<%= sidebar_project.name %>" href="<%= project_path(sidebar_project) %>" icon="folder" <%= "active" if @project&.id == sidebar_project.id %>></se-sidebar-button>
                 <% end %>
               </se-sidebar-group>
               <% else %>
-                <se-sidebar-button label="Workspaces" icon="folder" href="<%= workspaces_path %>" <%= "active" if controller_path == "workspaces" && action_name == "index" %>></se-sidebar-button>
+                <se-sidebar-button label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>></se-sidebar-button>
               <% end %>
-              <se-sidebar-button href="<%= workspace_invites_path %>" label="Invitations" icon="mail" <%= "active" if controller_name == "workspace_invites" && action_name == "index" && params[:workspace_id].blank? %>></se-sidebar-button>
-              <se-sidebar-button href="<%= overview_path %>" label="Dashboard" icon="dashboard" <%= "active" if controller_name == "overview" %>></se-sidebar-button>
+              <se-sidebar-button href="<%= project_invites_path %>" label="Invitations" icon="mail" <%= "active" if controller_name == "project_invites" && action_name == "index" && params[:project_id].blank? %>></se-sidebar-button>
             </se-sidebar-chapter>
             <% end %>
             <% if policy(User).index? %>
-              <se-sidebar-chapter id="administration-navigation" title="Administration" collapsible collapsed <%= 'layout-mode=mobile-only' if project_scope %>>
+              <se-sidebar-chapter id="administration-navigation" title="Administration" collapsible collapsed>
                 <se-sidebar-button href="<%= settings_users_path %>" label="Users" icon="users" <%= "active" if controller_name == "users" && action_name == "index" %>></se-sidebar-button>
-                <se-sidebar-button href="<%= settings_workspaces_path %>" label="Workspaces" icon="folder" <%= "active" if controller_path == "settings/workspaces" %>></se-sidebar-button>
+                <se-sidebar-button href="<%= settings_projects_path %>" label="Projects" icon="folder" <%= "active" if controller_path == "settings/projects" %>></se-sidebar-button>
               </se-sidebar-chapter>
             <% end %>
           </section>
+          <footer layout-mode="desktop-only"><%= render "shared/layout_profile", profile_name: profile_name, initials: initials %></footer>
         </se-sidebar>
         <% end %>
         <main class="se-page-layout__content app-content"><%= yield %></main>

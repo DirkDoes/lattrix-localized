@@ -1,18 +1,16 @@
 class Project < ApplicationRecord
   include Sluggable
-  belongs_to :workspace
+  has_many :identifier_sets, dependent: :destroy
+  has_many :export_requests, dependent: :destroy
+  after_create { identifier_sets.create!(name: "Default") }
+  has_many :languages, dependent: :nullify
+
+  has_many :sheets, dependent: :destroy
+  has_many :project_memberships, dependent: :destroy
+  has_many :users, through: :project_memberships
+  has_many :project_invites, dependent: :destroy
   normalizes :name, with: ->(name) { name.strip }
-  validates :slug, uniqueness: { case_sensitive: false, scope: :workspace_id }
+  validates :slug, uniqueness: { case_sensitive: false }
   validates :name, presence: true, length: { maximum: 100 }
   validates :visibility, inclusion: { in: %w[public private] }
-
-  validate :workspace_capacity, on: :create
-
-  def workspace_capacity
-    errors.add(:base, "A workspace can contain at most 12 projects.") if workspace && workspace.projects.count >= 12
-  end
-
-  def effective_visibility
-    workspace.visibility == "private" ? "private" : visibility
-  end
 end

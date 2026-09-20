@@ -1,6 +1,10 @@
 import { Application, Controller } from "@hotwired/stimulus";
 
+import "@hotwired/turbo-rails";
+import { registerTranslations } from "translations";
+window.Turbo.session.drive = false;
 const application = Application.start();
+registerTranslations(application, Controller);
 application.register("slug-mirror", class extends Controller {
   static targets = ["source", "destination"];
   static values = { separator: { type: String, default: "_" } };
@@ -75,6 +79,6 @@ application.register("table-action", class extends Controller {
 application.register("control-label", class extends Controller {
   async connect() {
     await customElements.whenDefined(this.element.localName);
-    this.element.querySelector("input, button")?.setAttribute("aria-label", this.element.getAttribute("aria-label"));
+    this.element.querySelector("input:not([type=hidden]), textarea, button")?.setAttribute("aria-label", this.element.getAttribute("aria-label"));
   }
 });

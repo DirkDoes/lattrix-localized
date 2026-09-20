@@ -10,22 +10,22 @@ class PolicyEnforcementTest < ActionDispatch::IntegrationTest
   end
 
   test "a resource action missing authorize is detected" do
-    workspace = Workspace.create!(name: "Policy guard", visibility: "public")
-    original = WorkspacesController.instance_method(:show)
-    WorkspacesController.define_method(:show) { render plain: "Probe" }
-    assert_raises(Pundit::AuthorizationNotPerformedError) { get workspace_path(workspace) }
+    project = Project.create!(name: "Policy guard", visibility: "public")
+    original = ProjectsController.instance_method(:show)
+    ProjectsController.define_method(:show) { render plain: "Probe" }
+    assert_raises(Pundit::AuthorizationNotPerformedError) { get project_path(project) }
   ensure
-    WorkspacesController.define_method(:show, original) if original
+    ProjectsController.define_method(:show, original) if original
   end
 
   test "a resource index missing policy scope is detected" do
-    original = WorkspacesController.instance_method(:index)
-    WorkspacesController.define_method(:index) do
-      authorize Workspace
+    original = ProjectsController.instance_method(:index)
+    ProjectsController.define_method(:index) do
+      authorize Project
       render plain: "Probe"
     end
-    assert_raises(Pundit::PolicyScopingNotPerformedError) { get workspaces_path }
+    assert_raises(Pundit::PolicyScopingNotPerformedError) { get projects_path }
   ensure
-    WorkspacesController.define_method(:index, original) if original
+    ProjectsController.define_method(:index, original) if original
   end
 end

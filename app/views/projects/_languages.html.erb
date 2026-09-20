@@ -1,0 +1,17 @@
+<%= form_with model: @project, data: {controller: "configuration-toggle", action: "change->configuration-toggle#submit"} do %>
+  <input type="hidden" name="project[advanced_languages]" value="0">
+  <se-checkbox variant="switch" name="project[advanced_languages]" value="1" label="Advanced language configuration" <%= 'checked' if @project.advanced_languages? %>></se-checkbox>
+<% end %>
+<% if @project.advanced_languages? %><%= render "projects/identifier_sets" %><% end %>
+<div class="app-stack" data-controller="language-table">
+  <se-title level="section">Languages</se-title>
+  <se-collection type="table" columns="minmax(0,1fr) minmax(0,1.4fr) auto" data-language-table-target="rows">
+    <se-list-header><span>Name</span><span class="app-row-actions">Sheets<se-tooltip content="Leave empty to use this language in all sheets, including future sheets. Select sheets to limit where it is available."><se-button variant="mini" icon="info" aria-label="About language sheets"></se-button></se-tooltip></span><span></span></se-list-header>
+    <% @project.languages.includes(:sheet_languages).order(:name).each do |language| %>
+      <%= render "projects/language_row", language: language %>
+      <% if @project.advanced_languages? %><%= render "projects/language_identifiers", language: language %><% end %>
+    <% end %>
+  </se-collection>
+  <se-button class="app-language-add" variant="secondary" icon="plus" text="Add language" data-action="click->language-table#add"></se-button>
+  <template data-language-table-target="template"><%= render "projects/language_row", language: @project.languages.new %></template>
+</div>

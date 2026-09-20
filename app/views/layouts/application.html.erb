@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html data-theme="light" data-se-theme="clean" data-theme-preference="system">
   <head>
+    <%= javascript_include_tag "theme", "data-turbo-track": "reload" %>
     <title><%= content_for(:title) || "Lattrix Localized" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %><%= csp_meta_tag %><%= yield :head %>

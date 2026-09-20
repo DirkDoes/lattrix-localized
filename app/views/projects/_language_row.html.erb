@@ -1,0 +1,5 @@
+<se-list-row data-controller="language-row" data-language-row-url-value="<%= language.persisted? ? project_language_path(@project,language) : project_languages_path(@project) %>" data-language-row-method-value="<%= language.persisted? ? 'PATCH' : 'POST' %>">
+  <div class="app-table-control"><se-input aria-label="Language name" data-controller="control-label" value="<%= language.name %>" data-language-row-target="name"></se-input></div>
+  <div class="app-table-control"><se-select multiple searchable placeholder="All sheets" aria-label="Sheets" data-controller="control-label" value="<%= language.enabled? ? '' : language.sheet_languages.select(&:enabled?).map(&:sheet_id).join(',') %>" options="<%= @project.sheets.order(:name).map { |sheet| {id: sheet.id, label: sheet.name} }.to_json %>" data-language-row-target="sheets"></se-select></div>
+  <se-button variant="secondary" text="Save" data-action="click->language-row#save"></se-button>
+</se-list-row>

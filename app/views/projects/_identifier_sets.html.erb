@@ -1,0 +1,9 @@
+<div class="app-stack" data-controller="language-table">
+  <se-title level="section">Identifier sets</se-title>
+  <se-collection type="table" columns="minmax(0,1fr) minmax(0,1.4fr) auto" data-language-table-target="rows">
+    <se-list-header><span>Name</span><span>Description</span><span></span></se-list-header>
+    <% @project.identifier_sets.order(:created_at).each do |set| %><%= render "projects/identifier_set_row", set: set %><% end %>
+  </se-collection>
+  <se-button class="app-language-add" variant="secondary" icon="plus" text="Add identifier set" data-action="click->language-table#add"></se-button>
+  <template data-language-table-target="template"><%= render "projects/identifier_set_row", set: @project.identifier_sets.new %></template>
+</div>

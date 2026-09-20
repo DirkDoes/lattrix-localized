@@ -2,7 +2,7 @@
 <% options << { id: "edit", label: "Edit", icon: "pencil" } if edit_url %>
 <% options << { id: "action", label: action_label, icon: action_icon, danger: true } if action_url %>
 <% if options.any? %>
-  <se-menu icon-only label="Actions for <%= name %>" data-row-actions data-edit-url="<%= edit_url %>" options="<%= options.to_json %>"></se-menu>
+  <se-menu variant="ghost" icon-only label="Actions for <%= name %>" data-row-actions data-edit-url="<%= edit_url %>" options="<%= options.to_json %>"></se-menu>
   <% if action_url %><%= form_with url: action_url, method: action_method, html: { hidden: true }, data: { row_action_form: true, controller: ("table-action" if local_assigns[:refresh_table]), action: ("submit->table-action#submit" if local_assigns[:refresh_table]) } do %>
     <% if local_assigns[:refresh_table] %><%= hidden_field_tag :return_to, "users" %><%= hidden_field_tag :status, @banned ? "banned" : "active" %><%= hidden_field_tag :q, @query %><%= hidden_field_tag :page, @page %><% end %>
   <% end %><% end %>

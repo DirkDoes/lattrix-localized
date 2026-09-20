@@ -37,7 +37,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
       assert_difference "User.count", 1 do
         provider_auth(provider, email: "#{provider}@example.com")
       end
-      assert_redirected_to overview_path
+      assert_redirected_to projects_path
       user = User.find_by!(email: "#{provider}@example.com")
       assert_equal ["email_code", provider].sort, user.auth_identities.pluck(:provider).sort
       assert_equal "External User", user.auth_identities.find_by!(provider: provider).display_name
@@ -49,7 +49,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
       assert_no_difference "User.count" do
         provider_auth(provider, email: "changed-#{provider}@example.com")
       end
-      assert_redirected_to overview_path
+      assert_redirected_to projects_path
       sign_out user
     end
   end
@@ -60,7 +60,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
       ProfilePhoto.stub(:fetch, png) do
         provider_auth(provider, email: "photo-#{provider}@example.com", image: "https://example.com/avatar")
       end
-      assert_redirected_to overview_path
+      assert_redirected_to projects_path
       user = User.find_by!(email: "photo-#{provider}@example.com")
       assert user.profile_photo.present?
       delete profile_photo_path
@@ -69,7 +69,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
       ProfilePhoto.stub(:fetch, ->(*) { flunk "Removed photo must stay removed" }) do
         provider_auth(provider, email: user.email, image: "https://example.com/avatar")
       end
-      assert_redirected_to overview_path
+      assert_redirected_to projects_path
       assert_nil user.reload.profile_photo
       sign_out user
     end
@@ -151,8 +151,8 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     @user.auth_identities.create!(provider: "google", provider_uid: "account-123")
     @user.update!(banned_at: Time.current)
     provider_auth("google")
-    assert_redirected_to overview_path
-    get overview_path
+    assert_redirected_to projects_path
+    get projects_path
     assert_response :forbidden
     sign_out @user
     ENV["AUTH_METHODS"] = "password"
@@ -162,8 +162,8 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
 
   test "new provider accounts receive access as guests" do
     provider_auth("github", email: "new-provider@example.com")
-    assert_redirected_to overview_path
-    get overview_path
+    assert_redirected_to projects_path
+    get projects_path
     assert_response :success
     assert User.find_by!(email: "new-provider@example.com").guest?
   end
@@ -176,6 +176,6 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     assert_no_difference "User.count" do
       patch users_email_code_path, params: { code: ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/] }
     end
-    assert_redirected_to overview_path
+    assert_redirected_to projects_path
   end
 end

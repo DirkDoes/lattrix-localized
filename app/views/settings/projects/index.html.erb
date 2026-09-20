@@ -1,0 +1,22 @@
+<section class="app-page">
+  <header class="app-heading">
+    <se-title level="page">Projects</se-title>
+    <%= render "shared/table_search", url: settings_projects_path, placeholder: "Search projects" %>
+  </header>
+  <div class="app-stack" data-table-results>
+  <% if @projects.any? %>
+    <se-collection type="table" columns="minmax(12rem, 2fr) minmax(10rem, 1fr) 7rem" mobile-columns="minmax(0, 1fr) 6rem">
+      <se-list-header><span>Name</span><span layout-mode="desktop-only">Identifier</span><span>Visibility</span></se-list-header>
+      <% @projects.each do |project| %>
+        <se-list-row><span class="app-table-control"><se-button variant="link" text="<%= project.name %>" href="<%= project_path(project) %>"></se-button></span><span layout-mode="desktop-only"><%= project.slug %></span><se-badge tone="gray" text="<%= project.visibility.capitalize %>"></se-badge></se-list-row>
+      <% end %>
+    </se-collection>
+  <%= render "shared/table_pagination", url: settings_projects_path(q: @query) %>
+  <% elsif @query.present? %>
+    <se-empty-illustration variant="search" title="No projects found" text="Try another project name or identifier."></se-empty-illustration>
+  <% else %>
+    <se-empty-illustration variant="folders-2" title="No projects yet" text="Projects will appear here when they are created."></se-empty-illustration>
+  <% end %>
+
+  </div>
+</section>

@@ -1,0 +1,23 @@
+<% export_sheets = sheet ? [sheet] : policy_scope(@project.sheets).order(:name).to_a %>
+<% if export_sheets.any? %>
+<div data-controller="export-download">
+  <se-modal id="export-modal" title="Export translations" size="medium" cancel-label="Cancel" confirm-label="Generate export" data-submit-form>
+    <%= form_with url: project_exports_path(@project), class: "app-form", data: {action: "submit->export-download#start"} do %>
+      <% if sheet %><input type="hidden" name="sheet_ids[]" value="<%= sheet.id %>"><% else %><se-select label="Sheets" name="sheet_ids[]" multiple searchable placeholder="All sheets" options="<%= export_sheets.map { |item| {id:item.id,label:item.name} }.to_json %>"></se-select><% end %>
+      <div class="app-form-row export-format-row">
+        <se-select label="Format" name="export_format" value="yaml" data-action="change->export-download#format" options='[{"id":"yaml","label":"YAML"},{"id":"json","label":"JSON"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select>
+        <% sets = @project.identifier_sets.order(:created_at).to_a %>
+        <% if sets.length > 1 %><se-select label="Identifier set" name="identifier_set_id" value="<%= sets.first.id %>" options="<%= sets.map { |set| {id:set.id,label:set.name,description:set.description} }.to_json %>"></se-select><% end %>
+      </div>
+      <se-select label="Languages" name="language_ids[]" multiple searchable placeholder="All languages" options="<%= (sheet ? sheet.active_languages : @project.languages).order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
+      <div hidden data-export-download-target="descriptions"><se-checkbox variant="switch" label="Include key descriptions" name="descriptions" value="1"></se-checkbox></div>
+    <% end %>
+  </se-modal>
+  <se-modal title="Preparing export" size="medium" data-export-download-target="progressModal" cancel-label="Hide progress" confirm-label="Cancel export" confirm-variant="secondary" data-action="confirm->export-download#cancel">
+    <se-empty-illustration variant="workflow" title="Building your export" text="Your download will start when the files are ready."></se-empty-illustration>
+    <se-spinner label="Generating files"></se-spinner>
+    <progress max="100" value="0" data-export-download-target="progress"></progress>
+    <se-text role="status" data-export-download-target="status">Queued…</se-text>
+  </se-modal>
+</div>
+<% end %>

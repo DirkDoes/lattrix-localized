@@ -1,5 +1,5 @@
 <section class="app-page app-account-page">
-  <header class="app-heading"><se-title level="page"><%= @user == current_user ? "Personal settings" : "Edit user" %></se-title><se-button variant="ghost" href="<%= policy(User).index? ? settings_users_path : overview_path %>" text="Back"></se-button></header>
+  <header class="app-heading"><se-title level="page"><%= @user == current_user ? "Personal settings" : "Edit user" %></se-title><se-button variant="ghost" href="<%= policy(User).index? ? settings_users_path : projects_path %>" text="Back"></se-button></header>
   <%= render "settings/users/profile_photo", user: @user %>
   <se-card>
     <%= form_with model: @user, url: settings_user_path(@user), class: "app-form", html: { novalidate: true } do %>
@@ -10,7 +10,7 @@
         <% if @can_edit_role %><se-select label="Role" name="user[role]" value="<%= @user.role %>" <%= "disabled" if @role_options == ["owner"] %> error="<%= @user.errors[:role].first %>" options="<%= @role_options.map { |role| { id: role, label: role.capitalize } }.to_json %>"></se-select><% end %>
         <% if @user == current_user %><se-theme-switch label="Appearance" name="user[theme_preference]" mode="ternary" variant="segmented" value="<%= @user.theme_preference %>"></se-theme-switch><% end %>
       </div>
-      <footer class="app-form-actions"><se-button variant="ghost" href="<%= overview_path %>" text="Cancel"></se-button><se-button type="submit" variant="brand" text="Save changes"></se-button></footer>
+      <footer class="app-form-actions"><se-button variant="ghost" href="<%= projects_path %>" text="Cancel"></se-button><se-button type="submit" variant="brand" text="Save changes"></se-button></footer>
     <% end %>
   </se-card>
   <%= render "settings/users/authentication_methods", user: @user %>
@@ -21,7 +21,7 @@
     <se-title level="section">Manage access</se-title>
     <%= form_with url: ban_settings_user_path(@user), method: :patch do %><se-button type="submit" variant="ghost" text="<%= @user.banned_at ? "Restore access" : "Ban user" %>"></se-button><% end %>
     <% if policy(@user).destroy? %>
-    <se-text muted>Workspaces for which this account is the only owner will be transferred to you when you delete the account.</se-text>
+    <se-text muted>Projects for which this account is the only owner will be transferred to you when you delete the account.</se-text>
     <%= form_with url: settings_user_path(@user), method: :delete, data: { turbo_confirm: "Permanently delete this user? They may register again if registration is open. Ban them to prevent access." } do %><se-button type="submit" variant="ghost" text="Delete user"></se-button><% end %>
     <% end %>
   </div></se-card><% end %>

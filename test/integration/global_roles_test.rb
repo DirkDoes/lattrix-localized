@@ -9,109 +9,109 @@ class GlobalRolesTest < ActionDispatch::IntegrationTest
     sign_in @user
   end
 
-  test "member workspace creation is capped at three owned workspaces" do
-    other = Workspace.create!(name: "Invited team")
-    other.workspace_memberships.create!(user: @user, role: "admin")
-    get workspaces_path
-    assert_select "header se-button[text='Create new workspace']"
+  test "member project creation is capped at three owned projects" do
+    other = Project.create!(name: "Invited team")
+    other.project_memberships.create!(user: @user, role: "admin")
+    get projects_path
+    assert_select "header se-button[text='Create new project']"
     3.times do |index|
-      assert_difference "Workspace.count" do
-        post workspaces_path, params: { workspace: { name: "My team #{index}" } }
+      assert_difference "Project.count" do
+        post projects_path, params: { project: { name: "My team #{index}" } }
       end
       assert_response :redirect
     end
-    assert_equal 3, @user.workspace_memberships.where(role: "owner").count
-    assert_no_difference "Workspace.count" do
-      post workspaces_path, params: { workspace: { name: "Fourth" } }
+    assert_equal 3, @user.project_memberships.where(role: "owner").count
+    assert_no_difference "Project.count" do
+      post projects_path, params: { project: { name: "Fourth" } }
     end
     assert_response :unprocessable_entity
-    assert_select "se-text[role=alert]", text: /three workspaces/
-    get workspaces_path
-    assert_select "se-button[data-open-modal=workspace-create-modal]", count: 0
+    assert_select "se-text[role=alert]", text: /three projects/
+    get projects_path
+    assert_select "se-button[data-open-modal=project-create-modal]", count: 0
     assert_select "se-workspace-card", count: 4
     get settings_users_path
-    assert_redirected_to overview_path
-    get settings_workspaces_path
-    assert_redirected_to overview_path
+    assert_redirected_to projects_path
+    get settings_projects_path
+    assert_redirected_to projects_path
   end
 
   test "empty states distinguish guests and members and invitations live in the sidebar" do
-    get workspaces_path
-    assert_select "header se-button[data-open-modal=workspace-create-modal]", count: 0
-    assert_select "se-empty-illustration se-button[text='Create new workspace']"
-    assert_select "se-sidebar-button[label=Invitations][href=?]", workspace_invites_path
-    assert_select "header se-button[href=?]", workspace_invites_path, count: 0
+    get projects_path
+    assert_select "header se-button[data-open-modal=project-create-modal]", count: 0
+    assert_select "se-empty-illustration se-button[text='Create new project']"
+    assert_select "se-sidebar-button[label=Invitations][href=?]", project_invites_path
+    assert_select "header se-button[href=?]", project_invites_path, count: 0
     assert_select "se-sidebar-chapter[title=Administration]", count: 0
     assert_select "se-sidebar[data-navigation-user=?]", @user.id
-    assert_select "se-sidebar-group#workspaces-navigation", count: 0
-    assert_select "se-sidebar-button[label=Workspaces]"
+    assert_select "se-sidebar-group#projects-navigation", count: 0
+    assert_select "se-sidebar-button[label=Projects]"
     @user.update!(role: :guest)
-    get workspaces_path
+    get projects_path
     assert_select "se-empty-illustration[text*='invite you']"
-    assert_select "se-modal#workspace-create-modal", count: 0
-    assert_no_difference "Workspace.count" do
-      post workspaces_path, params: { workspace: { name: "Forbidden" } }
+    assert_select "se-modal#project-create-modal", count: 0
+    assert_no_difference "Project.count" do
+      post projects_path, params: { project: { name: "Forbidden" } }
     end
     assert_response :forbidden
   end
 
-  test "admins and owners have no workspace cap and downgrade keeps existing workspaces" do
+  test "admins and owners have no project cap and downgrade keeps existing projects" do
     @user.update!(role: :admin)
     4.times do |index|
-      post workspaces_path, params: { workspace: { name: "Admin team #{index}" } }
+      post projects_path, params: { project: { name: "Admin team #{index}" } }
       assert_response :redirect
     end
     @user.update!(role: :owner)
-    post workspaces_path, params: { workspace: { name: "Owner team" } }
+    post projects_path, params: { project: { name: "Owner team" } }
     assert_response :redirect
     users(:two).update!(role: :owner, email_verified_at: Time.current)
     @user.update!(role: :member)
-    assert_equal 5, @user.workspaces.count
-    get workspaces_path
+    assert_equal 5, @user.projects.count
+    get projects_path
     assert_select "se-workspace-card", count: 5
-    assert_no_difference "Workspace.count" do
-      post workspaces_path, params: { workspace: { name: "Too many" } }
+    assert_no_difference "Project.count" do
+      post projects_path, params: { project: { name: "Too many" } }
     end
     assert_response :unprocessable_entity
-    assert_equal 5, @user.workspaces.count
+    assert_equal 5, @user.projects.count
   end
 
-  test "all workspaces have a twelve project cap even for global owners" do
-    workspace = Workspace.create!(name: "Project limit")
-    workspace.workspace_memberships.create!(user: @user, role: "owner")
-    11.times { |index| workspace.projects.create!(name: "Project #{index}") }
-    assert_difference "Project.count" do
-      post workspace_projects_path(workspace), params: { project: { name: "Twelfth" } }
+  test "all projects have a 90 sheet cap even for global owners" do
+    project = Project.create!(name: "Sheet limit")
+    project.project_memberships.create!(user: @user, role: "owner")
+    89.times { |index| project.sheets.create!(name: "Sheet #{index}") }
+    assert_difference "Sheet.count" do
+      post project_sheets_path(project), params: { sheet: { name: "Ninetieth" } }
     end
     assert_response :redirect
     %w[member admin owner].each do |role|
       @user.update!(role: role)
-      assert_no_difference "Project.count" do
-        post workspace_projects_path(workspace), params: { project: { name: "Thirteenth" } }
+      assert_no_difference "Sheet.count" do
+        post project_sheets_path(project), params: { sheet: { name: "Ninety first" } }
       end
       assert_response :unprocessable_entity
-      assert_select "se-text[role=alert]", text: /12 projects/
+      assert_select "se-text[role=alert]", text: /90 sheets/
     end
-    assert workspace.projects.first.update(name: "Existing project remains editable")
+    assert project.sheets.first.update(name: "Existing sheet remains editable")
   end
 
-  test "global admins manage unrelated private workspaces" do
+  test "global admins manage unrelated private projects" do
     @user.update!(role: :admin)
-    get overview_path
+    get projects_path
     assert_select "se-sidebar-chapter#administration-navigation[collapsible][collapsed]"
-    workspace = Workspace.create!(name: "Private unrelated")
-    get settings_workspace_path(workspace)
+    project = Project.create!(name: "Private unrelated")
+    get settings_project_path(project)
     assert_response :success
-    patch workspace_path(workspace), params: { workspace: { name: "Updated" } }
-    assert_redirected_to settings_workspace_path(workspace)
-    assert_equal "Updated", workspace.reload.name
-    post workspace_projects_path(workspace), params: { project: { name: "Admin project" } }
+    patch project_path(project), params: { project: { name: "Updated" } }
+    assert_redirected_to settings_project_path(project)
+    assert_equal "Updated", project.reload.name
+    post project_sheets_path(project), params: { sheet: { name: "Admin sheet" } }
     assert_response :redirect
-    get members_workspace_path(workspace)
+    get members_project_path(project)
     assert_response :success
     assert_select "se-menu[data-members-menu]"
-    post workspace_workspace_invites_path(workspace), params: { email: "new@example.com" }
-    assert_redirected_to members_workspace_path(workspace)
+    post project_project_invites_path(project), params: { email: "new@example.com" }
+    assert_redirected_to members_project_path(project)
   end
 
   test "admins can manage nonowners but never modify owners or delete accounts" do

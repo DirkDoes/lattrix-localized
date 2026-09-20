@@ -43,7 +43,7 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
-    environment:
+    environment: &app_environment
       APP_HOST: ${APP_HOST:-localhost}
       APP_PROTOCOL: ${APP_PROTOCOL:-http}
       APP_PORT: ${WEB_HOST_PORT:-3021}
@@ -60,6 +60,21 @@ services:
       MAILER_FROM: ${MAILER_FROM:-noreply@example.com}
     stdin_open: true
     tty: true
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bundle exec ruby bin/jobs
+    volumes:
+      - .:/rails
+      - bundle_cache:/usr/local/bundle
+      - node_modules:/rails/node_modules
+    environment: *app_environment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

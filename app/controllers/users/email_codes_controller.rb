@@ -95,7 +95,7 @@ class Users::EmailCodesController < ApplicationController
       reset_session
       sign_in(user)
       remember_security_verification(user)
-      redirect_to overview_path
+      redirect_to projects_path
     end
     session.delete(:email_challenge_id)
   rescue EmailChallenge::Invalid, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique

@@ -49,8 +49,8 @@ Rails.application.configure do
   # Replace the default in-process memory cache store with a durable alternative.
   # config.cache_store = :mem_cache_store
 
-  # Use the in-process async adapter until a dedicated Solid Queue database/schema is installed.
-  config.active_job.queue_adapter = :async
+  # Run background work through the dedicated Solid Queue worker.
+  config.active_job.queue_adapter = :solid_queue
 
   # Raise delivery errors so SMTP problems surface immediately.
   config.action_mailer.raise_delivery_errors = true

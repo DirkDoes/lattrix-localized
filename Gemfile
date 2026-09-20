@@ -74,3 +74,8 @@ gem "omniauth-google-oauth2", "~> 1.2"
 gem "omniauth-github", "~> 2.0"
 gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "pundit", "~> 2.5"
+gem "csv"
+
+gem "rubyzip"
+
+gem "caxlsx", "~> 4.0"

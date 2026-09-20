@@ -61,7 +61,7 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     ProfilePhoto.import(user, provider, auth.info.image)
     reset_session
     sign_in(user)
-    redirect_to overview_path
+    redirect_to projects_path
   rescue EmailChallenge::Invalid, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, AuthRateLimit::Exceeded
     redirect_to(current_user ? edit_settings_user_path(current_user) : new_user_session_path,
       alert: "Unable to sign in or link this account. Use an existing method or contact your administrator.")

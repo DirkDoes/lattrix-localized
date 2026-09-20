@@ -10,35 +10,7 @@ document.addEventListener("select", (event) => {
 
 
 
-const systemColorMode = matchMedia("(prefers-color-scheme: dark)");
 
-function applyColorMode(preference) {
-
-  const root = document.documentElement;
-
-  root.dataset.themePreference = preference;
-
-  const mode = preference === "system" ? (systemColorMode.matches ? "dark" : "light") : preference;
-
-  root.dataset.theme = mode;
-
-  root.dataset.seTheme = mode === "dark" ? "flat" : "clean";
-
-}
-
-systemColorMode.addEventListener("change", () => {
-
-  if (document.documentElement.dataset.themePreference === "system") applyColorMode("system");
-
-});
-
-document.addEventListener("change", (event) => {
-
-  if (!event.target.matches("se-theme-switch")) return;
-
-  applyColorMode(event.detail.value);
-
-});
 
 
 
@@ -62,7 +34,7 @@ document.addEventListener("confirm", (event) => {
 
   if (event.target.id === "profile-photo-modal") event.target.querySelector("form").requestSubmit();
 
-  if (["project-create-modal", "password-modal", "email-modal", "delete-account-warning", "delete-account-confirmation", "connect-provider-modal", "workspace-create-modal", "workspace-invite-modal"].includes(event.target.id)) event.target.querySelector("form").requestSubmit();
+  if (["key-create", "language-create", "sheet-create-modal", "password-modal", "email-modal", "delete-account-warning", "delete-account-confirmation", "connect-provider-modal", "project-create-modal", "project-invite-modal"].includes(event.target.id)) event.target.querySelector("form").requestSubmit();
 
 });
 
@@ -142,33 +114,9 @@ for (const type of ["copy", "cut", "paste", "drop"]) {
 
 
 
-applyColorMode(document.documentElement.dataset.themePreference || "system");
 
 
 
-// The library renders the final breadcrumb as text; project scope needs a link.
-
-customElements.whenDefined("se-breadcrumbs").then(() => {
-
-  document.querySelectorAll("se-breadcrumbs[data-current-href]").forEach((trail) => {
-
-    const current = trail.querySelector('[aria-current="page"]');
-
-    if (!current) return;
-
-    const link = document.createElement("a");
-
-    link.href = trail.dataset.currentHref;
-
-    link.textContent = current.textContent;
-
-    link.setAttribute("aria-current", "page");
-
-    current.replaceWith(link);
-
-  });
-
-});
 
 // Bridge autocomplete until se-input forwards it to its native control.
 
@@ -222,6 +170,6 @@ document.addEventListener("select", (event) => {
 
 document.addEventListener("select", (event) => {
   if (!event.target.matches("se-menu[data-members-menu]")) return;
-  if (event.detail.id === "invite") document.getElementById("workspace-invite-modal").open();
+  if (event.detail.id === "invite") document.getElementById("project-invite-modal").open();
   if (event.detail.id === "invites") window.location.assign(event.target.dataset.invitesUrl);
 });

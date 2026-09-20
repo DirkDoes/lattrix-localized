@@ -5,13 +5,13 @@ class User < ApplicationRecord
     :validatable, :omniauthable, omniauth_providers: AuthenticationPolicy.providers.values.map(&:to_sym)
   enum :role, { guest: 0, admin: 1, owner: 2, member: 3 }
   has_many :auth_identities, dependent: :destroy
-  has_many :workspace_memberships, dependent: :destroy
-  has_many :workspaces, through: :workspace_memberships
+  has_many :project_memberships, dependent: :destroy
+  has_many :projects, through: :project_memberships
   attr_accessor :password_optional
   before_validation :normalize_identity
   before_create :promote_first_user
   before_update :guard_owner_change
-  before_destroy :guard_workspace_ownership, prepend: true
+  before_destroy :guard_project_ownership, prepend: true
   before_destroy :guard_owner_deletion, prepend: true
   after_save :sync_password_identity
   after_save :sync_email_identity
@@ -64,24 +64,24 @@ class User < ApplicationRecord
     end
   end
 
-  # Administrative deletion keeps every workspace and transfers only otherwise ownerless ones.
-  def destroy_with_workspace_transfer!(successor)
+  # Administrative deletion keeps every project and transfers only otherwise ownerless ones.
+  def destroy_with_project_transfer!(successor)
     raise ArgumentError, "An active global owner is required" unless successor.owner? && successor.application_access?
     with_lock do
       raise ActiveRecord::RecordNotDestroyed.new("Demote this owner before deleting their account.", self) if owner?
-      Workspace.where(id: workspace_memberships.select(:workspace_id)).order(:id).lock.each do |workspace|
-        membership = workspace.workspace_memberships.find_by(user: self, role: "owner")
+      Project.where(id: project_memberships.select(:project_id)).order(:id).lock.each do |project|
+        membership = project.project_memberships.find_by(user: self, role: "owner")
         next unless membership
-        if workspace.workspace_memberships.where(role: "owner").where.not(user: self).exists?
+        if project.project_memberships.where(role: "owner").where.not(user: self).exists?
           membership.update!(role: "translator")
-        elsif (replacement = workspace.workspace_memberships.find_by(user: successor))
+        elsif (replacement = project.project_memberships.find_by(user: successor))
           replacement.update!(role: "owner")
           membership.update!(role: "translator")
         else
           membership.update!(user: successor)
         end
       end
-      workspace_memberships.reset
+      project_memberships.reset
       destroy!
       EmailChallenge.where(email: email).delete_all
     end
@@ -89,9 +89,9 @@ class User < ApplicationRecord
 
   private
 
-  def guard_workspace_ownership
-    return unless workspace_memberships.where(role: "owner").exists?
-    errors.add(:base, "Transfer your workspace ownership before deleting your account.")
+  def guard_project_ownership
+    return unless project_memberships.where(role: "owner").exists?
+    errors.add(:base, "Transfer your project ownership before deleting your account.")
     throw :abort
   end
 

@@ -1,0 +1,65 @@
+<section class="app-page">
+  <%= render "sheets/navigation" %>
+  <div class="app-stack app-settings-body">
+
+  <header class="app-heading"><se-title level="page">Sheet settings</se-title></header>
+
+  <se-title level="section">Sheet details</se-title>
+  <%= form_with model: [@project, @sheet], class: "app-form", multipart: true do %>
+    <se-collection type="table" columns="10rem minmax(0,1fr)" mobile-columns="minmax(0,1fr)">
+      <se-list-row><span>Name</span><se-input name="sheet[name]" aria-label="Sheet name" value="<%= @sheet.name %>" error="<%= @sheet.errors[:name].first %>"></se-input></se-list-row>
+      <se-list-row><span>Description</span><se-input type="textarea" autosize fixed name="sheet[description]" aria-label="Sheet description" value="<%= @sheet.description %>" error="<%= @sheet.errors[:description].first %>"></se-input></se-list-row>
+      <se-list-row><span>Image</span><div class="app-stack">
+        <% if @sheet.image_data.present? %><%= image_tag image_project_sheet_path(@project,@sheet,v: @sheet.updated_at.to_i), alt: "Current sheet image", class: "app-sheet-image" %><se-checkbox name="sheet[remove_image]" value="1" label="Remove image"></se-checkbox><% end %>
+        <se-file-upload name="sheet[image]" label="Sheet image" accept="image/*" hint="Optional. Up to 5 MB; converted to WebP." data-controller="file-input" data-action="files->file-input#sync"></se-file-upload>
+      </div></se-list-row>
+    </se-collection>
+    <div class="app-form-actions"><se-button type="submit" text="Save details"></se-button></div>
+  <% end %>
+  <se-title level="section">Identifier</se-title>
+  <% if policy(@sheet).change_slug? %>
+    <%= form_with model: [@project,@sheet], class: "app-setting-form" do %>
+      <div><se-input name="sheet[slug]" aria-label="Sheet identifier" value="<%= @requested_slug || @sheet.slug %>" error="<%= @sheet.errors[:slug].first %>"></se-input><se-text muted>Changing this breaks existing sheet links. Old URLs will not redirect.</se-text></div>
+      <se-button type="submit" text="Change identifier"></se-button>
+    <% end %>
+  <% else %><se-text><%= @sheet.slug %></se-text><se-text muted>Only a project owner or application owner can change this identifier.</se-text><% end %>
+  <% if @requested_slug %>
+    <se-modal title="Change sheet identifier?" size="small" tone="warning" icon="alert" confirm-label="Confirm and save" cancel-label="Cancel" data-submit-form open>
+      <%= form_with model: [@project,@sheet] do %>
+        <%= hidden_field_tag "sheet[slug]", @requested_slug %><%= hidden_field_tag :confirm_slug, "1" %>
+        <se-text>The identifier will change to <%= @requested_slug %>. Existing sheet links will stop working. No redirects or aliases will be created.</se-text>
+      <% end %>
+    </se-modal>
+  <% end %>
+  <se-title level="section">Translation settings</se-title>
+  <%= form_with model: [@project, @sheet], class: "app-form" do %>
+
+
+
+    <se-collection type="table" columns="14rem minmax(0,1fr)">
+
+
+
+      <se-list-row><span class="app-row-actions">Delimiter<se-tooltip content="One to three characters separating the levels of a key, such as . or ::. It cannot occur inside an existing key name."><se-button variant="mini" icon="info" aria-label="About delimiter"></se-button></se-tooltip></span><div class="app-table-control"><se-input name="sheet[delimiter]" value="<%= @sheet.delimiter %>" aria-label="Delimiter" data-controller="control-label"></se-input></div></se-list-row>
+
+      <se-list-row><span>Default language</span><div class="app-table-control"><se-select name="sheet[default_language_id]" value="<%= @sheet.default_language_id %>" options="<%= [{id: '', label: 'None', icon: 'x'}].concat(@sheet.active_languages.order(:name).map { |l| {id: l.id, label: l.name} }).to_json %>"></se-select></div></se-list-row>
+
+      <se-list-row><span>Case-sensitive keys</span><div class="app-table-control"><input type="hidden" name="sheet[case_sensitive_keys]" value="0"><se-checkbox variant="switch" name="sheet[case_sensitive_keys]" value="1" aria-label="Case-sensitive keys" data-controller="control-label" <%= 'checked' if @sheet.case_sensitive_keys? %>></se-checkbox></div></se-list-row>
+
+      <se-list-row><span>Translations on parent keys</span><div class="app-table-control"><input type="hidden" name="sheet[allow_parent_translations]" value="0"><se-checkbox variant="switch" name="sheet[allow_parent_translations]" value="1" aria-label="Translations on parent keys" data-controller="control-label" <%= 'checked' if @sheet.allow_parent_translations? %>></se-checkbox></div></se-list-row>
+
+      <se-list-row><span class="app-row-actions">Plural editor<se-tooltip content="Unicode categories: zero, one, two, few, many, other. One and other are always shown; other categories appear when used. Missing plural values are omitted from exports. Turning this off shows the same keys normally without deleting them."><se-button variant="mini" icon="info" aria-label="About plural editor"></se-button></se-tooltip></span><div class="app-table-control"><input type="hidden" name="sheet[pluralization_enabled]" value="0"><se-checkbox variant="switch" name="sheet[pluralization_enabled]" value="1" aria-label="Plural editor" data-controller="control-label" <%= 'checked' if @sheet.pluralization_enabled? %>></se-checkbox></div></se-list-row>
+
+
+      <se-list-row><span>Missing export values</span><div class="app-table-control"><se-select name="sheet[missing_value_behavior]" value="<%= @sheet.missing_value_behavior %>" options='[{"id":"omit","label":"Omit"},{"id":"empty","label":"Write empty values"},{"id":"fallback","label":"Use default language"}]'></se-select></div></se-list-row>
+
+    </se-collection>
+
+    <div class="app-form-actions"><se-button type="submit" text="Save settings"></se-button></div>
+
+  <% end %>
+
+  <% if @delimiter_error %><se-modal title="Cannot change delimiter" size="small" confirm-label="Close" open><se-text><%= @delimiter_error %></se-text></se-modal><% end %>
+  </div>
+</section>
+

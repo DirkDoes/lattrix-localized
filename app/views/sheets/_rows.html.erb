@@ -1,0 +1,9 @@
+<% @rows.each do |row| %>
+  <% key = @records.fetch(row['id']) %>
+  <%= render "sheets/key_row", key: key, row: row, level: (@view == 'tree' ? row['depth'] : 0), plural_form: row['plural_form'] %>
+  <% if @sheet.pluralization_enabled? %>
+    <% Array(@plural_children[key.id]).sort_by { |form| @sheet.plural_categories.index(form.recordable.name) }.each do |form| %>
+      <%= render "sheets/key_row", key: form, row: { 'path' => "#{row['path']}#{@sheet.delimiter}#{form.recordable.name}", 'has_children' => @keys_with_children.include?(form.id) }, level: (@view == 'tree' ? row['depth'].to_i + 1 : 1), plural_form: true %>
+    <% end %>
+  <% end %>
+<% end %>

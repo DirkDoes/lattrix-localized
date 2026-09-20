@@ -24,6 +24,6 @@ module Authentication
   end
 
   def redirect_authenticated_user
-    redirect_to overview_path if authenticated?
+    redirect_to projects_path if authenticated?
   end
 end

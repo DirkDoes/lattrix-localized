@@ -1,8 +1,0 @@
-<section class="app-page">
-  <%= render "workspaces/navigation" %>
-  <header class="app-method-label">
-    <se-title level="page"><%= @workspace.name %></se-title>
-    <se-badge tone="gray" icon="<%= @workspace.visibility == "private" ? "lock" : "eye" %>" text="<%= @workspace.visibility.capitalize %>"></se-badge>
-  </header>
-  <se-empty-illustration title="Your workspace at a glance" text="This dashboard is still in development. Open Projects to explore this workspace's localization projects."></se-empty-illustration>
-</section>

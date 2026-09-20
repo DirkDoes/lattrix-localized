@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync('app/assets/javascripts/navigation_state.js', 'utf8');
 const storage = new Map();
 function page(user = 'one', extraId = 'future-section', blocked = false) {
-  const elements = ['app-sidebar', 'workspaces-navigation', 'administration-navigation', extraId].map(id => ({
+  const elements = ['app-sidebar', 'projects-navigation', 'administration-navigation', extraId].map(id => ({
     id, collapsed: id === 'administration-navigation',
     hasAttribute() { return this.collapsed; },
     toggleAttribute(name, value) { this.collapsed = value; }
@@ -39,7 +39,7 @@ assert.deepEqual(next.elements.map(e => e.collapsed), [true, true, false, true])
 next.change(0, false); // Mobile layout adjustment must not overwrite desktop preference.
 assert.equal(page().elements[0].collapsed, true);
 assert.deepEqual(page('another-account').elements.map(e => e.collapsed), [false, false, true, false]);
-page('one', 'project-section').change(3, true);
+page('one', 'sheet-section').change(3, true);
 assert.equal(page().elements[3].collapsed, true); // Leaving a scope retains its preferences.
 assert.doesNotThrow(() => page('one', 'other', true));
 storage.set('navigation:one:v1', 'broken json');

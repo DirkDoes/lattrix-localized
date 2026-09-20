@@ -14,9 +14,9 @@ class EmailChallenge < ApplicationRecord
     transaction do
       connection.execute("SELECT pg_advisory_xact_lock(#{Digest::SHA256.hexdigest(email)[0, 15].to_i(16)})")
       where(email: email, purpose: purpose).delete_all
-      challenge = new(id: SecureRandom.uuid, email: email, purpose: purpose, name: name,
+      challenge = new(digest_token: SecureRandom.hex(24), email: email, purpose: purpose, name: name,
         password_digest: password_digest, expires_at: EXPIRY.from_now)
-      challenge.digest = digest_for(challenge.id, code)
+      challenge.digest = digest_for(challenge.digest_token, code)
       challenge.save!
       [challenge, code]
     end
@@ -27,7 +27,7 @@ class EmailChallenge < ApplicationRecord
     with_lock do
       if consumed_at.nil? && expires_at > Time.current && attempts < MAX_ATTEMPTS
         self.attempts += 1
-        valid = code.to_s.match?(/\A\d{6}\z/) && ActiveSupport::SecurityUtils.secure_compare(digest, self.class.digest_for(id, code))
+        valid = code.to_s.match?(/\A\d{6}\z/) && ActiveSupport::SecurityUtils.secure_compare(digest, self.class.digest_for(digest_token, code))
         self.consumed_at = Time.current if valid
         save!
       end

@@ -1,0 +1,7 @@
+<% language.language_identifiers.includes(:identifier_set).order(:created_at).each do |mapping| %>
+  <se-list-row level="1" guides variant="secondary" data-controller="configuration-row" data-configuration-row-url-value="<%= project_language_identifier_path(@project,mapping) %>" data-configuration-row-method-value="PATCH" data-configuration-row-resource-value="language_identifier">
+    <span><%= mapping.identifier_set.name %></span>
+    <div class="app-table-control"><se-input aria-label="<%= language.name %> identifier for <%= mapping.identifier_set.name %>" data-controller="control-label" value="<%= mapping.identifier %>" data-field="identifier"></se-input></div>
+    <se-button variant="secondary" text="Save" data-action="click->configuration-row#save"></se-button>
+  </se-list-row>
+<% end %>

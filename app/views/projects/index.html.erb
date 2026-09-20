@@ -1,27 +1,35 @@
 <section class="app-page">
-  <%= render "workspaces/navigation" %>
   <header class="app-heading">
-    <se-title level="page">Projects</se-title>
-    <% if @projects.any? && policy(@project).create? %><se-button text="Create project" icon="plus" data-open-modal="project-create-modal"></se-button><% end %>
+    <div><se-title level="page">Projects</se-title><se-text muted>Your shared spaces for localization.</se-text></div>
+    <div class="app-row-actions">
+      <% if @memberships.any? && policy(Project).new? %><se-button variant="brand" icon="folder" text="Create new project" data-open-modal="project-create-modal"></se-button><% end %>
+    </div>
   </header>
-  <% if @projects.any? %>
-    <div class="app-grid app-project-grid"><% @projects.each do |project| %><se-project-card title="<%= project.name %>" metadata="<%= project.effective_visibility.capitalize %>" href="<%= workspace_project_path(@workspace, project) %>"></se-project-card><% end %></div>
+  <% if @memberships.any? %>
+    <div class="app-grid">
+      <% @memberships.each do |membership| %>
+        <se-workspace-card title="<%= membership.project.name %>" metadata="<%= membership.project.visibility.capitalize %> · <%= membership.role.capitalize %>" href="<%= project_path(membership.project) %>"></se-workspace-card>
+      <% end %>
+    </div>
   <% else %>
-    <se-empty-illustration variant="folders" title="No projects yet" text="Projects keep your translations organized. Create your first project to get started in this workspace.">
-      <% if policy(@project).create? %><se-button text="Create project" icon="plus" data-open-modal="project-create-modal"></se-button><% end %>
+    <se-empty-illustration variant="folders" title="No projects yet" text="<%= current_user.guest? ? 'Ask a team to invite you to a project. Your invitations are available in the sidebar.' : 'Create a project to organize your sheets and invite your team.' %>">
+      <% if policy(Project).new? %><se-button variant="brand" icon="folder" text="Create new project" data-open-modal="project-create-modal"></se-button><% end %>
     </se-empty-illustration>
   <% end %>
-  <% if policy(@project).create? %>
-    <se-modal id="project-create-modal" title="Create project" size="medium" cancel-label="Cancel" confirm-label="Create project" <%= "open" if @project.errors.any? %>>
-      <%= form_with model: [@workspace, @project], class: "app-form", data: { controller: "slug-mirror", action: "input->slug-mirror#update" }, html: { novalidate: true } do %>
-        <% @project.errors[:base].each do |error| %><se-text role="alert"><%= error %></se-text><% end %>
+  <% if current_user.member? && !policy(Project).new? %><se-text muted>You already own three or more projects. You can keep using them, but cannot create another with a Member account.</se-text><% end %>
+  <% if policy(Project).create? %>
+  <se-modal id="project-create-modal" title="Create a project" subtitle="Bring your team together. You'll join as the owner." size="medium" icon="folder" tone="brand" cancel-label="Cancel" confirm-label="Create project" <%= "open" if @project.errors.any? %>>
+    <%= form_with model: @project, class: "app-form", data: { controller: "slug-mirror", action: "input->slug-mirror#update" }, html: { novalidate: true } do %>
+      <% @project.errors[:base].each do |error| %><se-text role="alert"><%= error %></se-text><% end %>
+      <div class="app-form-fields">
         <div class="app-form-row">
-        <se-input data-slug-mirror-target="source" label="Project name" name="project[name]" value="<%= @project.name %>" error="<%= @project.errors[:name].first %>"></se-input>
-        <se-input data-slug-mirror-target="destination" label="Identifier" name="project[slug]" value="<%= @project.slug %>" error="<%= @project.errors[:slug].first %>" hint="Generated from the name until you edit it. Use lowercase letters, numbers and underscores."></se-input>
+        <se-input data-slug-mirror-target="source" label="Project name" name="project[name]" placeholder="e.g. Acme Localization" value="<%= @project.name %>" error="<%= @project.errors[:name].first %>"></se-input>
+        <se-input data-slug-mirror-target="destination" label="Identifier" name="project[slug]" value="<%= @project.slug %>" error="<%= @project.errors[:slug].first %>" hint="Generated from the name until you edit it. Use lowercase letters, numbers, underscores or hyphens."></se-input>
         </div>
-        <se-select label="Visibility" name="project[visibility]" value="<%= @project.visibility %>" error="<%= @project.errors[:visibility].first %>" options='[{"id":"private","label":"Private"},{"id":"public","label":"Public"}]'></se-select>
-        <% if @workspace.visibility == "private" %><se-text muted>Projects in this private workspace stay private, even when set to public.</se-text><% end %>
-      <% end %>
-    </se-modal>
+        <se-select label="Visibility" name="project[visibility]" value="<%= @project.visibility %>" options='[{"id":"private","label":"Private","icon":"lock"},{"id":"public","label":"Public","icon":"eye"}]'></se-select>
+        <% if @project.errors[:visibility].any? %><se-text role="alert"><%= @project.errors.full_messages_for(:visibility).to_sentence %></se-text><% end %>
+      </div>
+    <% end %>
+  </se-modal>
   <% end %>
 </section>

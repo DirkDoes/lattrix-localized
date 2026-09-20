@@ -3,18 +3,18 @@ require "test_helper"
 class ProfileNavigationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  test "workspace invitations never select personal invitations" do
+  test "project invitations never select personal invitations" do
     user = users(:one)
     user.update!(email_verified_at: Time.current)
-    workspace = Workspace.create!(name: "Team")
-    workspace.workspace_memberships.create!(user: user, role: "owner")
+    project = Project.create!(name: "Team")
+    project.project_memberships.create!(user: user, role: "owner")
     sign_in user
-    get workspace_workspace_invites_path(workspace)
+    get project_project_invites_path(project)
     assert_response :success
-    assert_select "se-sidebar-button[href=?][active]", workspace_path(workspace)
-    assert_select "se-sidebar-button[href=?][active]", workspace_invites_path, count: 0
-    get workspace_invites_path
-    assert_select "se-sidebar-button[href=?][active]", workspace_invites_path
+    assert_select "se-sidebar-button[href=?][active]", project_path(project)
+    assert_select "se-sidebar-button[href=?][active]", project_invites_path, count: 0
+    get project_invites_path
+    assert_select "se-sidebar-button[href=?][active]", project_invites_path
   end
 
   test "initials discard punctuation and symbol only words on every profile" do
@@ -29,9 +29,9 @@ class ProfileNavigationTest < ActionDispatch::IntegrationTest
     get edit_settings_user_path(user)
     assert_select "se-topbar se-profile[initials=AB]"
     assert_select "se-card se-profile[initials=AB]"
-    workspace = Workspace.create!(name: "Team")
-    workspace.workspace_memberships.create!(user: user, role: "owner")
-    get members_workspace_path(workspace)
+    project = Project.create!(name: "Team")
+    project.project_memberships.create!(user: user, role: "owner")
+    get members_project_path(project)
     assert_select "se-list-row se-profile[initials=AB]"
   end
 end

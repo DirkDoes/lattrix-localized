@@ -51,7 +51,7 @@ class AuthenticationPolicyTest < ActionDispatch::IntegrationTest
     ENV["AUTH_METHODS"] = "password"
     patch users_email_code_path, params: { code: code }
     assert_response :unprocessable_entity
-    get overview_path
+    get projects_path
     assert_redirected_to new_user_session_path
   end
 
@@ -118,7 +118,7 @@ class AuthenticationPolicyTest < ActionDispatch::IntegrationTest
     @user.update!(email_verified_at: nil)
     post user_session_path, params: { user: { email: @user.email, password: "Password123!" } }
     assert_empty ActionMailer::Base.deliveries
-    get overview_path
+    get projects_path
     assert_redirected_to new_user_session_path
   end
 

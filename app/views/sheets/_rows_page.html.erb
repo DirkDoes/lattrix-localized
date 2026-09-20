@@ -1,0 +1,4 @@
+<turbo-frame id="translation-page-<%= params[:after].to_i %>">
+  <turbo-stream action="append" target="translation-rows"><template><%= render "sheets/rows" %></template></turbo-stream>
+  <turbo-stream action="replace" target="translation-pagination"><template><div id="translation-pagination"><%= render "sheets/more" %></div></template></turbo-stream>
+</turbo-frame>

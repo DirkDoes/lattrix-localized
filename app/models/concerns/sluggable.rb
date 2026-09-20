@@ -21,7 +21,7 @@ module Sluggable
     base = name.to_s.parameterize(separator: separator).first(90).sub(/[-_]+\z/, "").presence || self.class.model_name.singular
     base = "#{base}-1" if %w[new edit].include?(base)
     scope = self.class.all
-    scope = scope.where(workspace_id: workspace_id) if is_a?(Project)
+    scope = scope.where(project_id: project_id) if is_a?(Sheet)
     self.slug = base
     suffix = 2
     while scope.exists?(slug: slug)

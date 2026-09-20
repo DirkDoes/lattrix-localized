@@ -8,77 +8,77 @@ class InvitationManagementTest < ActionDispatch::IntegrationTest
     @owner.update!(email_verified_at: Time.current, role: :member)
     @recipient = users(:two)
     @recipient.update!(email_verified_at: Time.current, role: :guest)
-    @workspace = Workspace.create!(name: "Invitation team")
-    @workspace.workspace_memberships.create!(user: @owner, role: "owner")
-    @project = @workspace.projects.create!(name: "Private project")
+    @project = Project.create!(name: "Invitation team")
+    @project.project_memberships.create!(user: @owner, role: "owner")
+    @sheet = @project.sheets.create!(name: "Private sheet")
     sign_in @owner
   end
 
   test "invitations record their sender and admins can search paginate and revoke them" do
-    post workspace_workspace_invites_path(@workspace), params: { email: @recipient.email, role: "translator" }
-    invite = @workspace.workspace_invites.sole
+    post project_project_invites_path(@project), params: { email: @recipient.email, role: "translator" }
+    invite = @project.project_invites.sole
     assert_equal @owner, invite.invited_by
-    20.times { |i| @workspace.workspace_invites.create!(email: "pending-#{i}@example.com") }
-    get workspace_workspace_invites_path(@workspace)
+    20.times { |i| @project.project_invites.create!(email: "pending-#{i}@example.com") }
+    get project_project_invites_path(@project)
     assert_response :success
     assert_select "se-list-row", count: 20
     assert_select "se-pagination[pages='2']"
-    get workspace_workspace_invites_path(@workspace), params: { q: @recipient.email }
+    get project_project_invites_path(@project), params: { q: @recipient.email }
     assert_select "se-list-row", count: 1
     assert_includes response.body, @owner.name
     assert_select "se-button[text=Revoke]"
-    delete workspace_workspace_invite_path(@workspace, invite)
-    assert_redirected_to workspace_workspace_invites_path(@workspace)
-    assert_not WorkspaceInvite.exists?(invite.id)
+    delete project_project_invite_path(@project, invite)
+    assert_redirected_to project_project_invites_path(@project)
+    assert_not ProjectInvite.exists?(invite.id)
   end
 
   test "pending invitation grants read only access and revocation removes it" do
-    invite = @workspace.workspace_invites.create!(email: @recipient.email, role: "translator")
+    invite = @project.project_invites.create!(email: @recipient.email, role: "translator")
     sign_in @recipient
-    get workspace_invites_path
-    assert_select "se-button[text='View workspace'][href=?]", workspace_path(@workspace)
+    get project_invites_path
+    assert_select "se-button[text='View project'][href=?]", project_path(@project)
     assert_select ".app-grid", count: 0
-    get workspace_path(@workspace)
+    get project_sheets_path(@project)
     assert_response :success
-    get workspace_project_path(@workspace, @project)
+    get translations_project_sheet_path(@project, @sheet)
     assert_response :success
-    get translations_workspace_project_path(@workspace, @project)
+    get translations_project_sheet_path(@project, @sheet)
     assert_response :success
-    get workspaces_path
+    get projects_path
     assert_select "se-workspace-card", count: 0
-    assert_empty @recipient.workspace_memberships
-    post workspace_projects_path(@workspace), params: { project: { name: "Forbidden" } }
+    assert_empty @recipient.project_memberships
+    post project_sheets_path(@project), params: { sheet: { name: "Forbidden" } }
     assert_response :forbidden
-    get members_workspace_path(@workspace)
+    get members_project_path(@project)
     assert_response :not_found
-    get workspace_workspace_invites_path(@workspace)
+    get project_project_invites_path(@project)
     assert_response :forbidden
-    delete workspace_workspace_invite_path(@workspace, invite)
+    delete project_project_invite_path(@project, invite)
     assert_response :not_found
-    assert WorkspaceInvite.exists?(invite.id)
+    assert ProjectInvite.exists?(invite.id)
     sign_in @owner
-    delete workspace_workspace_invite_path(@workspace, invite)
-    assert_not WorkspaceInvite.exists?(invite.id)
+    delete project_project_invite_path(@project, invite)
+    assert_not ProjectInvite.exists?(invite.id)
     sign_in @recipient
-    get overview_path
+    get projects_path
     assert_response :success
-    get workspace_path(@workspace)
+    get project_sheets_path(@project)
     assert_response :not_found
-    get workspace_project_path(@workspace, @project)
+    get translations_project_sheet_path(@project, @sheet)
     assert_response :not_found
   end
 
   test "invitation management remains tenant scoped and rejects translators" do
-    other = Workspace.create!(name: "Other team")
-    other.workspace_memberships.create!(user: @owner, role: "owner")
-    invite = other.workspace_invites.create!(email: @recipient.email)
-    delete workspace_workspace_invite_path(@workspace, invite)
+    other = Project.create!(name: "Other team")
+    other.project_memberships.create!(user: @owner, role: "owner")
+    invite = other.project_invites.create!(email: @recipient.email)
+    delete project_project_invite_path(@project, invite)
     assert_response :not_found
-    @workspace.workspace_memberships.create!(user: @recipient, role: "translator")
+    @project.project_memberships.create!(user: @recipient, role: "translator")
     sign_in @recipient
-    get workspace_workspace_invites_path(@workspace)
+    get project_project_invites_path(@project)
     assert_response :forbidden
-    get members_workspace_path(@workspace)
+    get members_project_path(@project)
     assert_select "se-menu[data-members-menu]", count: 0
     assert_select "se-list-row se-profile[subtitle]", count: 0
   end

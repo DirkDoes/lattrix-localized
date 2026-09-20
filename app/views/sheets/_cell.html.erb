@@ -1,0 +1,14 @@
+<% value = language && @values[[key.id,language.id]]; text = value&.recordable&.text.to_s; editable = !(@sheet.pluralization_enabled? && key.recordable.pluralized) && language && @editable_languages.include?(language.id) && (@sheet.allow_parent_translations? || !@keys_with_children.include?(key.id)) %>
+<div class="translation-cell" <% if editable %>data-controller="translation-cell" data-translation-cell-url-value="<%= translation_project_sheet_recording_path(@project,@sheet,key) %>" data-translation-cell-language-value="<%= language.id %>" data-translation-cell-version-value="<%= value&.lock_version || 'new' %>" data-translation-cell-record-value="<%= value&.id %>"<% end %>>
+  <% if editable %>
+    <button <%= "hidden" if text.empty? %> type="button" class="translation-value" data-translation-cell-target="display" data-action="click->translation-cell#edit"><%= text %></button>
+    <div <%= "hidden" unless text.empty? %> data-translation-cell-target="editor"><se-input placeholder="" size="small" type="textarea" autosize fixed value="<%= text %>" aria-label="<%= language.name %> translation" data-translation-cell-target="input" data-action="input->translation-cell#changed keydown->translation-cell#keydown focusout->translation-cell#blur"></se-input></div>
+    <span class="translation-save-status" role="status" aria-live="polite" data-translation-cell-target="status">
+      <span hidden data-translation-cell-target="spinner"><se-spinner size="small" label="Saving translation"></se-spinner></span>
+      <span hidden data-translation-cell-target="check"><se-icon name="check" aria-hidden="true"></se-icon></span>
+      <span class="translation-status-label" data-translation-cell-target="statusText"></span>
+    </span>
+    <se-text hidden role="alert" data-translation-cell-target="error"></se-text>
+    <div hidden data-translation-cell-target="conflict"><se-text>Current saved value:</se-text><pre data-translation-cell-target="current"></pre><se-button text="Keep my edit" variant="secondary" data-action="click->translation-cell#keep"></se-button><se-button text="Use saved value" variant="ghost" data-action="click->translation-cell#useCurrent"></se-button></div>
+  <% else %><% displayed = (@sheet.allow_parent_translations? || !@keys_with_children.include?(key.id)) && !(@sheet.pluralization_enabled? && key.recordable.pluralized) ? text.presence : nil %><span class="translation-value <%= 'translation-empty' unless displayed %>"><%= displayed || '—' %></span><% end %>
+</div>

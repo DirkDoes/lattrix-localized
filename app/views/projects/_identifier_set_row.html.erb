@@ -1,0 +1,5 @@
+<se-list-row data-controller="configuration-row" data-configuration-row-url-value="<%= set.persisted? ? project_identifier_set_path(@project,set) : project_identifier_sets_path(@project) %>" data-configuration-row-method-value="<%= set.persisted? ? 'PATCH' : 'POST' %>" data-configuration-row-resource-value="identifier_set" data-configuration-row-reload-value="true">
+  <div class="app-table-control"><se-input aria-label="Set name" data-controller="control-label" value="<%= set.name %>" data-field="name"></se-input></div>
+  <div class="app-table-control"><se-input aria-label="Set description" data-controller="control-label" value="<%= set.description %>" data-field="description"></se-input></div>
+  <se-button variant="secondary" text="Save" data-action="click->configuration-row#save"></se-button>
+</se-list-row>

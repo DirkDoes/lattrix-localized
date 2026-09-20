@@ -14,10 +14,10 @@ Every form must remain submittable in every field state. Components do not expos
 
 ## Composition and responsive layout
 
-- Workspace pages use `se-nav-tabs` for Dashboard, Projects, Members, and Settings above page content. Sending invitations belongs on Members; received Invitations have their own sidebar page.
-- Use one sidebar below the full-width top bar. Project pages show project navigation on desktop; mobile navigation includes project, workspace, and administration as adjacent `se-sidebar-chapter` elements so the library supplies dividers.
-- Mobile navigation uses the responsive sidebar's top-down dropdown. Project breadcrumbs appear at the top of that dropdown on mobile and in the top bar on desktop, using `layout-mode`.
-- Use `se-title level="page"` consistently for page headings. Keep workspace visibility beside its name; membership roles belong in the members list.
+- Project pages use `se-nav-tabs` for Dashboard, Sheets, Members, and Settings above page content. Sending invitations belongs on Members; received Invitations have their own sidebar page.
+- Keep the global sidebar throughout signed-in navigation, including sheets. On desktop it contains the brand in its header and the profile in its footer; the top bar is mobile-only. Use `se-nav-tabs` for sheet Dashboard, Translations and Settings. Place one Export button in the project or sheet tabs’ `[data-actions]` slot; it opens a format chooser and, at project level, a sheet chooser.
+- Mobile navigation uses the responsive sidebar's top-down dropdown. Do not render breadcrumbs. Mobile keeps the brand and profile in the top bar.
+- Use `se-title level="page"` consistently for page headings. Keep project visibility beside its name; membership roles belong in the members list.
 - Do not duplicate navigation already available in the sidebar with extra back-to-index buttons.
 
 - Begin with the closest documented pattern and preserve its component hierarchy.
@@ -42,29 +42,37 @@ Every form must remain submittable in every field state. Components do not expos
 
 ## Account roles and navigation
 
-- Every account, including Guests, has Dashboard, Workspaces, and Invitations navigation. Project pages swap to project navigation on desktop and retain global navigation in the mobile dropdown.
-- The overview uses `se-empty-illustration variant="translation-2"`. Guests cannot create workspaces; their empty workspace state explains invitations. Members and higher get a Create new workspace action inside the empty state, or in the header when the list is nonempty.
-- The regular workspace index lists memberships only. Public workspaces are accessible by shared URL, not through a public directory. Owners and admins may open the separate administration workspace table and manage all workspaces, including private ones without membership.
-- For guests and members, public workspace access does not expose its membership list or private projects. A private workspace also hides its public-marked projects from nonmembers.
+- Every account, including Guests, has Dashboard, Projects, and Invitations navigation. Sheet pages retain the global sidebar and use sheet navigation tabs.
+- The overview uses `se-empty-illustration variant="translation-2"`. Guests cannot create projects; their empty project state explains invitations. Members and higher get a Create new project action inside the empty state, or in the header when the list is nonempty.
+- The regular project index lists memberships only. Public projects are accessible by shared URL, not through a public directory. Owners and admins may open the separate administration project table and manage all projects, including private ones without membership.
+- For guests and members, public project access does not expose its membership list or private sheets. A private project also hides its public-marked sheets from nonmembers.
 - The Banned users tab filters by `banned_at`, without redundant banned badges. Empty lists render an illustration instead of an empty table.
 
 - All empty illustrations share `--se-illustration-width: 32rem`, capped by the library at the available width. Include a useful title and description; do not set per-page illustration sizes.
 - Show email verification separately from bans: non-banned users remain in Active users, with Verified/Unverified badges.
 
-- Global roles are Guest (default, stored value 0), Member (3), Admin (1), and Owner (2). Workspace Viewer roles remain unchanged. Admins may manage nonowner users but cannot grant ownership, modify owner accounts, or delete other users. Owners may manage everyone, subject to preserving one active owner.
+- Global roles are Guest (default, stored value 0), Member (3), Admin (1), and Owner (2). Project Viewer roles remain unchanged. Admins may manage nonowner users but cannot grant ownership, modify owner accounts, or delete other users. Owners may manage everyone, subject to preserving one active owner.
 - Use a segmented control beside the Users heading for Active/Banned filtering. Empty illustrations share responsive top spacing as well as their artwork size.
 
-- Users, administration Workspaces, and workspace Members tables use backend search and fixed 20-row pages. Show `se-pagination` with a nonempty table, including one-page results; hide both for empty results. Preserve search and status across pagination; reset the page when searching or switching status.
+- Users, administration Projects, and project Members tables use backend search and fixed 20-row pages. Show `se-pagination` with a nonempty table, including one-page results; hide both for empty results. Preserve search and status across pagination; reset the page when searching or switching status.
 
 - Table searches have no visible label or submit button; retain accessible names and debounce backend filtering by 350 ms without replacing the header or focused input.
-- Project creation mirrors the name to a snake_case slug until the slug is edited. Existing hyphenated project URLs remain valid.
+- Sheet creation mirrors the name to a snake_case slug until the slug is edited. Existing hyphenated sheet URLs remain valid.
 
-- Workspace Settings are visible and writable to workspace admins/owners and global admins/owners. Editing the name preserves its slug and existing links.
-- Workspace and project create forms share `slug-mirror`, with source/destination targets and underscores by default. Manual hyphens remain valid; editing the slug stops mirroring.
+- Project Settings are visible and writable to project admins/owners and global admins/owners. Editing the name preserves its slug and existing links.
+- Project and sheet create forms share `slug-mirror`, with source/destination targets and underscores by default. Manual hyphens remain valid; editing the slug stops mirroring.
 
-- Members can create a workspace only while they own fewer than three; existing workspaces survive a downgrade. Global admins/owners have no workspace cap. Every workspace has a maximum of twelve projects. Creation checks run under row locks to serialize simultaneous requests.
+- Members can create a project only while they own fewer than three; existing projects survive a downgrade. Global admins/owners have no project cap. Every project has a maximum of 90 sheets. Creation checks run under row locks to serialize simultaneous requests.
 
 - Sidebar collapse preferences use the shared navigation_state script and per-account browser storage, restored before Simple Elements initializes. Give every collapsible sidebar element a stable, unique id; its public collapsed attribute is persisted automatically. Administration is collapsible and defaults to collapsed. Full-page navigation keeps permissions, scope, breadcrumbs, and profile content server-rendered and current; no permanent stale sidebar or coordinated Turbo frames are needed.
-- A workspace allows at most 200 members (including owners). The membership model locks the workspace during creation/moves; a rejected acceptance keeps the invitation pending. Existing member role changes remain available at capacity.
+- A project allows at most 200 members (including owners). The membership model locks the project during creation/moves; a rejected acceptance keeps the invitation pending. Existing member role changes remain available at capacity.
 
-- Empty pages and empty lists use se-empty-illustration with a relevant variant, title, and helpful text. Do not use se-empty-state or wrap an empty illustration in a card. Workspace invitations use the inbox illustration; navigation already in the sidebar must not be repeated in the page header.
+- Empty pages and empty lists use se-empty-illustration with a relevant variant, title, and helpful text. Do not use se-empty-state or wrap an empty illustration in a card. Project invitations use the inbox illustration; navigation already in the sidebar must not be repeated in the page header.
+
+- Translation tree rows use `se-list-row level` and `guides`. Key actions use a single right-aligned `se-menu icon-only`. Use native `collapsible` on parent rows, `sticky` on the header, and `dividers="1,2"` on the collection. Append lazy-loaded rows to the same collection so collapse and guides span every loaded page. Plural forms are child rows in both views; their creation actions belong in the key menu. Language selectors use `size="small"` inside the table header. The page heading groups its title and Add key action on the left, with search and the view/sort filter popover on the right. Table menus use `variant="mini"` and native `heading` options; inline translation inputs use `size="small"`.
+
+- The sidebar's brand owns its collapse button (`se-layout-brand collapsible`); do not add the sidebar edge control. Plural category child rows use `variant="secondary"`. Empty editable translations show their textarea immediately. Reserve an inline status slot for the library spinner and brand-colored saved check; success messages must not expand rows. Keep the search input at its default size.
+
+- Key mutations refresh only the translation results frame and preserve view, sort, selected languages, and search. Read-mode translation text matches the small textarea's typography and box dimensions to avoid a height jump when editing.
+
+- Mobile translations use two equal language columns with their selectors and no key/tree column. The table reaches both content edges; tree collapse is disabled on mobile without discarding the desktop collapse state. Desktop remains the three-column tree/key editor.

@@ -1,0 +1,42 @@
+<section class="app-page" data-controller="translation-table">
+  <%= render "sheets/navigation" %>
+  <header class="app-heading">
+    <div class="app-row-actions"><se-title level="page">Translations</se-title>
+      <% if policy(@sheet).manage_keys? %><se-button text="Add key" icon="plus" data-action="click->translation-table#addRoot" data-url="<%= new_project_sheet_recording_path(@project,@sheet) %>"></se-button><% end %>
+    </div>
+    <%= form_with url: translations_project_sheet_path(@project, @sheet), method: :get, class: "translation-toolbar", data: {turbo: true, turbo_frame: "translation-results", action: "change->translation-table#filter"} do %>
+      <input type="hidden" name="left" value="<%= @language_identifiers[@left&.id] %>">
+      <input type="hidden" name="right" value="<%= @language_identifiers[@right&.id] %>">
+      <input type="hidden" name="loaded" value="20">
+      <input type="hidden" name="mobile" value="1" disabled data-mobile-view>
+    <span data-desktop-search><se-input type="search" name="q" value="<%= @query %>" placeholder="Search keys and translations" aria-label="Search keys and translations" data-controller="control-label" data-action="input->translation-table#search"></se-input></span>
+    <se-popover label="View and sort" icon="funnel" icon-only>
+      <div data-mobile-search hidden><div data-search-slot></div></div>
+      <details open data-view-field><summary>View</summary><fieldset aria-label="View">
+        <se-select label="Display" name="view" value="<%= params[:view] == 'tree' ? 'tree' : 'keys' %>" options='[{"id":"keys","label":"Keys"},{"id":"tree","label":"Tree"}]'></se-select>
+      </fieldset></details>
+      <details open data-sort-field><summary>Sort</summary><fieldset aria-label="Sort">
+        <se-select label="Order" name="sort" value="<%= @sort %>" options='[{"id":"alphabetical","label":"Alphabetical"},{"id":"recent","label":"Recently updated"},{"id":"relevance","label":"Missing translations first"}]'></se-select>
+      </fieldset></details>
+    </se-popover>
+    <% end %>
+  </header>
+  <% if @languages.empty? %><se-text role="status">Add languages in the project's language catalogue first.</se-text><% end %>
+  <turbo-frame id="translation-results" data-turbo-action="advance">
+      <se-collection type="table" columns="minmax(12rem,1fr) minmax(14rem,1fr) minmax(14rem,1fr)" id="translation-rows" mobile-columns="repeat(2, minmax(0, 1fr))" data-controller="translation-mobile" dividers="1,2">
+        <se-list-header sticky>
+          <span layout-mode="desktop-only">Key</span>
+          <% [[:left,@left],[:right,@right]].each do |side, selected| %>
+            <div class="app-row-actions app-table-control">
+              <se-select searchable size="small" aria-label="<%= side == :left ? 'Reference language' : 'Target language' %>" data-controller="control-label" data-language-side="<%= side %>" data-action="change->translation-table#language" value="<%= @language_identifiers[selected&.id] %>" options="<%= @languages.map { |language| {id: @language_identifiers[language.id], label: language.name, icon: (@editable_languages.include?(language.id) ? 'pencil' : 'lock')} }.to_json %>"></se-select>
+
+            </div>
+          <% end %>
+        </se-list-header>
+        <%= render "sheets/rows" %>
+      </se-collection>
+      <div id="translation-pagination"><%= render "sheets/more" %></div>
+    <% if @rows.empty? %><se-empty-illustration variant="translation-2" title="<%= @query.present? ? 'No matching translations' : 'No translation keys yet' %>" text="<%= @query.present? ? 'Try another key or text in the selected languages.' : 'Add a key, then enter translations in your selected languages.' %>"></se-empty-illustration>
+    <% end %>
+  </turbo-frame>
+</section>

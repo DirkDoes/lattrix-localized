@@ -35,7 +35,7 @@ class AccountDeletionTest < ActionDispatch::IntegrationTest
     assert User.exists?(users(:two).id)
     assert_not AuthIdentity.exists?(user_id: @user.id)
     assert_not EmailChallenge.exists?(challenge.id)
-    get overview_path
+    get projects_path
     assert_redirected_to new_user_session_path
   end
 

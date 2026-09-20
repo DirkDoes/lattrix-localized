@@ -3,79 +3,153 @@ require "test_helper"
 class ProjectsTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  test "sidebar collapse preference survives navigation" do
-    owner = users(:one)
-    owner.update!(email_verified_at: Time.current, role: :member)
-    sign_in owner
-    cookies[:sidebar_collapsed] = "true"
-    get workspaces_path
-    assert_select "se-sidebar[collapsed][collapsible]"
-    get overview_path
-    assert_select "se-sidebar[collapsed][collapsible]"
-    cookies[:sidebar_collapsed] = "false"
-    get workspaces_path
-    assert_select "se-sidebar[collapsible]:not([collapsed])"
+  setup do
+    @owner = users(:one)
+    @recipient = users(:two)
+    [ @owner, @recipient ].each { |user| user.update!(email_verified_at: Time.current) }
+    @owner.update!(role: :member)
+    @recipient.update!(role: :guest)
+    sign_in @owner
+    post projects_path, params: { project: { name: "Localization", visibility: "private", role: "viewer" } }
+    @project = Project.order(:created_at).last
   end
 
-  test "projects stay scoped, creation is authorized, and navigation follows the scope" do
-    owner = users(:one)
-    owner.update!(email_verified_at: Time.current, role: :member)
-    workspace = Workspace.create!(name: "Team", visibility: "private")
-    membership = workspace.workspace_memberships.create!(user: owner, role: "owner")
-    workspace.workspace_memberships.create!(user: users(:two), role: "owner")
-    sign_in owner
-    get workspace_projects_path(workspace)
-    assert_select "header se-button[data-open-modal=project-create-modal]", count: 0
-    assert_select "se-empty-illustration[variant=folders][title='No projects yet'] se-button[data-open-modal=project-create-modal]", count: 1
-    membership.update!(role: "viewer")
-    get workspace_projects_path(workspace)
-    assert_select "se-empty-illustration[variant=folders]"
-    assert_select "se-button[data-open-modal=project-create-modal]", count: 0
-    membership.update!(role: "owner")
-    post workspace_projects_path(workspace), params: { project: { name: "Website", visibility: "public" } }
-    project = workspace.projects.sole
-    assert_redirected_to workspace_project_path(workspace, project)
-    assert_equal "private", project.effective_visibility
-    get workspace_project_path(workspace, project)
-    assert_select "se-sidebar[collapsible]:not([variant])", count: 1
-    assert_select "se-sidebar[layout-mode=responsive] se-sidebar-button[label=Translations]"
-    assert_select "se-sidebar se-sidebar-chapter[layout-mode=mobile-only] se-sidebar-group[variant=page]"
-    assert_select "se-topbar se-profile"
-    assert_select "se-topbar se-layout-brand"
-    assert_select "se-topbar se-breadcrumbs[variant=header]" do |elements|
-      trail = JSON.parse(elements.first["options"])
-      assert_equal [workspace_path(workspace), workspace_project_path(workspace, project)], trail.map { |item| item["href"] }
-    end
-    assert_select "se-topbar se-breadcrumbs[layout-mode=desktop-only]"
-    assert_select "se-sidebar > header[layout-mode=mobile-only] se-breadcrumbs[variant=header]"
-    assert_select "se-sidebar-chapter + se-sidebar-chapter[title=Workspace]"
-    assert_select "dialog#app-navigation", count: 0
-    get translations_workspace_project_path(workspace, project)
-    assert_response :success
-    get workspace_projects_path(workspace)
-    assert_select "se-nav-tabs[value=projects]"
-    assert_select "se-project-card[title=Website]"
-    assert_select "header se-button[data-open-modal=project-create-modal]", count: 1
-    assert_select "se-empty-illustration", count: 0
-    assert_select "se-sidebar[collapsible]:not([variant])", count: 1
-    assert_select "se-breadcrumbs", count: 0
-    assert_select ".app-mobile-workspaces", count: 0
-    get workspaces_path
-    assert_select "se-sidebar-group[variant=page][active]"
+  test "creation, validation and tenant-scoped lists" do
+    assert_equal "owner", @project.project_memberships.find_by!(user: @owner).role
     assert_no_difference "Project.count" do
-      post workspace_projects_path(workspace), params: { project: { name: "", visibility: "bad" } }
+      post projects_path, params: { project: { name: "", visibility: "invalid" } }
     end
     assert_response :unprocessable_entity
-    assert_select "se-modal#project-create-modal[open]"
-    membership.update!(role: "viewer")
-    post workspace_projects_path(workspace), params: { project: { name: "Forbidden" } }
-    assert_response :forbidden
-    other = Workspace.create!(name: "Other")
-    other.workspace_memberships.create!(user: owner, role: "owner")
-    get workspace_project_path(other, project)
+    assert_select "se-modal#project-create-modal[open][size=medium]"
+    get projects_path
+    assert_select "se-workspace-card[title='Localization']"
+    assert_select "se-sidebar-group[variant=page][href=?]", projects_path do
+      assert_select "se-sidebar-button[href=?]", project_path(@project)
+    end
+    assert_select "se-modal#project-create-modal:not([open]) form[novalidate]"
+    sign_in @recipient
+    get projects_path
+    assert_select "se-workspace-card[title='Localization']", count: 0
+    assert_select "se-sidebar-group se-sidebar-button[href=?]", project_path(@project), count: 0
+    get project_sheets_path(@project)
     assert_response :not_found
-    membership.destroy!
-    get workspace_projects_path(workspace)
+    sign_out @recipient
+    get projects_path
+    assert_redirected_to new_user_session_path
+  end
+
+  test "email-only invites do not disclose account existence and are idempotent" do
+    [ @recipient.email.upcase, "future@example.com", @owner.email ].each do |email|
+      assert_difference "ProjectInvite.count" do
+        post project_project_invites_path(@project), params: { email: " #{email} ", role: "viewer" }
+      end
+      assert_redirected_to members_project_path(@project)
+      assert_equal "User has been invited.", flash[:notice]
+    end
+    assert_no_difference "ProjectInvite.count" do
+      post project_project_invites_path(@project), params: { email: @recipient.email }
+    end
+    assert_equal "User has been invited.", flash[:notice]
+    assert_no_difference "ProjectInvite.count" do
+      post project_project_invites_path(@project), params: { email: "invalid" }
+    end
+    assert_response :unprocessable_entity
+    assert_select "se-modal#project-invite-modal[open][size=medium]" do
+      assert_select "form[novalidate]"
+      assert_select "se-input[value=invalid][error='Enter a valid email address.']"
+    end
+  end
+
+  test "project roles authorize invites independently of global role" do
+    membership = @project.project_memberships.find_by!(user: @owner)
+    backup = User.register_verified!(email: "backup@example.com")
+    @project.project_memberships.create!(user: backup, role: "owner")
+    %w[viewer translator].each do |role|
+      membership.update!(role: role)
+      assert_no_difference "ProjectInvite.count" do
+        post project_project_invites_path(@project), params: { email: @recipient.email }
+      end
+      assert_response(role == "viewer" ? :not_found : :forbidden)
+      get members_project_path(@project)
+      assert_select "se-menu[data-members-menu]", count: 0
+      assert_select "se-modal#project-invite-modal", count: 0
+    end
+    membership.update!(role: "admin")
+    post project_project_invites_path(@project), params: { email: @recipient.email }
+    assert_redirected_to members_project_path(@project)
+    sign_in @recipient
+    post project_project_invites_path(@project), params: { email: "other@example.com" }
     assert_response :not_found
   end
+
+  test "only recipient can accept or decline and existing roles are preserved" do
+    invite = @project.project_invites.create!(email: @recipient.email)
+    patch project_invite_path(invite), params: { decision: "accept" }
+    assert_response :not_found
+    assert invite.reload
+    sign_in @recipient
+    get project_invites_path
+    assert_select "se-title", text: "Localization"
+    patch project_invite_path(invite), params: { decision: "invalid" }
+    assert_response :unprocessable_entity
+    assert_difference "ProjectMembership.count" do
+      patch project_invite_path(invite), params: { decision: "accept", role: "owner" }
+    end
+    assert_equal "viewer", @project.project_memberships.find_by!(user: @recipient).role
+    assert_not ProjectInvite.exists?(invite.id)
+    patch project_invite_path(invite), params: { decision: "accept" }
+    assert_response :not_found
+    membership = @project.project_memberships.find_by!(user: @recipient)
+    membership.update!(role: "translator")
+    invite = @project.project_invites.create!(email: @recipient.email)
+    assert_no_difference "ProjectMembership.count" do
+      patch project_invite_path(invite), params: { decision: "accept" }
+    end
+    assert_equal "translator", membership.reload.role
+    assert_redirected_to projects_path
+    assert_not ProjectInvite.exists?(invite.id)
+    invite = @project.project_invites.create!(email: @recipient.email)
+    assert_no_difference "ProjectMembership.count" do
+      patch project_invite_path(invite), params: { decision: "decline" }
+    end
+    assert_not ProjectInvite.exists?(invite.id)
+  end
+
+  test "invitation remains available to a future verified account and multiple projects" do
+    @project.project_invites.create!(email: "newperson@example.com")
+    user = User.register_verified!(email: "newperson@example.com")
+    sign_in user
+    get project_invites_path
+    assert_select "se-title", text: "Localization"
+    patch project_invite_path(ProjectInvite.find_by!(email: user.email)), params: { decision: "accept" }
+    assert_no_difference "Project.count" do
+      post projects_path, params: { project: { name: "Second project", visibility: "public" } }
+    end
+    assert_response :forbidden
+    user.update!(role: :admin)
+    post projects_path, params: { project: { name: "Second project", visibility: "public" } }
+    assert_equal 2, user.project_memberships.count
+    get projects_path
+    assert_select "se-workspace-card[metadata*='Viewer']"
+    assert_select "se-workspace-card[metadata*='Owner']"
+  end
+  test "sheets and members have separate content" do
+    get project_sheets_path(@project)
+    assert_response :success
+    assert_select "se-title[level=page]", text: "Sheets"
+    assert_select "se-empty-illustration"
+    assert_select "se-collection", count: 0
+    assert_select "se-menu[data-members-menu]", count: 0
+    assert_select "se-button[text='All projects']", count: 0
+    get members_project_path(@project)
+    assert_select "se-nav-tabs[value=members]"
+    assert_select "se-title[level=page]", text: "Members"
+    assert_select "se-title[level=section]", count: 0
+    assert_select "se-collection[type=table]"
+    assert_select "se-menu[data-members-menu]"
+    sign_in @recipient
+    get members_project_path(@project)
+    assert_response :not_found
+  end
+
 end

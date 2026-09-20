@@ -1,0 +1,28 @@
+<section class="app-page">
+  <header class="app-heading">
+    <div><se-title level="page">Project invitations</se-title><se-text muted>Invitations for your account.</se-text></div>
+  </header>
+  <% if @invites.empty? %>
+    <se-empty-illustration variant="inbox" illustration-label="" title="No pending invitations" text="When someone invites you to a project, your invitation will appear here."></se-empty-illustration>
+  <% else %>
+    <div class="app-stack">
+      <% @invites.each do |invite| %>
+        <se-card><div class="app-stack">
+          <header><se-title level="card"><%= invite.project.name %></se-title><se-text muted small>You've been invited to join this project.</se-text></header>
+          <div><se-badge tone="brand" text="<%= invite.role.capitalize %>"></se-badge></div>
+          <footer class="app-form-actions">
+            <se-button variant="ghost" text="View project" href="<%= project_path(invite.project) %>"></se-button>
+            <%= form_with url: project_invite_path(invite), method: :patch do %>
+              <%= hidden_field_tag :decision, "decline" %>
+              <se-button type="submit" variant="secondary" text="Decline"></se-button>
+            <% end %>
+            <%= form_with url: project_invite_path(invite), method: :patch do %>
+              <%= hidden_field_tag :decision, "accept" %>
+              <se-button type="submit" variant="brand" icon="check" text="Accept invitation"></se-button>
+            <% end %>
+          </footer>
+        </div></se-card>
+      <% end %>
+    </div>
+  <% end %>
+</section>

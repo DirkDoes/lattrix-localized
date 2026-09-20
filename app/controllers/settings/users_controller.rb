@@ -29,8 +29,8 @@ class Settings::UsersController < Settings::BaseController
   end
 
   def destroy
-    @user.destroy_with_workspace_transfer!(current_user)
-    redirect_to settings_users_path, notice: "User removed. Any solely owned workspaces were transferred to you."
+    @user.destroy_with_project_transfer!(current_user)
+    redirect_to settings_users_path, notice: "User removed. Any solely owned projects were transferred to you."
   rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => error
     redirect_to settings_users_path, alert: error.record.errors.full_messages.to_sentence.presence || error.message
   end
@@ -52,7 +52,7 @@ class Settings::UsersController < Settings::BaseController
   rescue ActiveRecord::RecordNotFound
     # No record is exposed; guests/members can resolve only their own account.
     skip_authorization
-    redirect_to policy(User).index? ? settings_users_path : overview_path,
+    redirect_to policy(User).index? ? settings_users_path : projects_path,
       alert: "You don't have permission to manage that user."
   end
 
@@ -67,7 +67,7 @@ class Settings::UsersController < Settings::BaseController
 
   def after_update_path
     return settings_users_path unless @user == current_user
-    return overview_path unless policy(User).index?
+    return projects_path unless policy(User).index?
     edit_settings_user_path(@user)
   end
 end

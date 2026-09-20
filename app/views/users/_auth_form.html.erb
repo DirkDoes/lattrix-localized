@@ -1,6 +1,6 @@
 <% password_mode = AuthenticationPolicy.enabled?("password") && (params[:method] == "password" || @password_mode || !AuthenticationPolicy.enabled?("email_code")) %>
 <main class="app-auth"><se-card class="app-auth-card"><div class="app-stack" data-controller="auth-form">
-  <header><se-title level="section"><%= registration ? "Create account" : "Log in" %></se-title><se-text muted>Welcome to your workspace.</se-text></header>
+  <header><se-title level="section"><%= registration ? "Create account" : "Log in" %></se-title><se-text muted>Welcome to your project.</se-text></header>
   <%= render "users/providers" unless registration %>
   <% if !registration && AuthenticationPolicy.providers.any? && (AuthenticationPolicy.enabled?("email_code") || AuthenticationPolicy.enabled?("password")) %><hr class="app-auth-divider"><% end %>
   <% if AuthenticationPolicy.enabled?("email_code") && AuthenticationPolicy.enabled?("password") %>

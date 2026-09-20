@@ -27,7 +27,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
     assert_equal %w[email_code password], user.available_methods.sort
     assert user.email_verified_at
     assert user.guest?
-    get overview_path
+    get projects_path
     assert_response :success
     post link_authentication_method_path("email_code")
     assert user.reload.available_methods.include?("email_code")
@@ -42,7 +42,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to new_user_session_path
     assert_equal original, @user.reload.encrypted_password
-    get overview_path
+    get projects_path
     assert_redirected_to new_user_session_path
   end
 
@@ -72,7 +72,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
     submit_code
     assert_redirected_to new_user_session_path
     assert_equal ["password"], @user.reload.available_methods
-    get overview_path
+    get projects_path
     assert_redirected_to new_user_session_path
   end
 
