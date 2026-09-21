@@ -18,7 +18,7 @@ class ProjectMembershipsController < ApplicationController
       @membership.update!(role: role)
       if params.key?(:language_ids) || role != "translator"
         ids = role == "translator" ? Array(params[:language_ids]).reject(&:blank?).uniq : []
-        raise ActiveRecord::RecordNotFound unless @project.languages.where(id: ids).count == ids.length
+        raise ActiveRecord::RecordNotFound unless @project.languages.active.where(id: ids).count == ids.length
         @membership.membership_languages.destroy_all
         ids.each { |id| @membership.membership_languages.create!(language_id: id) }
       end

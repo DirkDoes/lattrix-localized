@@ -20,7 +20,7 @@
         <se-input data-slug-mirror-target="source" label="Sheet name" name="sheet[name]" value="<%= @sheet.name %>" error="<%= @sheet.errors[:name].first %>"></se-input>
         <se-input data-slug-mirror-target="destination" label="Identifier" name="sheet[slug]" value="<%= @sheet.slug %>" error="<%= @sheet.errors[:slug].first %>" hint="Generated from the name until you edit it. Use lowercase letters, numbers and underscores."></se-input>
         </div>
-        <se-select label="Default language" name="sheet[default_language_id]" value="<%= @sheet.default_language_id || @project.languages.where(enabled: true).order(:created_at).first&.id %>" options="<%= @project.languages.where(enabled: true).order(:name).map { |l| {id: l.id, label: l.name} }.presence&.to_json || [{id: '', label: 'None'}].to_json %>"></se-select>
+        <se-select label="Default language" name="sheet[default_language_id]" value="<%= @sheet.default_language_id || @project.languages.active.where(enabled: true).order(:created_at).first&.id %>" options="<%= @project.languages.active.where(enabled: true).order(:name).map { |l| {id: l.id, label: l.name} }.presence&.to_json || [{id: '', label: 'None'}].to_json %>"></se-select>
         <se-select label="Visibility" name="sheet[visibility]" value="<%= @sheet.visibility %>" error="<%= @sheet.errors[:visibility].first %>" options='[{"id":"private","label":"Private"},{"id":"public","label":"Public"}]'></se-select>
         <% if @project.visibility == "private" %><se-text muted>Sheets in this private project stay private, even when set to public.</se-text><% end %>
       <% end %>

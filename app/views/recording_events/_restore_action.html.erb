@@ -1,0 +1,20 @@
+<% restore_count = @restore_counts.fetch(event.id, 0).to_i %>
+<% can_restore = policy(event).restore? && restore_count.positive? %>
+<% if policy(@sheet).export? || can_restore %>
+  <span class="history-restore-action">
+    <% options = [{id: "export", label: "Export this version", icon: "download"}] %>
+    <% options.unshift({id: "restore", label: "Restore sheet to this point", icon: "rotate-ccw"}) if can_restore %>
+    <se-menu variant="mini" icon-only label="Actions for this point in history" data-history-actions data-event-id="<%= event.id %>" data-event-date="<%= event.created_at.in_time_zone.to_fs(:long) %>" options="<%= options.to_json %>"></se-menu>
+    <% if can_restore %>
+    <se-modal id="restore-event-<%= event.id %>" title="Restore sheet to this point?" subtitle="<%= event.created_at.in_time_zone.to_fs(:long) %>" size="small" icon="rotate-ccw" tone="warning" cancel-label="Cancel" confirm-label="Restore sheet" data-submit-form>
+      <se-text>This will reverse <%= pluralize(restore_count, "later event") %>, including changes hidden by the current filters.</se-text>
+      <%= form_with url: restore_project_sheet_recording_event_path(@project, @sheet, event), method: :patch do %>
+        <% @language_ids.each do |language_id| %><input type="hidden" name="language_ids[]" value="<%= language_id %>"><% end %>
+        <input type="hidden" name="q" value="<%= @query %>">
+        <% @types.each do |type| %><input type="hidden" name="types[]" value="<%= type %>"><% end %>
+        <% @actor_ids.each do |actor_id| %><input type="hidden" name="actor_ids[]" value="<%= actor_id %>"><% end %>
+      <% end %>
+    </se-modal>
+    <% end %>
+  </span>
+<% end %>

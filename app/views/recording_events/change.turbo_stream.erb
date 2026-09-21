@@ -1,0 +1,6 @@
+<turbo-stream action="before" target="history-more-<%= @change_id %>"><template>
+  <% @events.each do |event| %><%= render partial: "recording_events/event_row", formats: [:html], locals: {event: event, level: 1, secondary: true, details_only: true, restore_action: false} %><% end %>
+</template></turbo-stream>
+<turbo-stream action="replace" target="history-more-<%= @change_id %>"><template>
+  <%= render partial: "recording_events/change_more", formats: [:html], locals: {change_id: @change_id, offset: @offset + @events.size} if @more %>
+</template></turbo-stream>

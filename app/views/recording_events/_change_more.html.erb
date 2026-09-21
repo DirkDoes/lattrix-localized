@@ -1,0 +1,5 @@
+<se-list-row id="history-more-<%= change_id %>" level="1" guides variant="secondary">
+  <div class="history-event-detail history-more">
+    <se-button text="Load 20 more" variant="secondary" data-history-more data-url="<%= change_project_sheet_recording_events_path(@project, @sheet, change_id: change_id, offset: offset, q: @query, language_ids: @language_ids, types: @types, actor_ids: @actor_ids, format: :turbo_stream) %>"></se-button>
+  </div>
+</se-list-row>

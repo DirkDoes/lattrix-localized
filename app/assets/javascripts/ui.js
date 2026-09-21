@@ -14,11 +14,26 @@ document.addEventListener("select", (event) => {
 
 
 
+function openExportModal(eventId, eventDate) {
+  const modal = document.getElementById("export-modal");
+  const form = modal.querySelector("form");
+  form.setAttribute("action", `${form.action.split("?")[0]}${eventId ? `?recording_event_id=${eventId}` : ""}`);
+  const replacement = document.createElement("se-modal");
+  for (const {name, value} of modal.attributes) if (name !== "data-ready" && name !== "title") replacement.setAttribute(name, value);
+  replacement.setAttribute("title", eventDate ? `Export translations · ${eventDate}` : "Export translations");
+  replacement.append(form);
+  modal.replaceWith(replacement);
+  queueMicrotask(() => replacement.open());
+}
+
 document.addEventListener("click", (event) => {
 
   const modalTrigger = event.target.closest("[data-open-modal]");
 
-  if (modalTrigger) document.getElementById(modalTrigger.dataset.openModal).open();
+  if (modalTrigger) {
+    if (modalTrigger.hasAttribute("data-export-current")) openExportModal();
+    else document.getElementById(modalTrigger.dataset.openModal).open();
+  }
 
   if (event.target.closest("[data-open-password-modal]")) document.getElementById("password-modal").open();
 
@@ -172,4 +187,21 @@ document.addEventListener("select", (event) => {
   if (!event.target.matches("se-menu[data-members-menu]")) return;
   if (event.detail.id === "invite") document.getElementById("project-invite-modal").open();
   if (event.detail.id === "invites") window.location.assign(event.target.dataset.invitesUrl);
+});
+
+document.addEventListener("select", (event) => {
+  if (!event.target.matches("se-menu[data-history-actions]")) return;
+  if (event.detail.id === "restore") document.getElementById(`restore-event-${event.target.dataset.eventId}`).open();
+  if (event.detail.id === "export") {
+    openExportModal(event.target.dataset.eventId, event.target.dataset.eventDate);
+  }
+});
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-history-more]");
+  if (!button || button.hasAttribute("disabled")) return;
+  button.setAttribute("disabled", "");
+  const response = await fetch(button.dataset.url, {headers: {Accept: "text/vnd.turbo-stream.html"}});
+  if (response.ok) Turbo.renderStreamMessage(await response.text());
+  else button.removeAttribute("disabled");
 });

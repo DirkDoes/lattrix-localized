@@ -25,6 +25,7 @@ class ExportJob < ApplicationJob
     set = request.project.identifier_sets.find(options.fetch("identifier_set_id"))
     identifiers = set.language_identifiers.pluck(:language_id, :identifier).to_h
     format = options.fetch("format")
+    event = RecordingEvent.find(options["recording_event_id"]) if options["recording_event_id"]
     workbook = Axlsx::Package.new if format == "xlsx"
     files = []
     Dir.mktmpdir("lattrix-export") do |directory|
@@ -35,7 +36,8 @@ class ExportJob < ApplicationJob
         next if languages.empty?
         missing = languages.reject { |language| identifiers.key?(language.id) }
         raise ArgumentError, "Some languages are missing identifiers in this set" if missing.any?
-        exporter = TranslationExport.new(sheet, languages: languages, identifiers: identifiers, descriptions: options["descriptions"], checkpoint: checkpoint)
+        raise ArgumentError, "Invalid history point" if event && event.recording.translation_tree_id != sheet.translation_tree.id
+        exporter = TranslationExport.new(sheet, languages: languages, identifiers: identifiers, descriptions: options["descriptions"], checkpoint: checkpoint, event: event)
         if format == "xlsx"
           title = "#{index + 1} #{sheet.name}".gsub(/[\\\/\?\*\[\]:]/, " ")[0,31]
           workbook.workbook.add_worksheet(name: title) do |worksheet|

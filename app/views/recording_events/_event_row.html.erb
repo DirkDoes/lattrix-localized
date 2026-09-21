@@ -1,0 +1,13 @@
+<se-list-row level="<%= level %>" <%= "guides" if level.positive? %> <%= 'variant="secondary"'.html_safe if secondary %>>
+  <% unless details_only %>
+    <div class="history-actor">
+      <% time = "#{time_ago_in_words(event.created_at)} ago" %>
+      <span layout-mode="desktop-only"><% if event.actor %><%= render "shared/table_profile", user: event.actor, show_email: false, subtitle: time %><% else %><se-profile class="app-table-profile" name="Deleted user" subtitle="<%= time %>" initials="?"></se-profile><% end %></span>
+      <se-text class="history-mobile-actor" muted small layout-mode="mobile-only"><span class="history-mobile-name"><%= event.actor&.name || "Deleted user" %></span> · <%= time %></se-text>
+    </div>
+  <% end %>
+  <div class="history-change <%= "history-event-detail" if details_only %>">
+    <%= render event.row_partial, event: event, previous_event: @previous_events[event.id] %>
+    <%= render "recording_events/restore_action", event: event if restore_action %>
+  </div>
+</se-list-row>

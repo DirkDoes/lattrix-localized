@@ -1,0 +1,11 @@
+<div class="history-description">
+  <% previous = previous_event&.recordable if previous_event&.recordable_type == "TranslationKey" %>
+  <% if event.action == "updated" && previous %>
+    <strong><%= event.reverted? ? "Reverted change to" : "Changed" %> translation key</strong>
+    <div class="history-values"><se-code><%= previous.name %></se-code><span aria-hidden="true">→</span><se-code><%= event.recordable.name %></se-code></div>
+  <% else %>
+    <% action_text = event.reverted? ? {"created" => "Restored deleted", "deleted" => "Reverted creation of"}.fetch(event.action) : {"created" => "Added", "deleted" => "Deleted"}.fetch(event.action) %>
+    <strong><%= action_text %> translation key <se-code><%= event.recordable.name %></se-code></strong>
+  <% end %>
+  <% if event.recordable.description.present? %><se-text muted small><%= event.recordable.description %></se-text><% end %>
+</div>

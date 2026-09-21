@@ -10,12 +10,20 @@ Rails.application.routes.draw do
     resources :exports, controller: "exports", only: [:create, :show, :destroy] do
       get :download, on: :member
     end
-    resources :languages, only: [:create, :update]
+    resources :languages, only: [:create, :update, :destroy] do
+      patch :archive, on: :member
+      patch :restore, on: :member
+    end
     resources :sheets, only: [:index, :create, :show, :update] do
       get :settings, on: :member
 
       get :image, on: :member
       get :translations, on: :member
+      get :history, on: :member, to: "recording_events#index"
+      resources :recording_events, only: [] do
+        get :change, on: :collection
+        patch :restore, on: :member
+      end
       resources :recordings, only: [:new, :edit, :create, :update, :destroy] do
         get :parents, on: :collection
         get :preview, on: :collection

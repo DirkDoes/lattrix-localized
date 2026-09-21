@@ -70,3 +70,5 @@ The role of this file is to describe common mistakes and confusion points that a
 - v0.14.5 supports rich tooltip content, but its hover dismissal still makes the bubble non-interactive. The plural badge itself links to Unicode; use a popover if interactive content inside the floating panel is needed.
 
 - Non-user entity primary keys are bigint after migration 20260921000000. Only users and their foreign keys use UUIDs. Compare request/DOM ID strings explicitly with numeric model IDs; never assume UUID-shaped identifiers outside users.
+
+- Before changing translation architecture, read `docs/translation-architecture.md` for the recording/recordable rationale and the explicitly deferred reflection/history ideas.

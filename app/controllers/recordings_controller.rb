@@ -35,8 +35,8 @@ class RecordingsController < ApplicationController
     authorize @sheet, :manage_keys?
     @tree.with_lock do
       parent, name = resolve_key_path(create_missing: true)
-      key = Recording.create_key!(tree: @tree, parent: parent, name: name, description: params[:description].to_s)
-      key.set_pluralized!(true) if params[:pluralized] == "1"
+      key = Recording.create_key!(tree: @tree, parent: parent, name: name, description: params[:description].to_s, actor: current_user)
+      key.set_pluralized!(true, actor: current_user) if params[:pluralized] == "1"
       save_form_translations(key, creating: true)
     end
     complete("Key added.")
@@ -50,7 +50,7 @@ class RecordingsController < ApplicationController
     raise Pundit::NotAuthorizedError unless policy(@sheet).edit_language?(language)
     key = @tree.recordings.active.keys.find(params[:id])
     raise ArgumentError, "Edit version is required" unless params.key?(:version)
-    value = key.save_translation!(language, params[:text].to_s, expected: params[:version], existing_id: params[:translation_id])
+    value = key.save_translation!(language, params[:text].to_s, expected: params[:version], existing_id: params[:translation_id], actor: current_user)
     render json: {text: value&.recordable&.text.to_s, version: value&.lock_version || "new", translation_id: value&.id}
   rescue ActiveRecord::StaleObjectError
     current = key.children.active.texts.includes(:recordable).find { |r| r.recordable.language_id == language.id }
@@ -63,14 +63,17 @@ class RecordingsController < ApplicationController
     authorize @sheet, :manage_keys?
     key = @tree.recordings.active.keys.find(params[:id])
     @tree.with_lock do
-      parent, name = resolve_key_path(create_missing: true)
-      key.change_key!(name: name, parent_id: parent&.id, description: params[:description].to_s, expected: params.require(:version))
+      name = params[:name].to_s
+      raise ArgumentError, "Enter a key name" if name.empty?
+      raise ArgumentError, "Key names cannot contain whitespace" if name.match?(/[[:space:]]/)
+      raise ArgumentError, "Key names cannot contain the sheet delimiter" if name.include?(@sheet.delimiter)
+      key.change_key!(name: name, parent_id: key.parent_id, description: params[:description].to_s, expected: params.require(:version), actor: current_user)
       if key.recordable.pluralized
-        key.set_pluralized!(params[:pluralized] == "1") if params.key?(:pluralized)
+        key.set_pluralized!(params[:pluralized] == "1", actor: current_user) if params.key?(:pluralized)
         save_form_translations(key)
       else
         save_form_translations(key)
-        key.set_pluralized!(params[:pluralized] == "1") if params.key?(:pluralized)
+        key.set_pluralized!(params[:pluralized] == "1", actor: current_user) if params.key?(:pluralized)
       end
     end
     complete("Key and its subtree updated.")
@@ -81,7 +84,7 @@ class RecordingsController < ApplicationController
   def destroy
     authorize @sheet, :manage_keys?
     key = @tree.recordings.active.keys.find(params[:id])
-    key.discard_subtree!(expected: params.require(:version))
+    key.discard_subtree!(expected: params.require(:version), actor: current_user)
     complete("Key and its subtree removed.")
   rescue ActiveRecord::StaleObjectError, ArgumentError => error
     failed(error)
@@ -93,7 +96,7 @@ class RecordingsController < ApplicationController
     @tree.with_lock do
       key.reload
       raise ActiveRecord::StaleObjectError.new(key, "update") unless key.lock_version == params.require(:version).to_i
-      key.set_pluralized!(params[:enabled] == "1")
+      key.set_pluralized!(params[:enabled] == "1", actor: current_user)
     end
     complete("Plural editor updated; child keys are preserved.")
   rescue ActiveRecord::RecordNotFound, ActiveRecord::StaleObjectError, ActiveRecord::RecordInvalid, ActiveRecord::StatementInvalid, ArgumentError => error
@@ -134,7 +137,7 @@ class RecordingsController < ApplicationController
       if found
         parent = found
       elsif create_missing
-        parent = Recording.create_key!(tree: @tree, parent: parent, name: part)
+        parent = Recording.create_key!(tree: @tree, parent: parent, name: part, actor: current_user)
       elsif preview
         @missing_parent = true
       else
@@ -167,11 +170,11 @@ class RecordingsController < ApplicationController
         raise ActiveRecord::StaleObjectError.new(target, "update") unless original
         if original.recordable.language_id != language.id
           raise Pundit::NotAuthorizedError unless policy(@sheet).edit_language?(original.recordable.language)
-          target.save_translation!(original.recordable.language, "", **options)
+          target.save_translation!(original.recordable.language, "", actor: current_user, **options)
           options = {expected: "new"}
         end
       end
-      target.save_translation!(language, row[:text].to_s, **options)
+      target.save_translation!(language, row[:text].to_s, actor: current_user, **options)
     end
   end
 

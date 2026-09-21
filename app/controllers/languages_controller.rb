@@ -9,7 +9,29 @@ class LanguagesController < ApplicationController
     save_language(new_record: false)
   end
 
+  def archive
+    mutate(:archive?) { |language| language.archive! }
+  end
+
+  def restore
+    mutate(:restore?) { |language| language.update!(status: "active") }
+  end
+
+  def destroy
+    mutate(:destroy?) { |language| language.schedule_deletion! }
+  end
+
   private
+
+  def mutate(permission)
+    project = policy_scope(Project).find_by!(slug: params[:project_id])
+    language = project.languages.find(params[:id])
+    authorize language, permission
+    yield language
+    redirect_to settings_project_path(project), notice: language.pending_deletion? ? "Language scheduled for permanent deletion." : "Language updated."
+  rescue ActiveRecord::RecordInvalid, ArgumentError => error
+    redirect_to settings_project_path(project), alert: error.is_a?(ActiveRecord::RecordInvalid) ? error.record.errors.full_messages.to_sentence : error.message
+  end
 
   def save_language(new_record:)
     project = policy_scope(Project).find_by!(slug: params[:project_id])

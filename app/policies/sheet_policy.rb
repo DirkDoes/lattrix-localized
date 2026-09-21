@@ -3,6 +3,10 @@ class SheetPolicy < ApplicationPolicy
     Scope.new(user, Sheet).resolve.exists?(id: record.id)
   end
   def translations? = show?
+  def history?
+    return false unless access? && show?
+    administration? || record.project.project_memberships.where(user: user, role: %w[translator admin owner]).exists?
+  end
   def settings? = create?
   def update? = create?
   def image? = show?

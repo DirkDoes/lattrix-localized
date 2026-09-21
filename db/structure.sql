@@ -129,6 +129,40 @@ END $$;
 
 
 --
+-- Name: guard_recording_event(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.guard_recording_event() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF NEW.recordable_type='TranslationKey' AND NOT EXISTS(SELECT 1 FROM translation_keys WHERE id=NEW.recordable_id) THEN
+    RAISE EXCEPTION 'History key payload does not exist' USING ERRCODE='23503';
+  ELSIF NEW.recordable_type='TextTranslation' AND NOT EXISTS(SELECT 1 FROM text_translations WHERE id=NEW.recordable_id) THEN
+    RAISE EXCEPTION 'History translation payload does not exist' USING ERRCODE='23503';
+  ELSIF NEW.recordable_type NOT IN ('TranslationKey','TextTranslation') THEN
+    RAISE EXCEPTION 'Unsupported history payload type' USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END $$;
+
+
+--
+-- Name: guard_recording_identity(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.guard_recording_identity() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF NEW.translation_tree_id<>OLD.translation_tree_id OR NEW.parent_id IS DISTINCT FROM OLD.parent_id THEN
+    RAISE EXCEPTION 'Moving recordings is not supported' USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END $$;
+
+
+--
 -- Name: guard_retained_language(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -211,7 +245,10 @@ END $$;
 CREATE FUNCTION public.immutable_translation_payload() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-BEGIN RAISE EXCEPTION 'Translation payloads are immutable' USING ERRCODE='23514'; END $$;
+BEGIN
+  IF current_setting('app.purge_language', true)='on' THEN RETURN OLD; END IF;
+  RAISE EXCEPTION 'Translation payloads are immutable' USING ERRCODE='23514';
+END $$;
 
 
 --
@@ -477,7 +514,9 @@ CREATE TABLE public.languages (
     enabled boolean DEFAULT false NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT language_identity CHECK (((length((name)::text) > 0) AND ((identifier)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text)))
+    status character varying DEFAULT 'active'::character varying NOT NULL,
+    CONSTRAINT language_identity CHECK (((length((name)::text) > 0) AND ((identifier)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text))),
+    CONSTRAINT language_status CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'archived'::character varying, 'pending_deletion'::character varying])::text[])))
 );
 
 
@@ -644,6 +683,64 @@ CREATE SEQUENCE public.projects_id_seq
 --
 
 ALTER SEQUENCE public.projects_id_seq OWNED BY public.projects.id;
+
+
+--
+-- Name: recording_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recording_events (
+    id bigint NOT NULL,
+    recording_id bigint NOT NULL,
+    actor_id uuid,
+    action character varying NOT NULL,
+    recordable_type character varying NOT NULL,
+    recordable_id bigint NOT NULL,
+    deleted_at timestamp(6) without time zone,
+    reverted boolean DEFAULT false NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    change_id bigint NOT NULL,
+    CONSTRAINT recording_event_action CHECK (((action)::text = ANY ((ARRAY['created'::character varying, 'updated'::character varying, 'deleted'::character varying])::text[]))),
+    CONSTRAINT recording_event_deletion CHECK ((((action)::text = 'deleted'::text) = (deleted_at IS NOT NULL)))
+);
+
+
+--
+-- Name: recording_event_change_ids; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.recording_event_change_ids
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: recording_event_change_ids; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.recording_event_change_ids OWNED BY public.recording_events.change_id;
+
+
+--
+-- Name: recording_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.recording_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: recording_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.recording_events_id_seq OWNED BY public.recording_events.id;
 
 
 --
@@ -1341,6 +1438,20 @@ ALTER TABLE ONLY public.projects ALTER COLUMN id SET DEFAULT nextval('public.pro
 
 
 --
+-- Name: recording_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recording_events ALTER COLUMN id SET DEFAULT nextval('public.recording_events_id_seq'::regclass);
+
+
+--
+-- Name: recording_events change_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recording_events ALTER COLUMN change_id SET DEFAULT nextval('public.recording_event_change_ids'::regclass);
+
+
+--
 -- Name: recordings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1561,6 +1672,14 @@ ALTER TABLE ONLY public.project_memberships
 
 ALTER TABLE ONLY public.projects
     ADD CONSTRAINT projects_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: recording_events recording_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recording_events
+    ADD CONSTRAINT recording_events_pkey PRIMARY KEY (id);
 
 
 --
@@ -1836,6 +1955,13 @@ CREATE UNIQUE INDEX index_languages_on_project_id_and_identifier ON public.langu
 
 
 --
+-- Name: index_languages_on_project_id_and_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_languages_on_project_id_and_status ON public.languages USING btree (project_id, status);
+
+
+--
 -- Name: index_membership_languages_on_language_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1910,6 +2036,41 @@ CREATE INDEX index_project_memberships_on_user_id ON public.project_memberships 
 --
 
 CREATE UNIQUE INDEX index_projects_on_slug ON public.projects USING btree (slug);
+
+
+--
+-- Name: index_recording_events_on_actor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_recording_events_on_actor_id ON public.recording_events USING btree (actor_id);
+
+
+--
+-- Name: index_recording_events_on_change_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_recording_events_on_change_id ON public.recording_events USING btree (change_id);
+
+
+--
+-- Name: index_recording_events_on_recordable_type_and_recordable_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_recording_events_on_recordable_type_and_recordable_id ON public.recording_events USING btree (recordable_type, recordable_id);
+
+
+--
+-- Name: index_recording_events_on_recording_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_recording_events_on_recording_id ON public.recording_events USING btree (recording_id);
+
+
+--
+-- Name: index_recording_events_on_recording_id_and_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_recording_events_on_recording_id_and_id ON public.recording_events USING btree (recording_id, id);
 
 
 --
@@ -2284,6 +2445,20 @@ CREATE TRIGGER recording_delete_revision AFTER DELETE ON public.recordings REFER
 
 
 --
+-- Name: recording_events recording_event_integrity; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER recording_event_integrity BEFORE INSERT ON public.recording_events FOR EACH ROW EXECUTE FUNCTION public.guard_recording_event();
+
+
+--
+-- Name: recordings recording_identity; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER recording_identity BEFORE UPDATE ON public.recordings FOR EACH ROW EXECUTE FUNCTION public.guard_recording_identity();
+
+
+--
 -- Name: recordings recording_insert_revision; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -2450,6 +2625,14 @@ ALTER TABLE ONLY public.membership_languages
 
 
 --
+-- Name: recording_events fk_rails_6175619b12; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recording_events
+    ADD CONSTRAINT fk_rails_6175619b12 FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: project_invites fk_rails_7aa33500d8; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2463,6 +2646,14 @@ ALTER TABLE ONLY public.project_invites
 
 ALTER TABLE ONLY public.export_requests
     ADD CONSTRAINT fk_rails_7ab4c5fc15 FOREIGN KEY (project_id) REFERENCES public.projects(id);
+
+
+--
+-- Name: recording_events fk_rails_7fbf46cf3a; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recording_events
+    ADD CONSTRAINT fk_rails_7fbf46cf3a FOREIGN KEY (recording_id) REFERENCES public.recordings(id) ON DELETE CASCADE;
 
 
 --
@@ -2576,6 +2767,9 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260921012000'),
+('20260921011000'),
+('20260921010000'),
 ('20260921000000'),
 ('20260920235900'),
 ('20260920230100'),

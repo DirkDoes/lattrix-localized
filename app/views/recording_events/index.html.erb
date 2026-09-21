@@ -1,0 +1,58 @@
+<section class="app-page">
+  <%= render "sheets/navigation" %>
+  <header class="app-heading">
+    <se-title level="page">History</se-title>
+    <%= form_with url: history_project_sheet_path(@project, @sheet), method: :get, class: "translation-toolbar", data: {controller: "table-search", action: "submit->table-search#search change->table-search#search"} do %>
+      <span data-desktop-search><se-input type="search" name="q" value="<%= @query %>" placeholder="Search history" aria-label="Search history" data-action="input->table-search#schedule"></se-input></span>
+      <se-popover label="Filter history" icon="funnel" icon-only>
+        <fieldset class="history-filter-group" aria-label="Language"><strong>Language</strong>
+          <se-select multiple searchable label="Languages" name="language_ids" value="<%= @language_ids.join(',') %>" placeholder="All languages" options="<%= @languages.map { |language| {id: language.id, label: language.name} }.to_json %>"></se-select>
+        </fieldset>
+        <fieldset class="history-filter-group" aria-label="Type"><strong>Type</strong>
+          <input type="hidden" name="types[]" value="">
+          <% {"key" => "Translation keys", "translation" => "Translations"}.each do |type, label| %>
+            <se-checkbox name="types[]" value="<%= type %>" label="<%= label %>" <%= "checked" if @types.include?(type) %>></se-checkbox>
+          <% end %>
+        </fieldset>
+        <fieldset class="history-filter-group" aria-label="User"><strong>User</strong>
+          <se-select multiple searchable label="Users" name="actor_ids" value="<%= @actor_ids.join(',') %>" placeholder="All users" options="<%= @actors.map { |actor| {id: actor.id, label: actor.name} }.to_json %>"></se-select>
+        </fieldset>
+      </se-popover>
+    <% end %>
+  </header>
+
+  <div data-table-results>
+  <% if @events.any? %>
+    <se-collection class="history-table" type="table" columns="minmax(21rem,.8fr) minmax(0,2fr)" mobile-columns="minmax(0,1fr)" dividers="1">
+      <se-list-header><span layout-mode="desktop-only">User</span><span>Change</span></se-list-header>
+      <% @history_entries.each do |events| %>
+        <% if events.first.reverted? %>
+          <% event = events.first %>
+          <se-list-row level="0" collapsible collapsed data-change-id="<%= event.change_id %>">
+            <div class="history-actor">
+              <% time = "#{time_ago_in_words(event.created_at)} ago" %>
+              <span layout-mode="desktop-only"><% if event.actor %><%= render "shared/table_profile", user: event.actor, show_email: false, subtitle: time %><% else %><se-profile class="app-table-profile" name="Deleted user" subtitle="<%= time %>" initials="?"></se-profile><% end %></span>
+              <se-text class="history-mobile-actor" muted small layout-mode="mobile-only"><span class="history-mobile-name"><%= event.actor&.name || "Deleted user" %></span> · <%= time %></se-text>
+              <se-badge tone="warning" text="Restored" layout-mode="desktop-only"></se-badge>
+            </div>
+            <div class="history-change">
+              <div class="history-description">
+                <div class="history-change-heading"><strong>Restored sheet</strong><se-badge tone="warning" text="Restored" layout-mode="mobile-only"></se-badge></div>
+                <se-text muted small><%= pluralize(@event_counts.fetch(event.change_id), "event") %></se-text>
+              </div>
+              <%= render "recording_events/restore_action", event: event %>
+            </div>
+          </se-list-row>
+          <% events.each do |child_event| %><%= render "recording_events/event_row", event: child_event, level: 1, secondary: true, details_only: true, restore_action: false %><% end %>
+          <%= render "recording_events/change_more", change_id: event.change_id, offset: events.size if @event_counts.fetch(event.change_id) > events.size %>
+        <% else %>
+          <% events.each do |event| %><%= render "recording_events/event_row", event: event, level: 0, secondary: false, details_only: false, restore_action: true %><% end %>
+        <% end %>
+      <% end %>
+    </se-collection>
+    <%= render "shared/table_pagination", url: history_project_sheet_path(@project, @sheet, q: @query, types: @types, actor_ids: @actor_ids, language_ids: @language_ids) %>
+  <% else %>
+    <se-empty-illustration variant="search" title="No history found" text="Changes matching these filters will appear here."></se-empty-illustration>
+  <% end %>
+  </div>
+</section>

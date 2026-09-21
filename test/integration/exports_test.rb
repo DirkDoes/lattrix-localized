@@ -99,4 +99,14 @@ class ExportsTest < ActionDispatch::IntegrationTest
     assert @sheets.first.update(delimiter: "::")
     assert_not @sheets.first.update(delimiter: "....")
   end
+
+  test "exports a sheet at a history point" do
+    sheet = @sheets.first
+    value = sheet.translation_tree.recordings.active.texts.includes(:recordable).find { |recording| recording.recordable.language_id == @en.id }
+    event = value.recording_events.sole
+    value.parent.save_translation!(@en, "Hi")
+
+    request = build("csv", recording_event_id: event.id)
+    assert_equal "Hello", CSV.read(request.path, headers: true).first["en"]
+  end
 end

@@ -104,7 +104,7 @@ class SheetsController < ApplicationController
       attributes[:image_data] = nil if params.dig(:sheet, :remove_image) == "1"
       @sheet.update!(attributes)
       if @sheet.saved_change_to_pluralization_enabled? && @sheet.pluralization_enabled?
-        @sheet.translation_tree.recordings.active.keys.joins("JOIN translation_keys k ON k.id=recordings.recordable_id").where("k.pluralized").find_each { |key| key.set_pluralized!(true) }
+        @sheet.translation_tree.recordings.active.keys.joins("JOIN translation_keys k ON k.id=recordings.recordable_id").where("k.pluralized").find_each { |key| key.set_pluralized!(true, actor: current_user) }
       end
     end
     redirect_to settings_project_sheet_path(@project, @sheet), notice: "Sheet settings updated."

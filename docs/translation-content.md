@@ -1,12 +1,14 @@
 # Translation content
 
+For the design rationale and deferred reflection/history ideas, see [translation-architecture.md](translation-architecture.md).
+
 Projects own sheets and a language catalogue. Active sheet languages are the union of project-wide and sheet-specific selections. Membership language assignments apply across sheets; owners/admins edit all active languages. Translators with no assignments are read-only.
 
 Each sheet has one initial TranslationTree. Recording stores structural identity, parent, tree, delegated payload, lock_version, deletion state and timestamps. TranslationKey stores name, description and pluralized. TextTranslation stores language_id and text. Recordable prevents in-place edits; PostgreSQL triggers enforce immutable payloads and structural integrity even for raw writes. Retained payloads may outlive their originating project; their language identity remains archived in the catalogue.
 
-Case sensitivity defaults off. Each sheet has a one-character delimiter (dot by default); active key names cannot contain it, and changing it to a conflicting character is rejected in Rails and PostgreSQL. Paths, parent lookup and CSV exports use this delimiter. Missing default translations are warnings only; the default language is optional. Values may be saved before the default language is filled. Sheet settings apply to its tree. Parent-value restrictions are enforced through shared mutation methods; disabling them rejects existing mixed parents.
+Case sensitivity defaults off. Each sheet has a one-to-three-character delimiter (dot by default); active key names cannot contain it, and changing it to a conflicting character is rejected in Rails and PostgreSQL. Paths, parent lookup and CSV exports use this delimiter. Missing default translations are warnings only; the default language is optional. Values may be saved before the default language is filled. Sheet settings apply to its tree. Parent-value restrictions are enforced through shared mutation methods; disabling them rejects existing mixed parents.
 
-The editor shows two languages, fetches 50 key rows at a time and batches payload loading. Enter saves, Shift+Enter adds a line, blur saves, Escape cancels. A stale recording version returns 409 and preserves the user's edit for conflict resolution. Empty editing removes the translation recording; empty payloads cannot be stored. Whitespace is preserved.
+The editor shows two languages, initially fetches 20 key rows and appends batches of 20 as needed and batches payload loading. Enter saves, Shift+Enter adds a line, blur saves, Escape cancels. A stale recording version returns 409 and preserves the user's edit for conflict resolution. Empty editing removes the translation recording; empty payloads cannot be stored. Whitespace is preserved.
 
 Pluralization creates the six Unicode child keys. One and other are always visible; the others appear when either selected language has a value, or are temporarily revealed from the parent menu. Active plural parents cannot carry translations. Conversion moves parent values to other and rejects conflicting values without changing either. Disabling the sheet plural editor leaves every key intact and displays them normally. Missing plural values are always omitted from exports.
 
@@ -22,7 +24,7 @@ Run `bin/rails runner -e test script/benchmark_translations.rb` against the isol
 
 Measured locally: uncached 51-row database reads 220–232 ms, one guarded edit 49 ms, complete 11 MB CSV 6.22 seconds. Browser requests fetch only the two visible languages plus the default-language warning state. Page positions carry a tree revision; stale continuation requests ask the viewer to refresh. Parent lookup starts after three characters and returns at most 20 results. The shared key modal uses remote se-select (v0.14.3) with debounced, cancellable Stimulus requests. The current tree lock serializes writers within a sheet, not across sheets; bulk import throughput is not optimized in this scope.
 
-Linked key paths create missing ancestors in one transaction. Preview badges distinguish existing (brand) and new (success) path segments. Unlinked names use field validation without path badges. Removal is a separate, confirmed menu action; translators can only reveal plural categories. Table menus use ghost buttons except compact translation tables.
+Linked key paths create missing ancestors in one transaction. Preview badges distinguish existing (brand) and new (success) path segments. Separate-parent entry also supports paths; field errors report invalid names. Removal is a separate, confirmed menu action; translators can only reveal plural categories. Table menus use ghost buttons except compact translation tables.
 
 ## Export jobs and identifier sets
 

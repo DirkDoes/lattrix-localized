@@ -9,8 +9,13 @@ class ExportsController < ApplicationController
     ids = Array(params[:sheet_ids]).reject(&:blank?).uniq
     sheets = sheets.where(id: ids) if ids.any?
     raise ArgumentError, "Select accessible sheets" if sheets.none? || (ids.any? && sheets.count != ids.length)
+    sheet_ids = sheets.pluck(:id)
+    event = if params[:recording_event_id].present?
+      raise ArgumentError, "Historical exports require one sheet" unless sheet_ids.one?
+      RecordingEvent.joins(recording: :translation_tree).find_by(id: params[:recording_event_id], translation_trees: {sheet_id: sheet_ids.first}) || raise(ArgumentError, "Invalid history point")
+    end
     languages = Array(params[:language_ids]).reject(&:blank?).uniq
-    raise ArgumentError, "Invalid language selection" unless @project.languages.where(id: languages).count == languages.length
+    raise ArgumentError, "Invalid language selection" unless @project.languages.active.where(id: languages).count == languages.length
     set = @project.identifier_sets.find_by(id: params[:identifier_set_id]) if params[:identifier_set_id].present?
     raise ArgumentError, "Invalid identifier set" if params[:identifier_set_id].present? && !set
     set ||= @project.identifier_sets.order(:created_at).first
@@ -21,7 +26,7 @@ class ExportsController < ApplicationController
         raise ArgumentError, "An export is still running in another project" unless pending.project_id == @project.id
         return render json: {url: project_export_path(@project, pending)}
       end
-      request = @project.export_requests.create!(user: current_user, owner_key: session[:export_owner], options: {format: format, sheet_ids: sheets.pluck(:id), language_ids: languages, identifier_set_id: set&.id, descriptions: params[:descriptions] == "1"})
+      request = @project.export_requests.create!(user: current_user, owner_key: session[:export_owner], options: {format: format, sheet_ids: sheet_ids, language_ids: languages, identifier_set_id: set&.id, descriptions: params[:descriptions] == "1", recording_event_id: event&.id})
       ExportJob.perform_later(request.id)
       ExportCleanupJob.set(wait: 1.day).perform_later(request.id)
       render json: {url: project_export_path(@project, request)}

@@ -1,6 +1,7 @@
 require "test_helper"
 class LanguageTableTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
+  include ActiveJob::TestHelper
   setup do
     @user=users(:one); @user.update!(role: :owner,email_verified_at:Time.current); sign_in @user
     @project=Project.create!(name:"Language table")
@@ -39,5 +40,32 @@ class LanguageTableTest < ActionDispatch::IntegrationTest
     assert_select 'se-toast[tone=error]',count:1
     assert_select 'se-text[role=alert]',count:0
     assert @one.reload.allow_parent_translations?
+  end
+
+  test "languages archive safely and permanent deletion purges translations and history" do
+    language = @project.languages.create!(name: "English", identifier: "en", enabled: true)
+    key = Recording.create_key!(tree: @one.translation_tree, parent: nil, name: "hello", actor: @user)
+    value = key.save_translation!(language, "Hello", actor: @user)
+
+    patch archive_project_language_path(@project, language)
+    assert_redirected_to settings_project_path(@project)
+    assert language.reload.archived?
+    assert_not @one.active_languages.exists?(language.id)
+    assert TextTranslation.exists?(value.recordable_id)
+    assert RecordingEvent.exists?(recordable_type: "TextTranslation", recordable_id: value.recordable_id)
+
+    patch restore_project_language_path(@project, language)
+    assert language.reload.active?
+    assert @one.active_languages.exists?(language.id)
+
+    patch archive_project_language_path(@project, language)
+    assert_enqueued_with(job: DeleteLanguageJob) do
+      delete project_language_path(@project, language)
+    end
+    perform_enqueued_jobs
+    assert_not Language.exists?(language.id)
+    assert_not Recording.exists?(value.id)
+    assert_not TextTranslation.exists?(value.recordable_id)
+    assert_not RecordingEvent.exists?(recordable_type: "TextTranslation", recordable_id: value.recordable_id)
   end
 end

@@ -5,11 +5,11 @@
     <input type="hidden" name="separated" value="<%= parent || editing ? '1' : '0' %>" data-key-editor-target="separated">
     <div <%= 'hidden' unless parent || editing %> data-key-editor-target="parentArea">
       <input type="hidden" name="parent_id" value="<%= parent&.id %>" data-key-editor-target="parent" data-path="<%= parent ? key_path(parent) : '' %>">
-      <se-select label="Parent key" searchable remote clearable placeholder="Top level" empty-text="Type at least 3 characters." value="<%= parent&.id %>" options="<%= (parent ? [{id: parent.id, label: key_path(parent)}] : []).to_json %>" data-key-editor-target="parentPicker" data-action="search->key-editor#searchParents change->key-editor#chooseParent"></se-select>
+      <se-select label="Parent key" searchable remote clearable placeholder="Top level" empty-text="Type at least 3 characters." value="<%= parent&.id %>" options="<%= (parent ? [{id: parent.id, label: key_path(parent)}] : []).to_json %>" data-key-editor-target="parentPicker" <%= "disabled" if editing %> data-action="search->key-editor#searchParents change->key-editor#chooseParent"></se-select>
     </div>
     <div class="app-form-row key-name-row">
       <se-input label="Key name" name="name" value="<%= key&.recordable&.name %>" data-key-editor-target="name" data-action="input->key-editor#preview"></se-input>
-      <span data-key-editor-target="combinedToggle"><se-button variant="secondary" icon="unlink" text="Separate parent" data-action="click->key-editor#toggleParent"></se-button></span><span hidden data-key-editor-target="separatedToggle"><se-button variant="secondary" icon="link" text="Use full path" data-action="click->key-editor#toggleParent"></se-button></span>
+      <span <%= "hidden" if editing %> data-key-editor-target="combinedToggle"><se-button variant="secondary" icon="unlink" text="Separate parent" data-action="click->key-editor#toggleParent"></se-button></span><span hidden data-key-editor-target="separatedToggle"><se-button variant="secondary" icon="link" text="Use full path" data-action="click->key-editor#toggleParent"></se-button></span>
     </div>
     <div class="app-row-actions" role="status" data-key-editor-target="preview"><se-badge tone="gray" text="Add a key"></se-badge></div>
     <se-input type="textarea" autosize fixed name="description" label="Description (optional)" value="<%= key&.recordable&.description %>"></se-input>
@@ -28,6 +28,6 @@
     </template>
     <% values = editing && !(@sheet.pluralization_enabled? && key.recordable.pluralized) ? key.children.active.texts.includes(:recordable).map { |value| {language_id: value.recordable.language_id, text: value.recordable.text, version: value.lock_version, translation_id: value.id} } : [] %>
     <input type="hidden" data-key-editor-target="initial" value="<%= values.to_json %>">
-    <% if editing %><se-text muted>Changing the name or parent also changes every nested key’s path.</se-text><% end %>
+    <% if editing %><se-text muted>Changing the name also changes every nested key’s path.</se-text><% end %>
   <% end %>
 </se-modal>

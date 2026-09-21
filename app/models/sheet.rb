@@ -21,12 +21,12 @@ class Sheet < ApplicationRecord
 
   def choose_default_language
     return if default_language_id || !project
-    self.default_language = project.languages.where(enabled: true).order(:created_at).first
+    self.default_language = project.languages.active.where(enabled: true).order(:created_at).first
 
   end
 
   def active_languages
-    project.languages.where(enabled: true).or(project.languages.where(id: sheet_languages.where(enabled: true).select(:language_id)))
+    project.languages.active.where(enabled: true).or(project.languages.active.where(id: sheet_languages.where(enabled: true).select(:language_id)))
   end
 
   def translation_settings

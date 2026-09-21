@@ -2,8 +2,8 @@ require "csv"
 require "yaml"
 require "zip"
 class TranslationExport
-  def initialize(sheet, languages: nil, identifiers: {}, descriptions: false, checkpoint: nil)
-    @sheet = sheet
+  def initialize(sheet, languages: nil, identifiers: {}, descriptions: false, checkpoint: nil, event: nil)
+    @sheet, @event = sheet, event
     @languages, @identifiers, @descriptions, @checkpoint = languages, identifiers, descriptions, checkpoint
   end
 
@@ -12,7 +12,7 @@ class TranslationExport
     options = ApplicationRecord.connection.transaction_open? ? {} : {isolation: :repeatable_read}
     ApplicationRecord.transaction(**options) do
       languages = @languages || @sheet.active_languages.order(:identifier).to_a
-      records = @sheet.translation_tree.recordings.active.includes(:recordable).to_a
+      records = @event ? RecordingSnapshot.new(@event).active_recordings : @sheet.translation_tree.recordings.active.includes(:recordable).to_a
       keys = records.select(&:translation_key?).index_by(&:id)
       values = records.select(&:text_translation?).each_with_object({}) { |r, out| out[[r.parent_id, r.recordable.language_id]] = r.recordable.text }
       children = keys.values.group_by(&:parent_id)

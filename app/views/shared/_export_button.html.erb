@@ -9,7 +9,7 @@
         <% sets = @project.identifier_sets.order(:created_at).to_a %>
         <% if sets.length > 1 %><se-select label="Identifier set" name="identifier_set_id" value="<%= sets.first.id %>" options="<%= sets.map { |set| {id:set.id,label:set.name,description:set.description} }.to_json %>"></se-select><% end %>
       </div>
-      <se-select label="Languages" name="language_ids[]" multiple searchable placeholder="All languages" options="<%= (sheet ? sheet.active_languages : @project.languages).order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
+      <se-select label="Languages" name="language_ids[]" multiple searchable placeholder="All languages" options="<%= (sheet ? sheet.active_languages : @project.languages.active).order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
       <div hidden data-export-download-target="descriptions"><se-checkbox variant="switch" label="Include key descriptions" name="descriptions" value="1"></se-checkbox></div>
     <% end %>
   </se-modal>

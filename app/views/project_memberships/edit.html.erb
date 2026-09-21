@@ -10,7 +10,7 @@
     <se-text muted>Owners can manage all roles. Admins can manage Viewers and Translators. At least one owner must remain.</se-text>
     <div data-membership-languages-target="assignments" <%= 'hidden' unless @membership.role == 'translator' %>>
       <input type="hidden" name="language_ids[]" value="">
-      <se-select multiple searchable name="language_ids[]" label="Assigned languages" placeholder="No languages assigned" value="<%= @membership.language_ids.join(',') %>" options="<%= @project.languages.order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
+      <se-select multiple searchable name="language_ids[]" label="Assigned languages" placeholder="No languages assigned" value="<%= @membership.languages.active.ids.join(',') %>" options="<%= @project.languages.active.order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
       <se-text muted>No selection means this translator cannot edit translations.</se-text>
     </div>
     <div class="app-form-actions"><se-button variant="ghost" text="Cancel" href="<%= members_project_path(@project) %>"></se-button><se-button type="submit" variant="brand" text="Save changes" <%= "disabled" if @role_options == ["owner"] %>></se-button></div>

@@ -97,6 +97,8 @@ button.translation-value { cursor: text; }
 
 .translation-toolbar { display: flex; align-items: center; gap: .5rem; margin: 0; }
 .translation-toolbar [data-desktop-search] > se-input { width: clamp(12rem, 24vw, 22rem); }
+.translation-loading-frame { display: block; width: 100%; margin-top: 1rem; }
+.translation-loading { display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; padding: 1rem; }
 se-list-header .app-row-actions > se-select { flex: 1; min-width: 0; }
 
 .translation-cell > [hidden] { display: none; }
@@ -141,3 +143,29 @@ se-list-header .app-row-actions > se-select { flex: 1; min-width: 0; }
 .app-reference-link { color: var(--se-primary); }
 
 .translation-empty { color: var(--se-faint); }
+
+.history-actor, .history-change, .history-description { min-width: 0; }
+.history-actor { display: flex; align-items: center; gap: .75rem; }
+.history-actor > se-badge { flex: none; margin-inline-start: auto; }
+.history-mobile-actor { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-mobile-name { font-weight: 700; }
+.history-change { display: flex; align-items: center; justify-content: space-between; gap: 1rem; white-space: normal; }
+.history-description { display: grid; gap: .375rem; overflow-wrap: anywhere; }
+.history-change-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.history-description se-code { display: inline-block; line-height: 1.4; vertical-align: middle; }
+.history-event-detail { grid-column: 1 / -1; }
+.history-values { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; color: var(--se-muted); }
+.history-restore-action { flex: none; margin-inline-start: auto; }
+.history-more { display: flex; justify-content: center; }
+.history-filter-group { display: grid; gap: .75rem; margin: 0; padding: .75rem 0; border: 0; border-bottom: 1px solid var(--se-border); }
+.history-filter-group:last-child { border-bottom: 0; }
+@media (max-width: 767px) {
+  .history-table > :is(se-list-header, se-list-row) > [data-column-divider] { border-right: 0; padding-right: 0; }
+  .history-table .se-list__row:has(> .history-actor) { position: relative; row-gap: .25rem; padding: .75rem 3.5rem; }
+  .history-table .se-list__row:has(> .history-actor) > * { padding-block: 0; }
+  .history-table.se-table:has(> se-list-row[collapsible]) .se-list__row:has(> .history-actor) > :first-child { padding-left: 0; }
+  .history-table .se-list__row:has(> .history-actor) .se-list__toggle,
+  .history-table .se-list__row:has(> .history-actor) .history-restore-action { position: absolute; top: 50%; transform: translateY(-50%); margin: 0; }
+  .history-table .se-list__row:has(> .history-actor) .se-list__toggle { left: 1rem; }
+  .history-table .se-list__row:has(> .history-actor) .history-restore-action { right: 1rem; }
+}
