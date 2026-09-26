@@ -65,6 +65,16 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "stale authentication forms return to sign in" do
+    previous = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+    post users_email_code_path, params: { user: { email: @user.email } }
+    assert_redirected_to new_user_session_path
+    assert_equal "Your session expired. Please try again.", flash[:alert]
+  ensure
+    ActionController::Base.allow_forgery_protection = previous
+  end
+
   test "password registration persists only after email verification" do
     assert_no_difference "User.count" do
       post user_registration_path, params: { user: { email: "password-new@example.com", password: "SecurePassword123!", password_confirmation: "SecurePassword123!" } }

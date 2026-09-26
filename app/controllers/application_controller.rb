@@ -1,6 +1,10 @@
 class ApplicationController < ActionController::Base
   include Authentication
   include Pundit::Authorization
+  rescue_from ActionController::InvalidAuthenticityToken do
+    reset_session
+    redirect_to new_user_session_path, alert: "Your session expired. Please try again."
+  end
   rescue_from Pundit::NotAuthorizedError do
     head :forbidden
   end

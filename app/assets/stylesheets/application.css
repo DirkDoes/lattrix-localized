@@ -48,8 +48,8 @@ se-sidebar > footer { display: grid; gap: .75rem; }
 .app-shell se-topbar > [data-end] { flex: none; }
 .app-shell se-topbar > [data-start] { min-width: 0; flex: 1; }
 .app-shell se-topbar se-layout-brand { width: auto; flex: none; }
-.app-shell se-topbar se-layout-brand .se-layout-brand__logo,
-.app-shell se-sidebar:not([collapsed]) se-layout-brand .se-layout-brand__logo { width: auto; height: 3.5rem; }
+.app-shell se-topbar se-layout-brand .se-layout-brand__logo { width: auto; height: 3.5rem; }
+.app-shell se-sidebar:not([collapsed]) se-layout-brand .se-layout-brand__logo { width: auto; height: 4rem; }
 .app-scope-row { position: relative; display: flex; flex: 1; min-height: 0; }
 .app-scope-row > main { flex: 1; min-width: 0; overflow: auto; }
 #app-navigation { display: contents; }
