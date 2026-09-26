@@ -1,0 +1,65 @@
+name: Create version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version increment
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+
+permissions:
+  contents: write
+
+concurrency:
+  group: create-version
+
+jobs:
+  create:
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          next_version() {
+            local version="${1#v}" bump="$2" major minor patch
+            IFS=. read -r major minor patch <<< "$version"
+            if [[ "$bump" == "minor" ]]; then
+              printf 'v%s.%s.0' "$major" "$((minor + 1))"
+            else
+              printf 'v%s.%s.%s' "$major" "$minor" "$((patch + 1))"
+            fi
+          }
+
+          test "$(next_version v1.2.3 patch)" = "v1.2.4"
+          test "$(next_version v1.2.3 minor)" = "v1.3.0"
+
+          latest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+          latest="${latest:-v0.0.0}"
+          [[ "$latest" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid latest version: $latest"; exit 1; }
+          version="$(next_version "$latest" "${{ inputs.bump }}")"
+
+          printf '%s\n%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$version" > REVISION.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add REVISION.txt
+          git commit -m "Release $version"
+          git tag -a "$version" -m "Release $version"
+          git push origin "HEAD:${GITHUB_REF_NAME}" "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ steps.version.outputs.version }}" --verify-tag --generate-notes --title "${{ steps.version.outputs.version }}"

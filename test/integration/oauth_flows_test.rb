@@ -101,7 +101,8 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     post link_authentication_method_path("discord")
     assert_redirected_to edit_settings_user_path(@user, connect: "discord")
     follow_redirect!
-    assert_select "se-modal#connect-provider-modal[open][cancel-label='Cancel'][confirm-label='Continue'] form[action='/users/auth/discord'][method='post']"
+    assert_select "se-modal#connect-provider-modal[open] form[action='/users/auth/discord'][method='post']"
+    assert_select "se-modal#connect-provider-modal > se-button[data-se-region=footer][data-modal-action=confirm][text=Continue]"
     assert_no_difference "User.count" do
       provider_auth("discord", email: "different@example.com")
     end

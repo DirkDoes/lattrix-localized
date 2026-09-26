@@ -1,6 +1,8 @@
 <% editing = key.present?; modal_id = editing ? "key-edit-#{key.id}" : "key-create" %>
-<se-modal id="<%= modal_id %>" title="<%= editing ? 'Edit key' : 'Add key' %>" size="medium" cancel-label="Cancel" confirm-label="<%= editing ? 'Save key' : 'Add key' %>" <%= 'data-submit-form' if editing %>>
-  <%= form_with url: editing ? project_sheet_recording_path(@project,@sheet,key) : project_sheet_recordings_path(@project,@sheet), method: editing ? :patch : :post, class: "app-form", data: {turbo: false, controller: "key-form key-editor", action: "submit->key-form#submit", key_editor_preview_value: preview_project_sheet_recordings_path(@project,@sheet), key_editor_parents_value: parents_project_sheet_recordings_path(@project,@sheet), key_editor_default_value: @sheet.default_language_id, key_editor_delimiter_value: @sheet.delimiter, key_editor_id_value: key&.id} do %>
+<% form_id = "#{modal_id}-form"; plural_confirmation_id = "#{modal_id}-plural-confirmation" %>
+<se-modal id="<%= modal_id %>" title="<%= editing ? 'Edit key' : 'Add key' %>" size="medium">
+  <% confirm_plural = editing && !key.recordable.pluralized %>
+  <%= form_with url: editing ? project_sheet_recording_path(@project,@sheet,key) : project_sheet_recordings_path(@project,@sheet), method: editing ? :patch : :post, id: form_id, class: "app-form", data: {turbo: false, controller: "key-form key-editor", action: "submit->key-form#submit", key_form_plural_confirmation_value: confirm_plural, key_form_plural_confirmation_id_value: plural_confirmation_id, key_editor_preview_value: preview_project_sheet_recordings_path(@project,@sheet), key_editor_parents_value: parents_project_sheet_recordings_path(@project,@sheet), key_editor_default_value: @sheet.default_language_id, key_editor_delimiter_value: @sheet.delimiter, key_editor_id_value: key&.id} do %>
     <% if editing %><input type="hidden" name="version" value="<%= key.lock_version %>"><% end %>
     <input type="hidden" name="separated" value="<%= parent || editing ? '1' : '0' %>" data-key-editor-target="separated">
     <div <%= 'hidden' unless parent || editing %> data-key-editor-target="parentArea">
@@ -15,7 +17,7 @@
     <se-input type="textarea" autosize fixed name="description" label="Description (optional)" value="<%= key&.recordable&.description %>"></se-input>
     <% if @sheet.pluralization_enabled? %>
       <input type="hidden" name="pluralized" value="0">
-      <se-tooltip content="Plural values belong to category keys. Translations entered here go to other. Enabling plurals moves existing parent values there and rejects conflicts."><se-checkbox variant="switch" label="Pluralized translation" name="pluralized" value="1" data-key-editor-target="plural" data-action="change->key-editor#pluralChanged" <%= 'checked' if key&.recordable&.pluralized %>></se-checkbox></se-tooltip>
+      <se-tooltip><se-checkbox data-se-region="trigger" variant="switch" label="Pluralized translation" name="pluralized" value="1" data-key-editor-target="plural" data-action="change->key-editor#pluralChanged" <%= 'checked' if key&.recordable&.pluralized %>></se-checkbox>Plural values belong to category keys. Translations entered here go to other. Enabling plurals moves existing parent values there and rejects conflicts.</se-tooltip>
     <% end %>
     <div data-key-editor-target="translations" hidden><se-collection type="table" columns="minmax(0,1fr) minmax(0,1fr) auto" data-key-editor-target="rows"><se-list-header><span>Language</span><span>Translation</span><span></span></se-list-header></se-collection></div>
     <span data-key-editor-target="addTranslation"><se-button variant="secondary" icon="plus" text="Add language translation" data-action="click->key-editor#addLanguage"></se-button></span>
@@ -30,4 +32,11 @@
     <input type="hidden" data-key-editor-target="initial" value="<%= values.to_json %>">
     <% if editing %><se-text muted>Changing the name also changes every nested key’s path.</se-text><% end %>
   <% end %>
+  <%= render "shared/modal_footer", confirm: editing ? "Save key" : "Add key" %>
 </se-modal>
+<% if confirm_plural %>
+  <se-modal id="<%= plural_confirmation_id %>" title="Move existing translations?" size="small" icon="arrow-right" tone="warning" data-confirm-plural-form="<%= form_id %>">
+    <se-text>Translations on <se-code><%= key_path(key) %></se-code> will move to <se-code><%= key_path(key) %><%= @sheet.delimiter %>other</se-code>.</se-text>
+    <%= render "shared/modal_footer", confirm: "Move translations" %>
+  </se-modal>
+<% end %>

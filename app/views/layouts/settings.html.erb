@@ -31,6 +31,7 @@
       </se-topbar>
       <div class="app-scope-row">
         <% if show_sidebar %>
+        <turbo-frame id="app-navigation" target="app-content">
         <se-sidebar id="app-sidebar" data-navigation-user="<%= current_user&.id || 'anonymous' %>" layout-mode="responsive" <%= "collapsed" if cookies[:sidebar_collapsed] == "true" %>>
           <header layout-mode="desktop-only"><%= render "shared/layout_brand", collapsible: true %></header>
           <section>
@@ -46,6 +47,7 @@
                 <se-sidebar-button label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>></se-sidebar-button>
               <% end %>
               <se-sidebar-button href="<%= project_invites_path %>" label="Invitations" icon="mail" <%= "active" if controller_name == "project_invites" && action_name == "index" && params[:project_id].blank? %>></se-sidebar-button>
+              <se-sidebar-button href="<%= import_export_path %>" label="Import and Export" icon="download" <%= "active" if controller_name == "formats" %>></se-sidebar-button>
             </se-sidebar-chapter>
             <% end %>
             <% if policy(User).index? %>
@@ -57,8 +59,9 @@
           </section>
           <footer layout-mode="desktop-only"><%= render "shared/layout_profile", profile_name: profile_name, initials: initials %></footer>
         </se-sidebar>
+        </turbo-frame>
         <% end %>
-        <main class="se-page-layout__content app-content"><%= yield %></main>
+        <main class="se-page-layout__content app-content"><%= turbo_frame_tag "app-content", data: { turbo_action: "advance" } do %><%= yield %><% end %></main>
       </div>
     </div>
     <% if current_user %><%= button_to "Log out", destroy_user_session_path, method: :delete, form: { id: "logout-form", hidden: true } %><% end %>

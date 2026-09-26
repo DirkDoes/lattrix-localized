@@ -23,6 +23,7 @@
   </header>
   <% if @languages.empty? %><se-text role="status">Add languages in the project's language catalogue first.</se-text><% end %>
   <turbo-frame id="translation-results" data-turbo-action="advance">
+    <% if @rows.any? %>
       <se-collection type="table" columns="minmax(12rem,1fr) minmax(14rem,1fr) minmax(14rem,1fr)" id="translation-rows" mobile-columns="repeat(2, minmax(0, 1fr))" data-controller="translation-mobile" dividers="1,2">
         <se-list-header sticky>
           <span layout-mode="desktop-only">Key</span>
@@ -36,7 +37,7 @@
         <%= render "sheets/rows" %>
       </se-collection>
       <div id="translation-pagination"><%= render "sheets/more" %></div>
-    <% if @rows.empty? %><se-empty-illustration variant="translation-2" title="<%= @query.present? ? 'No matching translations' : 'No translation keys yet' %>" text="<%= @query.present? ? 'Try another key or text in the selected languages.' : 'Add a key, then enter translations in your selected languages.' %>"></se-empty-illustration>
+    <% else %><se-empty-illustration variant="translation-2" title="<%= @query.present? ? 'No matching translations' : 'No translation keys yet' %>" subtitle="<%= @query.present? ? 'Try another key or text in the selected languages.' : 'Add a key, then enter translations in your selected languages.' %>"></se-empty-illustration>
     <% end %>
   </turbo-frame>
 </section>

@@ -29,7 +29,7 @@ class RecordingEventsController < ApplicationController
     authorize @sheet, :history?
     @change_id = params[:change_id].to_i
     @offset = params[:offset].to_i.clamp(PREVIEW_SIZE, 10_000)
-    events = filtered_scope.where(change_id: @change_id, reverted: true)
+    events = filtered_scope.where(change_id: @change_id).where.not(change_type: "manual")
     raise ActiveRecord::RecordNotFound unless events.exists?
     @events = events.includes(:actor, :recordable, recording: :parent).order(created_at: :desc, id: :desc).offset(@offset).limit(BATCH_SIZE + 1).to_a
     @more = @events.length > BATCH_SIZE

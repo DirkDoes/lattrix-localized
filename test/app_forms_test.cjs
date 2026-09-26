@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const controllers = {};
 let timer;
-vm.runInNewContext(fs.readFileSync('app/assets/javascripts/app_forms.js', 'utf8').replace(/^(?:import .*;|window\.Turbo\.session.*;|registerTranslations.*;)\r?\n/gm, ""), {
+vm.runInNewContext(fs.readFileSync('app/assets/javascripts/app_forms.js', 'utf8').replace(/^(?:import .*;|window\.Turbo\.session.*;|register(?:Translations|FormatPreview).*;)\r?\n/gm, ""), {
   Application: { start: () => ({ register: (name, klass) => { controllers[name] = klass; } }) },
   Controller: class {},
   setTimeout: callback => { timer = callback; return 1; },

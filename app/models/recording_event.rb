@@ -1,5 +1,6 @@
 class RecordingEvent < ApplicationRecord
   ACTIONS = %w[created updated deleted].freeze
+  CHANGE_TYPES = %w[manual revert import].freeze
   TYPE_FILTERS = { "key" => %w[TranslationKey], "translation" => %w[TextTranslation] }.freeze
 
   belongs_to :recording
@@ -7,6 +8,7 @@ class RecordingEvent < ApplicationRecord
   delegated_type :recordable, types: %w[TranslationKey TextTranslation]
 
   validates :action, inclusion: { in: ACTIONS }
+  validates :change_type, inclusion: { in: CHANGE_TYPES }
   before_update { raise ActiveRecord::ReadOnlyRecord, "History is immutable" }
   before_destroy { raise ActiveRecord::ReadOnlyRecord, "History is immutable" }
 
@@ -42,10 +44,13 @@ class RecordingEvent < ApplicationRecord
         else
           "updated"
         end
-        event = item.record_event!(action, actor: actor, reverted: true, created_at: restored_at, change_id: change_id)
+        event = item.record_event!(action, actor: actor, change_type: "revert", created_at: restored_at, change_id: change_id)
         change_id ||= event.change_id
       end
       changes.length
     end
   end
+
+  def revert? = change_type == "revert"
+  def import? = change_type == "import"
 end

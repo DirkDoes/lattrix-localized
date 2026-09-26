@@ -16,7 +16,7 @@
   </div>
 </se-card>
 <% if user == current_user %>
-  <se-modal id="profile-photo-modal" title="Upload profile picture" subtitle="Choose an image up to 5 MB. Animated images use the first frame." size="medium" icon="upload" tone="brand" cancel-label="Cancel" confirm-label="Save picture" <%= "open" if @photo_error %>>
+  <se-modal id="profile-photo-modal" title="Upload profile picture" subtitle="Choose an image up to 5 MB. Animated images use the first frame." size="medium" icon="upload" tone="brand" <%= "open" if @photo_error %>>
     <%= form_with url: profile_photo_path, method: :patch, multipart: true, html: { novalidate: true }, class: "app-form" do %>
       <se-file-upload data-profile-photo-upload name="photo" label="Profile picture" prompt="Choose an image" accept="image/*" hint="JPEG, PNG, WebP, GIF and other supported raster images · up to 5 MB"></se-file-upload>
       <div data-photo-preview hidden class="app-photo-preview">
@@ -30,5 +30,6 @@
       <se-text data-photo-filename muted small aria-live="polite"></se-text>
       <% if @photo_error %><se-text role="alert"><%= @photo_error %></se-text><% end %>
     <% end %>
+    <%= render "shared/modal_footer", confirm: "Save picture" %>
   </se-modal>
 <% end %>

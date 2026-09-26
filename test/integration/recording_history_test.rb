@@ -66,7 +66,7 @@ class RecordingHistoryTest < ActionDispatch::IntegrationTest
     assert_equal "Hello", @value.reload.recordable.text
     assert french_value.reload.deleted_at?
 
-    restore_events = RecordingEvent.where(reverted: true)
+    restore_events = RecordingEvent.where(change_type: "revert")
     get history_project_sheet_path(@project, @sheet)
     assert_select "se-list-row[data-change-id='#{restore_events.first.change_id}'][level='0'][collapsible][collapsed]", count: 1
     assert_select "se-list-row[level='1'][guides][variant='secondary']", count: restore_events.count
@@ -85,10 +85,21 @@ class RecordingHistoryTest < ActionDispatch::IntegrationTest
     assert_select ".history-description", text: /translation key/, count: 0
   end
 
+  test "key update rows derive name description and pluralization changes from recordables" do
+    @key.change_key!(name: "welcome", parent_id: @key.parent_id, description: "Shown on the home page", expected: @key.lock_version, actor: @owner)
+    @key.set_pluralized!(true, actor: @owner)
+    sign_in @owner
+
+    get history_project_sheet_path(@project, @sheet, types: ["key"])
+
+    assert_select ".history-description", text: /Changed translation key.*welcome.*Key.*greeting.*welcome.*Description.*—.*Shown on the home page/
+    assert_select ".history-description", text: /Changed translation key.*welcome.*Pluralization.*Off.*On/
+  end
+
   test "large restore groups load ten events then twenty at a time" do
     11.times { |index| Recording.create_key!(tree: @sheet.translation_tree, parent: nil, name: "later_#{index}", actor: @owner) }
     assert_equal 12, @old_event.restore_sheet!(actor: @owner)
-    change_id = RecordingEvent.where(reverted: true).pick(:change_id)
+    change_id = RecordingEvent.where(change_type: "revert").pick(:change_id)
     sign_in @owner
 
     get history_project_sheet_path(@project, @sheet)

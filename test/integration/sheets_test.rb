@@ -27,6 +27,8 @@ class SheetsTest < ActionDispatch::IntegrationTest
     get project_sheets_path(project)
     assert_select "header se-button[data-open-modal=sheet-create-modal]", count: 0
     assert_select "se-empty-illustration[variant=folders][title='No sheets yet'] se-button[data-open-modal=sheet-create-modal]", count: 1
+    assert_select "se-collapsible[title='Advanced options'] > se-badge[data-se-region=heading-end][text=Auto][tone=success][hidden][data-sheet-import-target=auto]", count: 1
+    assert_select "[data-sheet-import-target=status]", count: 0
     membership.update!(role: "viewer")
     get project_sheets_path(project)
     assert_select "se-empty-illustration[variant=folders]"
@@ -38,6 +40,8 @@ class SheetsTest < ActionDispatch::IntegrationTest
     assert_equal "private", sheet.effective_visibility
     get translations_project_sheet_path(project, sheet)
     assert_select "se-sidebar:not([collapsible]):not([variant])", count: 1
+    assert_select "turbo-frame#app-navigation[target=app-content] se-sidebar", count: 1
+    assert_select "main turbo-frame#app-content[data-turbo-action=advance]", count: 1
     assert_select "se-nav-tabs[label='Sheet navigation']"
     assert_select "se-sidebar-button[label=Translations]", count: 0
     assert_select "se-sidebar se-sidebar-chapter:not([layout-mode]) se-sidebar-group[variant=page]"

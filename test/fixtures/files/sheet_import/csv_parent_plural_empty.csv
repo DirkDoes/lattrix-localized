@@ -1,0 +1,10 @@
+key,en,nl
+profile,Profile,Profiel
+catalog::items::one,One item,Eén artikel
+catalog::items::other,#{count} items,#{count} artikelen
+catalog::items::many,Many items,Veel artikelen
+profile::name,Name,Naam
+profile::email,Email,E-mail
+checkout::title,Checkout,Afrekenen
+checkout::note,Order note,
+navigation::home,Home,Start

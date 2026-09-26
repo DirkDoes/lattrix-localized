@@ -27,9 +27,9 @@
   </se-collection>
   <%= render "shared/table_pagination", url: settings_users_path(q: @query, status: (@banned ? "banned" : "active")) %>
   <% elsif @query.present? %>
-    <se-empty-illustration variant="search" title="No users found" text="Try another name or email address."></se-empty-illustration>
+    <se-empty-illustration variant="search" title="No users found" subtitle="Try another name or email address."></se-empty-illustration>
   <% else %>
-    <se-empty-illustration variant="team-2" illustration-label="<%= @banned ? 'Banned' : 'Users' %>" title="<%= @banned ? 'No banned users' : 'No active users' %>" text="<%= @banned ? 'Accounts you ban will appear here. No accounts are currently banned.' : 'Accounts that are not banned will appear here.' %>"></se-empty-illustration>
+    <se-empty-illustration variant="team-2" illustration-label="<%= @banned ? 'Banned' : 'Users' %>" title="<%= @banned ? 'No banned users' : 'No active users' %>" subtitle="<%= @banned ? 'Accounts you ban will appear here. No accounts are currently banned.' : 'Accounts that are not banned will appear here.' %>"></se-empty-illustration>
   <% end %>
 
   </div>

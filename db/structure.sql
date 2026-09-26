@@ -697,10 +697,11 @@ CREATE TABLE public.recording_events (
     recordable_type character varying NOT NULL,
     recordable_id bigint NOT NULL,
     deleted_at timestamp(6) without time zone,
-    reverted boolean DEFAULT false NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     change_id bigint NOT NULL,
+    change_type character varying DEFAULT 'manual'::character varying NOT NULL,
     CONSTRAINT recording_event_action CHECK (((action)::text = ANY ((ARRAY['created'::character varying, 'updated'::character varying, 'deleted'::character varying])::text[]))),
+    CONSTRAINT recording_event_change_type CHECK (((change_type)::text = ANY ((ARRAY['manual'::character varying, 'revert'::character varying, 'import'::character varying])::text[]))),
     CONSTRAINT recording_event_deletion CHECK ((((action)::text = 'deleted'::text) = (deleted_at IS NOT NULL)))
 );
 
@@ -841,6 +842,7 @@ CREATE TABLE public.sheets (
     delimiter character varying DEFAULT '.'::character varying NOT NULL,
     description text,
     image_data bytea,
+    wildcard_format character varying DEFAULT ''::character varying NOT NULL,
     CONSTRAINT sheet_delimiter_character CHECK (((char_length((delimiter)::text) >= 1) AND (char_length((delimiter)::text) <= 3))),
     CONSTRAINT sheet_missing_values CHECK (((missing_value_behavior)::text = ANY ((ARRAY['omit'::character varying, 'empty'::character varying, 'fallback'::character varying])::text[]))),
     CONSTRAINT sheets_slug_format CHECK ((((slug)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text) AND (length((slug)::text) <= 100) AND ((slug)::text <> ALL ((ARRAY['new'::character varying, 'edit'::character varying])::text[])))),
@@ -2767,6 +2769,8 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260921014000'),
+('20260921013000'),
 ('20260921012000'),
 ('20260921011000'),
 ('20260921010000'),

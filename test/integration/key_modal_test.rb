@@ -57,7 +57,8 @@ class KeyModalTest < ActionDispatch::IntegrationTest
     assert_select '[data-plural-category=other]:not([hidden])'
     assert_select '[data-plural-category=few][hidden]'
     assert_select '[data-plural-parent] se-menu',count: 0
-    assert_select 'se-tooltip[content="Number of items"]'
+    assert_select 'se-tooltip', text: "Number of items"
+    assert_select 'se-tooltip > [data-se-region=trigger]'
     get translations_project_sheet_path(@project,@sheet,left: @en.identifier,right: @fr.identifier,view: "tree")
     assert_select '[data-plural-category=few]:not([hidden])'
     @sheet.update!(missing_value_behavior: "empty")
@@ -72,6 +73,38 @@ class KeyModalTest < ActionDispatch::IntegrationTest
     get translations_project_sheet_path(@project,@sheet)
     assert_select '[data-plural-parent]',count: 0
     assert_select 'se-list-row[data-key-row]',count: 8
+  end
+
+  test "an existing translated key can be made plural" do
+    item = key("features", values: {@en => "Features", @nl => "Functies", @fr => "Fonctionnalités"})
+    values = item.children.active.texts.includes(:recordable).index_by { |value| value.recordable.language_id }
+    get edit_project_sheet_recording_path(@project, @sheet, item)
+    assert_select "se-modal > se-button[data-se-region=footer][data-modal-action=confirm][text='Save key']"
+    assert_select "form[data-key-form-plural-confirmation-value=true]"
+    assert_select "se-modal[data-confirm-plural-form]", text: /features.*features\.other/
+    assert_select "form se-modal[data-confirm-plural-form]", count: 0
+    assert_select "input[data-key-editor-target=initial]", count: 1
+
+    rows = values.transform_values { |value| {language_id: value.recordable.language_id, text: value.recordable.text, version: value.lock_version, translation_id: value.id} }
+    patch project_sheet_recording_path(@project, @sheet, item), params: {name: "features", version: item.lock_version, pluralized: "1", translation_rows: rows}, as: :json
+
+    assert_response :success
+    assert item.reload.recordable.pluralized?
+    assert_empty item.children.active.texts
+    other = item.children.active.keys.includes(:recordable).find { |child| child.recordable.name == "other" }
+    assert_equal 3, other.children.active.texts.count
+  end
+
+  test "disabling plurals prunes only empty optional forms" do
+    item = key("items")
+    item.set_pluralized!(true)
+    forms = item.children.active.keys.includes(:recordable).index_by { |child| child.recordable.name }
+    forms.fetch("few").save_translation!(@en, "A few")
+    item.set_pluralized!(false)
+
+    assert_equal %w[few one other], item.children.active.keys.includes(:recordable).map { |child| child.recordable.name }.sort
+    assert forms.fetch("zero").reload.deleted_at?
+    assert_equal "deleted", forms.fetch("zero").recording_events.last.action
   end
 
   test "edit translation concurrency rolls back structural changes and conversion conflicts preserve values" do
@@ -210,6 +243,9 @@ class KeyModalTest < ActionDispatch::IntegrationTest
     assert_equal ".",fresh.delimiter
     assert fresh.pluralization_enabled?
     assert_equal "omit",fresh.missing_value_behavior
+    assert_equal "",fresh.wildcard_format
+    assert fresh.update(wildcard_format: '$[...]')
+    assert_not fresh.update(wildcard_format: '$[]')
     @sheet.update!(allow_parent_translations:false)
     parent = key("account"); child = key("email",parent:parent)
     plural = key("items"); plural.set_pluralized!(true)
@@ -222,6 +258,18 @@ class KeyModalTest < ActionDispatch::IntegrationTest
     get preview_project_sheet_recordings_path(@project,@sheet,name:"account.new.deep")
     assert_equal parent.id,response.parsed_body['parent_id']
     assert_equal [true,false,false],response.parsed_body['existing']
+  end
+
+  test "sheet wildcard format can be configured or disabled" do
+    patch project_sheet_path(@project, @sheet), params: {sheet: {wildcard_format: '$[...]'}}
+    assert_redirected_to settings_project_sheet_path(@project, @sheet)
+    assert_equal '$[...]', @sheet.reload.wildcard_format
+    patch project_sheet_path(@project, @sheet), params: {sheet: {wildcard_format: '$[]'}}
+    assert_response :unprocessable_entity
+    assert_select 'se-input[name="sheet[wildcard_format]"][error]'
+    patch project_sheet_path(@project, @sheet), params: {sheet: {wildcard_format: ''}}
+    assert_redirected_to settings_project_sheet_path(@project, @sheet)
+    assert_equal '', @sheet.reload.wildcard_format
   end
 
 end

@@ -24,11 +24,12 @@
     <% end %>
   <% else %><se-text><%= @sheet.slug %></se-text><se-text muted>Only a project owner or application owner can change this identifier.</se-text><% end %>
   <% if @requested_slug %>
-    <se-modal title="Change sheet identifier?" size="small" tone="warning" icon="alert" confirm-label="Confirm and save" cancel-label="Cancel" data-submit-form open>
+    <se-modal title="Change sheet identifier?" size="small" tone="warning" icon="alert" open>
       <%= form_with model: [@project,@sheet] do %>
         <%= hidden_field_tag "sheet[slug]", @requested_slug %><%= hidden_field_tag :confirm_slug, "1" %>
         <se-text>The identifier will change to <%= @requested_slug %>. Existing sheet links will stop working. No redirects or aliases will be created.</se-text>
       <% end %>
+      <%= render "shared/modal_footer", confirm: "Confirm and save" %>
     </se-modal>
   <% end %>
   <se-title level="section">Translation settings</se-title>
@@ -40,7 +41,9 @@
 
 
 
-      <se-list-row><span class="app-row-actions">Delimiter<se-tooltip content="One to three characters separating the levels of a key, such as . or ::. It cannot occur inside an existing key name."><se-button variant="mini" icon="info" aria-label="About delimiter"></se-button></se-tooltip></span><div class="app-table-control"><se-input name="sheet[delimiter]" value="<%= @sheet.delimiter %>" aria-label="Delimiter" data-controller="control-label"></se-input></div></se-list-row>
+      <se-list-row><span class="app-row-actions">Delimiter<se-tooltip><se-button data-se-region="trigger" variant="mini" icon="info" aria-label="About delimiter"></se-button>One to three characters separating the levels of a key, such as . or ::. It cannot occur inside an existing key name.</se-tooltip></span><div class="app-table-control"><se-input name="sheet[delimiter]" value="<%= @sheet.delimiter %>" aria-label="Delimiter" data-controller="control-label"></se-input></div></se-list-row>
+
+      <se-list-row><span class="app-row-actions">Wildcard format<se-tooltip><se-button data-se-region="trigger" variant="mini" icon="info" aria-label="About wildcard format"></se-button>Use three dots where the wildcard value belongs, such as ${...} or $[...]. Leave blank to disable wildcard highlighting.</se-tooltip></span><div class="app-table-control"><se-input name="sheet[wildcard_format]" value="<%= @sheet.wildcard_format %>" aria-label="Wildcard format" placeholder="${...}" error="<%= @sheet.errors[:wildcard_format].first %>" data-controller="control-label"></se-input></div></se-list-row>
 
       <se-list-row><span>Default language</span><div class="app-table-control"><se-select name="sheet[default_language_id]" value="<%= @sheet.default_language_id %>" options="<%= [{id: '', label: 'None', icon: 'x'}].concat(@sheet.active_languages.order(:name).map { |l| {id: l.id, label: l.name} }).to_json %>"></se-select></div></se-list-row>
 
@@ -48,7 +51,7 @@
 
       <se-list-row><span>Translations on parent keys</span><div class="app-table-control"><input type="hidden" name="sheet[allow_parent_translations]" value="0"><se-checkbox variant="switch" name="sheet[allow_parent_translations]" value="1" aria-label="Translations on parent keys" data-controller="control-label" <%= 'checked' if @sheet.allow_parent_translations? %>></se-checkbox></div></se-list-row>
 
-      <se-list-row><span class="app-row-actions">Plural editor<se-tooltip content="Unicode categories: zero, one, two, few, many, other. One and other are always shown; other categories appear when used. Missing plural values are omitted from exports. Turning this off shows the same keys normally without deleting them."><se-button variant="mini" icon="info" aria-label="About plural editor"></se-button></se-tooltip></span><div class="app-table-control"><input type="hidden" name="sheet[pluralization_enabled]" value="0"><se-checkbox variant="switch" name="sheet[pluralization_enabled]" value="1" aria-label="Plural editor" data-controller="control-label" <%= 'checked' if @sheet.pluralization_enabled? %>></se-checkbox></div></se-list-row>
+      <se-list-row><span class="app-row-actions">Plural editor<se-tooltip><se-button data-se-region="trigger" variant="mini" icon="info" aria-label="About plural editor"></se-button>Unicode categories: zero, one, two, few, many, other. One and other are always shown; other categories appear when used. Missing plural values are omitted from exports. Turning this off shows the same keys normally without deleting them.</se-tooltip></span><div class="app-table-control"><input type="hidden" name="sheet[pluralization_enabled]" value="0"><se-checkbox variant="switch" name="sheet[pluralization_enabled]" value="1" aria-label="Plural editor" data-controller="control-label" <%= 'checked' if @sheet.pluralization_enabled? %>></se-checkbox></div></se-list-row>
 
 
       <se-list-row><span>Missing export values</span><div class="app-table-control"><se-select name="sheet[missing_value_behavior]" value="<%= @sheet.missing_value_behavior %>" options='[{"id":"omit","label":"Omit"},{"id":"empty","label":"Write empty values"},{"id":"fallback","label":"Use default language"}]'></se-select></div></se-list-row>
@@ -59,7 +62,6 @@
 
   <% end %>
 
-  <% if @delimiter_error %><se-modal title="Cannot change delimiter" size="small" confirm-label="Close" open><se-text><%= @delimiter_error %></se-text></se-modal><% end %>
+  <% if @delimiter_error %><se-modal title="Cannot change delimiter" size="small" open><se-text><%= @delimiter_error %></se-text><%= render "shared/modal_footer", cancel: "Close" %></se-modal><% end %>
   </div>
 </section>
-

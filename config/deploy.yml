@@ -1,14 +1,16 @@
+<% auth_methods = (ENV["AUTH_METHODS"].to_s.empty? ? "password,email_code" : ENV["AUTH_METHODS"]).split(",").map(&:strip) %>
+
 # Name of your application. Used to uniquely configure containers.
-service: oath-template
+service: localized-lattrix
 
 # Name of the container image.
-image: your-dockerhub-username/oath-template
+image: wanttobeeme/localized-lattrix
 
 # Deploy to these servers.
 servers:
   web:
     hosts:
-      - your-server-ip
+      - 178.104.77.220
     cmd: "./bin/rails server"
   # job:
   #   hosts:
@@ -22,8 +24,8 @@ servers:
 proxy:
   ssl: true
   hosts:
-    - example.com
-    - www.example.com
+    - localized.lattrix.com
+    - www.localized.lattrix.com
   # Proxy connects to your container on port 80 by default.
   app_port: 3000
   healthcheck:
@@ -34,7 +36,7 @@ registry:
   # server: localhost:5555
   # Specify the registry server, if you're not using Docker Hub
   # server: registry.digitalocean.com / ghcr.io / ...
-  username: your-registry-username
+  username: wanttobeeme
 
   # Always use an access token rather than real password (pulled from .kamal/secrets).
   password:
@@ -51,22 +53,33 @@ builder:
 # Inject ENV variables into containers (secrets come from .kamal/secrets).
 env:
   clear:
-    APP_HOST: "example.com"
+    APP_HOST: "localized.lattrix.com"
     APP_PROTOCOL: "https"
+    AUTH_METHODS: <%= auth_methods.join(",") %>
     RAILS_ENV: production
     RAILS_LOG_LEVEL: info
+    SOLID_QUEUE_IN_PUMA: "true"
     SMTP_PORT: "587"
   secret:
     - RAILS_MASTER_KEY
     - DATABASE_URL
     - CACHE_DATABASE_URL
-    - QUEUE_DATABASE_URL
     - CABLE_DATABASE_URL
     - SMTP_ADDRESS
     - SMTP_USERNAME
     - SMTP_PASSWORD
+<% if auth_methods.include?("google") %>
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET
+<% end %>
+<% if auth_methods.include?("github") %>
+    - GH_OAUTH_CLIENT_ID
+    - GH_OAUTH_CLIENT_SECRET
+<% end %>
+<% if auth_methods.include?("discord") %>
+    - DISCORD_CLIENT_ID
+    - DISCORD_CLIENT_SECRET
+<% end %>
 
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal app logs -r job" will tail logs from the first server in the job section.
@@ -77,15 +90,20 @@ env:
 # Use a different ssh user than root
 #
 ssh:
-  user: deploy
+  user: root
+<% if ENV["SSH_PRIVATE_KEY"].to_s.empty? %>
   keys:
-    - ~/.ssh/your-ssh-key
+    - C:/Users/roose/.ssh/hetzner_ssh
+<% else %>
+  key_data:
+    - SSH_PRIVATE_KEY
+<% end %>
   keys_only: true
 
 # Use a persistent storage volume.
 #
-# volumes:
-#   - "app_storage:/app/storage"
+volumes:
+  - "app_storage:/rails/storage"
 
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
 # hitting 404 on in-flight requests. Combines all files from new and old
@@ -105,12 +123,12 @@ ssh:
 accessories:
   db:
     image: postgres:15
-    host: your-server-ip
+    host: 178.104.77.220
     port: "127.0.0.1:5432:5432"
     env:
       clear:
-        POSTGRES_DB: oath_template_production
-        POSTGRES_USER: oath_template
+        POSTGRES_DB: localized_lattrix_production
+        POSTGRES_USER: localized_lattrix
       secret:
         - POSTGRES_PASSWORD
     directories:

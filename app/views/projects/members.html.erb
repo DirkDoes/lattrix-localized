@@ -23,17 +23,18 @@
       </se-collection>
       <%= render "shared/table_pagination", url: members_project_path(@project, q: @query) %>
     <% else %>
-      <se-empty-illustration variant="search" title="No members found" text="<%= show_emails ? 'Try another name or email address.' : 'Try another name.' %>"></se-empty-illustration>
+      <se-empty-illustration variant="search" title="No members found" subtitle="<%= show_emails ? 'Try another name or email address.' : 'Try another name.' %>"></se-empty-illustration>
     <% end %>
   </section>
   <% if policy(@project.project_invites.new).create? %>
-    <se-modal id="project-invite-modal" title="Invite someone" subtitle="Choose the access they will receive when they join." size="medium" icon="mail" tone="brand" cancel-label="Cancel" confirm-label="Invite" <%= "open" if @invite_error || @invite_role_error %>>
+    <se-modal id="project-invite-modal" title="Invite someone" subtitle="Choose the access they will receive when they join." size="medium" icon="mail" tone="brand" <%= "open" if @invite_error || @invite_role_error %>>
       <%= form_with url: project_project_invites_path(@project), class: "app-form", html: { novalidate: true } do %>
         <se-input type="email" label="Email address" name="email" value="<%= @invite_email %>" error="<%= @invite_error %>" hint="They can accept from Invitations after signing in with this email."></se-input>
           <se-select label="Project role" name="role" value="<%= @invite_role || 'viewer' %>" options="<%= ProjectInvite::ROLES.map { |role| { id: role, label: role.capitalize } }.to_json %>"></se-select>
         <% if @invite_role_error %><se-text role="alert"><%= @invite_role_error %></se-text><% end %>
         <se-text muted>Only Viewers and Translators can be invited. An owner can grant Admin or Owner access after they join.</se-text>
       <% end %>
+      <%= render "shared/modal_footer", confirm: "Invite" %>
     </se-modal>
   <% end %>
 </section>

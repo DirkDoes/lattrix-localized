@@ -25,6 +25,7 @@ class ExportsTest < ActionDispatch::IntegrationTest
     post project_exports_path(@project), params: {export_format: format, sheet_ids: sheets, language_ids: languages}.merge(extra), as: :json
     assert_response :success
     request = @project.export_requests.order(:created_at).last
+    assert request.storage_key.present?
     ExportJob.perform_now(request.id)
     assert_equal "ready", request.reload.status, request.error
     request

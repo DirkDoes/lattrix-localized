@@ -47,7 +47,7 @@ class GlobalRolesTest < ActionDispatch::IntegrationTest
     assert_select "se-sidebar-button[label=Projects]"
     @user.update!(role: :guest)
     get projects_path
-    assert_select "se-empty-illustration[text*='invite you']"
+    assert_select "se-empty-illustration[subtitle*='invite you']"
     assert_select "se-modal#project-create-modal", count: 0
     assert_no_difference "Project.count" do
       post projects_path, params: { project: { name: "Forbidden" } }

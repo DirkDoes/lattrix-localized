@@ -13,14 +13,32 @@ class SheetsController < ApplicationController
   end
 
   def create
-    @sheet = @project.sheets.new(params.require(:sheet).permit(:name, :slug, :visibility, :default_language_id))
+    @sheet = @project.sheets.new(create_sheet_params)
     authorize @sheet
-    if @project.with_lock { @sheet.save }
-      redirect_to project_sheet_path(@project, @sheet), notice: "Sheet created."
-    else
-      load_sheet_page
-      render :index, status: :unprocessable_entity
+    delimiter = params[:sheet][:delimiter] if params[:sheet].key?(:delimiter)
+    import = SheetImport.new(project: @project, uploads: params[:imports], default_language_id: @sheet.default_language_id, delimiter: delimiter) if Array(params[:imports]).any?(&:present?)
+    if import
+      import.settings.each do |name, value|
+        @sheet.public_send("#{name}=", value) unless params[:sheet].key?(name)
+      end
     end
+    @project.with_lock { Sheet.transaction { @sheet.save!; import&.apply!(sheet: @sheet, actor: current_user) } }
+    redirect_to project_sheet_path(@project, @sheet), notice: "Sheet created."
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::StatementInvalid, ArgumentError, SheetImport::Error => error
+    @sheet ||= @project.sheets.new(create_sheet_params)
+    @sheet.errors.add(:base, error.message.lines.first.to_s.first(300)) unless error.is_a?(ActiveRecord::RecordInvalid) && error.record == @sheet
+    load_sheet_page
+    render :index, status: :unprocessable_entity
+  end
+
+  def import_preview
+    sheet = @project.sheets.new
+    authorize sheet, :create?
+    import = SheetImport.new(project: @project, uploads: params[:imports], default_language_id: params[:default_language_id], delimiter: params[:delimiter])
+    render json: import.preview
+  rescue SheetImport::Error => error
+    files = error.files || Array(params[:imports]).map { |upload| {filename: upload.original_filename.to_s.first(200), error: error.message} }
+    render json: {error: error.message, files: files}, status: :unprocessable_entity
   end
 
   def show
@@ -88,7 +106,7 @@ class SheetsController < ApplicationController
     @sheet.project.with_lock do
       @sheet.translation_tree.lock!
       original_slug = @sheet.slug
-      attributes = params.require(:sheet).permit(:name, :description, :slug, :delimiter, :case_sensitive_keys, :allow_parent_translations, :pluralization_enabled, :missing_value_behavior, :default_language_id)
+      attributes = params.require(:sheet).permit(:name, :description, :slug, :delimiter, :wildcard_format, :case_sensitive_keys, :allow_parent_translations, :pluralization_enabled, :missing_value_behavior, :default_language_id)
       if attributes.key?(:slug) && attributes[:slug].strip.downcase != @sheet.slug
         authorize @sheet, :change_slug?
         @sheet.assign_attributes(attributes)
@@ -117,6 +135,10 @@ class SheetsController < ApplicationController
 
 
   private
+
+  def create_sheet_params
+    params.require(:sheet).permit(:name, :slug, :visibility, :default_language_id, :delimiter, :wildcard_format, :case_sensitive_keys, :allow_parent_translations, :pluralization_enabled, :missing_value_behavior)
+  end
 
   def authenticate_private_sheet
     return if current_user

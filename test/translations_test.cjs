@@ -6,9 +6,12 @@ let reply;
 let nextTimer = 0;
 const timers = new Map();
 const resultsFrame = {};
-vm.runInNewContext(fs.readFileSync('app/assets/javascripts/translations.js', 'utf8').replace('export function', 'function') + '\nregisterTranslations(application, Controller);', {
+const createdElements = [];
+let confirmationOpened = false;
+vm.runInNewContext(fs.readFileSync('app/assets/javascripts/translations.js', 'utf8').replaceAll('export function', 'function') + '\nregisterTranslations(application, Controller);', {
   application: { register: (name, klass) => { controllers[name] = klass; } }, Controller: class {},
-  document: { querySelector: () => ({content: 'csrf'}), getElementById: () => resultsFrame },
+  document: { querySelector: () => ({content: 'csrf'}), getElementById: id => id === 'plural-confirmation' ? {open:()=>confirmationOpened=true} : resultsFrame, createTextNode: text => ({textContent:text}), createElement: tag => { const element = {tag, attributes: {}, setAttribute(name, value) { this.attributes[name] = value; }}; createdElements.push(element); return element; }, body: {append() {}} },
+  customElements: {whenDefined: async () => {}},
   AbortController, URL, FormData: class { constructor(form) { this.values = form.values || {}; } has(key) { return key in this.values; } get(key) { return this.values[key]; } },
   fetch: async () => reply, MutationObserver: class { observe() {} disconnect() {} },
   window: {matchMedia:()=>({matches:true,addEventListener(){},removeEventListener(){}}),location:{origin:'http://localhost:3021'}}, console,
@@ -23,7 +26,8 @@ vm.runInNewContext(fs.readFileSync('app/assets/javascripts/translations.js', 'ut
   const toolbar = {values:{view:'tree',sort:'alphabetical',left:'en',right:'nl',q:'items'}};
   const modal = {close:()=>closed=true};
   const scope = {querySelector:()=>toolbar};
-  keyForm.element = {action:'/keys',method:'post',querySelector:()=>({textContent:''}),closest:selector=>selector==='se-modal'?modal:scope};
+  const status = {textContent:''}; let resubmitted = false;
+  keyForm.element = {action:'/keys',method:'post',hasAttribute:()=>false,querySelector:()=>status,requestSubmit:()=>resubmitted=true,closest:selector=>selector==='se-modal'?modal:scope};
   reply = {ok:true,json:async()=>({location:'/projects/demo/sheets/main/translations'})};
   await keyForm.submit({preventDefault(){}});
   assert.equal(resultsFrame.src, undefined);
@@ -36,12 +40,38 @@ vm.runInNewContext(fs.readFileSync('app/assets/javascripts/translations.js', 'ut
   assert.equal(destination.searchParams.get('q'),'items');
   assert.equal(closed,true);
   assert.equal(keyForm.saving,false);
+  reply = {ok:false,json:async()=>({error:'Select each language only once'})};
+  closed = false;
+  await keyForm.submit({preventDefault(){}});
+  assert.equal(closed, false);
+  assert.equal(createdElements.at(-1).attributes.tone, 'error');
+  assert.equal(createdElements.at(-1).attributes.message, 'Select each language only once');
+  keyForm.pluralConfirmationValue = true;
+  keyForm.pluralConfirmationIdValue = 'plural-confirmation';
+  keyForm.application = {getControllerForElementAndIdentifier: () => ({resolve: async () => ({valid:true}), pluralTarget:{checked:true}, hasTranslations:()=>true})};
+  await keyForm.submit({preventDefault(){}});
+  assert.equal(confirmationOpened, true);
+  confirmationOpened = false;
+  keyForm.application = {getControllerForElementAndIdentifier: () => ({resolve: async () => ({valid:true}), pluralTarget:{checked:true}, hasTranslations:()=>false, prepareRefresh(){}})};
+  reply = {ok:true,json:async()=>({location:'/projects/demo/sheets/main/translations'})};
+  await keyForm.submit({preventDefault(){}});
+  assert.equal(confirmationOpened, false);
+  const reconnectingEditor = new controllers['key-editor']();
+  let appended = 0;
+  reconnectingEditor.element = {isConnected:true}; reconnectingEditor.parentTarget = {dataset:{path:''}};
+  reconnectingEditor.initialTarget = {value:'[{"language_id":1}]'};
+  reconnectingEditor.rowsTarget = {querySelector:()=>appended ? {} : null};
+  reconnectingEditor.appendLanguage = () => appended++;
+  reconnectingEditor.updateToggle = reconnectingEditor.pluralChanged = reconnectingEditor.preview = () => {};
+  await reconnectingEditor.connect(); await reconnectingEditor.connect();
+  assert.equal(appended, 1);
   const cell = new controllers['translation-cell']();
   const textarea = {};
   cell.inputTarget = {value: 'New text', querySelector: () => textarea};
   cell.original = 'Old text';
-  cell.editorTarget = {hidden: false}; cell.displayTarget = {};
-  cell.statusTarget = {}; cell.statusTextTarget = {}; cell.spinnerTarget = {}; cell.checkTarget = {}; cell.errorTarget = {}; cell.conflictTarget = {hidden: true}; cell.currentTarget = {};
+  const textTarget = () => ({dataset:{}, replaceChildren(...children) { this.textContent = children.map(child => child.textContent).join(''); }});
+  cell.editorTarget = {hidden: false}; cell.displayTarget = textTarget();
+  cell.statusTarget = {}; cell.statusTextTarget = {}; cell.spinnerTarget = {}; cell.checkTarget = {}; cell.errorTarget = {}; cell.conflictTarget = {hidden: true}; cell.currentTarget = textTarget();
   cell.versionValue = '0'; cell.recordValue = 'record';
   let saved = 0, prevented = 0;
   const realSave = cell.save;

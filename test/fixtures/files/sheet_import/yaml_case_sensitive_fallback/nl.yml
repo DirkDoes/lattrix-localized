@@ -1,0 +1,18 @@
+support:
+  greeting: "Hallo $[name]"
+  contact: "Neem contact op"
+checkout:
+  title: "Afrekenen"
+  subtitle: "Voltooi je bestelling"
+  pay: "Nu betalen"
+cart:
+  items:
+    one: "Eén artikel"
+    other: "$[count] artikelen"
+    many: "Veel artikelen"
+navigation:
+  home: "Start"
+  settings: "Instellingen"
+legal:
+  Privacy: "Privacyoverzicht"
+  privacy: "Privacybeleid"

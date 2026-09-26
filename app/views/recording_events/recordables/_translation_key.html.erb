@@ -1,11 +1,17 @@
 <div class="history-description">
   <% previous = previous_event&.recordable if previous_event&.recordable_type == "TranslationKey" %>
   <% if event.action == "updated" && previous %>
-    <strong><%= event.reverted? ? "Reverted change to" : "Changed" %> translation key</strong>
-    <div class="history-values"><se-code><%= previous.name %></se-code><span aria-hidden="true">→</span><se-code><%= event.recordable.name %></se-code></div>
+    <% changes = [] %>
+    <% changes << ["Key", previous.name, event.recordable.name, true] if previous.name != event.recordable.name %>
+    <% changes << ["Description", previous.description.presence || "—", event.recordable.description.presence || "—", false] if previous.description != event.recordable.description %>
+    <% changes << ["Pluralization", previous.pluralized? ? "On" : "Off", event.recordable.pluralized? ? "On" : "Off", false] if previous.pluralized? != event.recordable.pluralized? %>
+    <strong><%= event.revert? ? "Reverted changes to" : "Changed" %> translation key <se-code><%= event.recordable.name %></se-code></strong>
+    <% changes.each do |label, before, after, code| %>
+      <div class="history-key-change"><se-text muted small><%= label %></se-text><div class="history-values"><% if code %><se-code><%= before %></se-code><% elsif label == "Description" %><span><%= before == "—" ? before : "“#{before}”" %></span><% else %><span><%= before %></span><% end %><span aria-hidden="true">→</span><% if code %><se-code><%= after %></se-code><% elsif label == "Description" %><span><%= after == "—" ? after : "“#{after}”" %></span><% else %><span><%= after %></span><% end %></div></div>
+    <% end %>
   <% else %>
-    <% action_text = event.reverted? ? {"created" => "Restored deleted", "deleted" => "Reverted creation of"}.fetch(event.action) : {"created" => "Added", "deleted" => "Deleted"}.fetch(event.action) %>
+    <% action_text = event.revert? ? {"created" => "Restored deleted", "deleted" => "Reverted creation of"}.fetch(event.action) : {"created" => "Added", "deleted" => "Deleted"}.fetch(event.action) %>
     <strong><%= action_text %> translation key <se-code><%= event.recordable.name %></se-code></strong>
   <% end %>
-  <% if event.recordable.description.present? %><se-text muted small><%= event.recordable.description %></se-text><% end %>
+  <% if event.action != "updated" && event.recordable.description.present? %><se-text muted small><%= event.recordable.description %></se-text><% end %>
 </div>

@@ -283,7 +283,7 @@ Devise.setup do |config|
       prompt: "select_account"
   end
   if AuthenticationPolicy.enabled?("github")
-    config.omniauth :github, ENV.fetch("GITHUB_CLIENT_ID"), ENV.fetch("GITHUB_CLIENT_SECRET"), scope: "user:email"
+    config.omniauth :github, ENV.fetch("GH_OAUTH_CLIENT_ID"), ENV.fetch("GH_OAUTH_CLIENT_SECRET"), scope: "user:email"
   end
   if AuthenticationPolicy.enabled?("discord")
     require Rails.root.join("lib/discord_strategy")

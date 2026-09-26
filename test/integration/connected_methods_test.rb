@@ -153,6 +153,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
         assert_select "[data-auth-form-target=panel]", count: 1
         assert_select "[data-method=#{method}]:not([hidden])", count: 1
         assert_select ".app-provider-form", count: path == new_user_session_path ? 3 : 0
+        assert_select ".app-auth-brand se-layout-brand", count: path == new_user_session_path ? 1 : 0
       end
     end
     ENV["AUTH_METHODS"] = "google,github,discord"

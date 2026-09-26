@@ -21,7 +21,7 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
   test "viewer landing and personal settings retain the header with global navigation" do
     get projects_path
     assert_select "se-topbar se-profile"
-    assert_select "se-empty-illustration[title][text]"
+    assert_select "se-empty-illustration[title][subtitle]"
     assert_select "se-title[level=page]", text: "Projects"
     assert_select "se-card", count: 0
     assert_select "se-sidebar", count: 1

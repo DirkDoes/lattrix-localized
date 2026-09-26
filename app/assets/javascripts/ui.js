@@ -17,11 +17,12 @@ document.addEventListener("select", (event) => {
 function openExportModal(eventId, eventDate) {
   const modal = document.getElementById("export-modal");
   const form = modal.querySelector("form");
+  const footer = [...modal.querySelectorAll('[data-se-region="footer"]')];
   form.setAttribute("action", `${form.action.split("?")[0]}${eventId ? `?recording_event_id=${eventId}` : ""}`);
   const replacement = document.createElement("se-modal");
   for (const {name, value} of modal.attributes) if (name !== "data-ready" && name !== "title") replacement.setAttribute(name, value);
   replacement.setAttribute("title", eventDate ? `Export translations · ${eventDate}` : "Export translations");
-  replacement.append(form);
+  replacement.append(form, ...footer);
   modal.replaceWith(replacement);
   queueMicrotask(() => replacement.open());
 }
@@ -43,19 +44,9 @@ document.addEventListener("click", (event) => {
 
 });
 
-
-
-document.addEventListener("confirm", (event) => {
-
-  if (event.target.id === "profile-photo-modal") event.target.querySelector("form").requestSubmit();
-
-  if (["key-create", "language-create", "sheet-create-modal", "password-modal", "email-modal", "delete-account-warning", "delete-account-confirmation", "connect-provider-modal", "project-create-modal", "project-invite-modal"].includes(event.target.id)) event.target.querySelector("form").requestSubmit();
-
+document.addEventListener("close", (event) => {
+  if (event.target.matches("se-modal")) event.target.querySelector("form")?.reset();
 });
-
-
-
-
 
 
 
@@ -168,13 +159,34 @@ document.addEventListener("change", (event) => {
   window.location.assign(url);
 });
 
+document.addEventListener("change", (event) => {
+  if (event.target.matches("[data-auto-submit]")) event.target.closest("form").requestSubmit();
+});
+
 document.addEventListener("dragstart", (event) => {
   if (event.target.closest("se-layout-brand")) event.preventDefault();
 });
 
+document.addEventListener("turbo:frame-load", (event) => {
+  if (event.target.id !== "app-content") return;
+  const path = window.location.pathname.replace(/\/$/, "");
+  const items = [...document.querySelectorAll("#app-navigation :is(se-sidebar-button, se-sidebar-group)[href]")];
+  const active = items.filter((item) => {
+    const target = new URL(item.getAttribute("href"), window.location.origin).pathname.replace(/\/$/, "");
+    return path === target || path.startsWith(`${target}/`);
+  }).sort((left, right) => left.getAttribute("href").length - right.getAttribute("href").length).pop();
+  items.forEach((item) => item.toggleAttribute("active", item === active));
+});
+
 document.addEventListener("confirm", (event) => {
-  if (event.target.matches("se-modal[data-submit-form]")) event.target.querySelector("form").requestSubmit();
+  const form = event.target.querySelector("form");
+  if (form) { event.preventDefault(); form.requestSubmit(); }
   if (event.target.matches("se-modal[data-confirm-next]")) document.getElementById(event.target.dataset.confirmNext).open();
+  if (event.target.matches("se-modal[data-confirm-plural-form]")) {
+    const form = document.getElementById(event.target.dataset.confirmPluralForm);
+    form.setAttribute("data-plural-confirmed", "");
+    form.requestSubmit();
+  }
 });
 
 document.addEventListener("select", (event) => {

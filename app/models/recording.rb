@@ -97,12 +97,12 @@ class Recording < ApplicationRecord
       removed_at = Time.current
       rows = self.class.descendants_first(self.class.where(id: ids, deleted_at: nil).to_a)
       self.class.where(id: rows.map(&:id)).update_all(deleted_at: removed_at, updated_at: removed_at, lock_version: Arel.sql("lock_version+1"))
-      RecordingEvent.insert_all!(rows.map { |row| { recording_id: row.id, actor_id: actor&.id, action: "deleted", recordable_type: row.recordable_type, recordable_id: row.recordable_id, deleted_at: removed_at, reverted: false, created_at: removed_at } }) if rows.any?
+      RecordingEvent.insert_all!(rows.map { |row| { recording_id: row.id, actor_id: actor&.id, action: "deleted", recordable_type: row.recordable_type, recordable_id: row.recordable_id, deleted_at: removed_at, change_type: "manual", created_at: removed_at } }) if rows.any?
     end
   end
 
-  def record_event!(action, actor:, reverted: false, created_at: nil, change_id: nil)
-    attributes = { actor: actor, action: action, recordable_type: recordable_type, recordable_id: recordable_id, deleted_at: deleted_at, reverted: reverted }
+  def record_event!(action, actor:, change_type: "manual", created_at: nil, change_id: nil)
+    attributes = { actor: actor, action: action, recordable_type: recordable_type, recordable_id: recordable_id, deleted_at: deleted_at, change_type: change_type }
     attributes[:created_at] = created_at if created_at
     attributes[:change_id] = change_id if change_id
     recording_events.create!(attributes)
@@ -137,6 +137,13 @@ class Recording < ApplicationRecord
           forms[name] ||= self.class.create_key!(tree: translation_tree, parent: self, name: name, actor: actor)
         end
         values.each { |value| forms.fetch("other").save_translation!(value.recordable.language, value.recordable.text, actor: actor) }
+      else
+        forms = children.active.keys.includes(:recordable).index_by { |child| child.recordable.name }
+        (TranslationKey::PLURAL_CATEGORIES - %w[one other]).filter_map { |name| forms[name] }.reject { |form| form.children.active.texts.exists? }.each do |form|
+          removed_at = Time.current
+          form.update!(deleted_at: removed_at)
+          form.record_event!("deleted", actor: actor, created_at: removed_at)
+        end
       end
       if recordable.pluralized != enabled
         update!(recordable: TranslationKey.create!(name: recordable.name, description: recordable.description, pluralized: enabled))

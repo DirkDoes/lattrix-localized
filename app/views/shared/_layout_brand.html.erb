@@ -1,6 +1,4 @@
 <se-layout-brand <%= "collapsible" if local_assigns[:collapsible] %>
-            icon="/icons/lattrix/lattrix-text-localized-light.svg"
-            dark-icon="/icons/lattrix/lattrix-text-localized-dark.svg"
-            compact-icon="/icons/lattrix/lattrix-icon-localized-light.svg"
-            compact-dark-icon="/icons/lattrix/lattrix-icon-localized-dark.svg"
+            icon='<%= {light: "/icons/lattrix/lattrix-text-localized-dark.svg", dark: "/icons/lattrix/lattrix-text-localized-light.svg"}.to_json %>'
+            compact-icon='<%= {light: "/icons/lattrix/lattrix-icon-localized-dark.svg", dark: "/icons/lattrix/lattrix-icon-localized-light.svg"}.to_json %>'
             href="<%= projects_path %>"></se-layout-brand>

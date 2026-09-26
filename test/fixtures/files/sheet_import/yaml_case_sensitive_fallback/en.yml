@@ -1,0 +1,18 @@
+support:
+  greeting: "Hello $[name]"
+  contact: "Contact support"
+checkout:
+  title: "Checkout"
+  subtitle: "Complete your order"
+  pay: "Pay now"
+cart:
+  items:
+    one: "One item"
+    other: "$[count] items"
+    many: "Many items"
+navigation:
+  home: "Home"
+  settings: "Settings"
+legal:
+  Privacy: "Privacy overview"
+  privacy: "Privacy policy"

@@ -9,7 +9,9 @@ class Sheet < ApplicationRecord
   validates :description, length: {maximum: 2000}
   validates :missing_value_behavior, inclusion: {in: %w[omit empty fallback]}
   validates :delimiter, length: {in: 1..3}
+  validates :wildcard_format, length: {maximum: 50}
   validate :delimiter_available
+  validate :wildcard_format_shape
   validate :translation_settings
 
   def delimiter_available
@@ -17,6 +19,12 @@ class Sheet < ApplicationRecord
     if translation_tree.recordings.active.keys.joins("JOIN translation_keys k ON k.id=recordings.recordable_id").where("position(? in k.name)>0", delimiter).exists?
       errors.add(:delimiter, "cannot be changed because existing keys contain this delimiter. Rename those keys first.")
     end
+  end
+
+  def wildcard_format_shape
+    return if wildcard_format.blank?
+    parts = wildcard_format.split("...", -1)
+    errors.add(:wildcard_format, "must contain ... between its opening and closing characters") unless parts.length == 2 && parts.all?(&:present?)
   end
 
   def choose_default_language
@@ -40,6 +48,7 @@ class Sheet < ApplicationRecord
     end
   end
   normalizes :name, with: ->(name) { name.strip }
+  normalizes :wildcard_format, with: ->(format) { format.strip }
   validates :slug, uniqueness: { case_sensitive: false, scope: :project_id }
   validates :name, presence: true, length: { maximum: 100 }
   validates :visibility, inclusion: { in: %w[public private] }

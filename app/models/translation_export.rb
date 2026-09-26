@@ -2,6 +2,16 @@ require "csv"
 require "yaml"
 require "zip"
 class TranslationExport
+  FORMATS = %w[yaml json csv xlsx].freeze
+
+  def self.csv(rows)
+    CSV.generate { |csv| rows.each { |row| csv << row } }
+  end
+
+  def self.files(format, trees)
+    trees.map { |identifier, tree| ["#{identifier}.#{format}", format == "json" ? JSON.pretty_generate(tree) : YAML.dump(tree)] }
+  end
+
   def initialize(sheet, languages: nil, identifiers: {}, descriptions: false, checkpoint: nil, event: nil)
     @sheet, @event = sheet, event
     @languages, @identifiers, @descriptions, @checkpoint = languages, identifiers, descriptions, checkpoint
@@ -25,14 +35,14 @@ class TranslationExport
           next if children[key.id].present? && !@translated_keys.include?(key.id)
           rows << [path.map { |part| escape_segment(part) }.join(@sheet.delimiter), *(@descriptions ? [key.recordable.description] : []), *row] if row.any? { |v| !v.nil? }
         end
-        format == "rows" ? rows : CSV.generate { |csv| rows.each { |row| csv << row } }
+        format == "rows" ? rows : self.class.csv(rows)
 
       else
         result = languages.to_h { |lang| [@identifiers.fetch(lang.id, lang.identifier), nested(children, nil, values, lang.id)] }
         Zip::OutputStream.write_buffer do |zip|
-          result.each do |identifier, tree|
-            zip.put_next_entry("#{identifier}.#{format}")
-            zip.write(format == "json" ? JSON.pretty_generate(tree) : YAML.dump(tree))
+          self.class.files(format, result).each do |filename, contents|
+            zip.put_next_entry(filename)
+            zip.write(contents)
           end
         end.string
       end

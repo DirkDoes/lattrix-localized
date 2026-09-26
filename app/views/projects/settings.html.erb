@@ -38,7 +38,7 @@
     </se-list-row>
   </se-collection>
   <% if @confirm_visibility || @confirm_slug %>
-    <se-modal id="project-visibility-confirmation" title="<%= @confirm_slug ? 'Change project identifier?' : "Make this project #{@project.visibility}?" %>" size="small" icon="alert" tone="warning" cancel-label="Cancel" confirm-label="Confirm and save" data-submit-form open>
+    <se-modal id="project-visibility-confirmation" title="<%= @confirm_slug ? 'Change project identifier?' : "Make this project #{@project.visibility}?" %>" size="small" icon="alert" tone="warning" open>
       <%= form_with model: @project do %>
         <% @pending_attributes.each do |key, value| %><%= hidden_field_tag "project[#{key}]", value %><% end %>
         <%= hidden_field_tag :confirm_visibility, "1" if @confirm_visibility %>
@@ -46,6 +46,7 @@
         <% if @confirm_slug %><se-text>The identifier will change to <%= @requested_slug %>. All existing project and sheet links will stop working. No redirects or aliases will be created.</se-text><% end %>
         <% if @confirm_visibility %><se-text><%= @project.visibility == "public" ? "Anyone with the link will be able to view this project and its public sheets." : "Only project members and invited accounts will be able to view this project and its sheets." %></se-text><% end %>
       <% end %>
+      <%= render "shared/modal_footer", confirm: "Confirm and save" %>
     </se-modal>
   <% end %>
   <% if policy(@project).destroy? %>
@@ -53,15 +54,17 @@
       <div><se-title level="section">Delete project</se-title><se-text muted>Permanently remove this project, its sheets, memberships and pending invitations. This cannot be undone.</se-text></div>
       <se-button variant="danger" text="Delete project" data-open-modal="project-delete-warning"></se-button>
     </div></se-card>
-    <se-modal id="project-delete-warning" title="Delete this project?" size="small" icon="alert" tone="error" cancel-label="Cancel" confirm-label="Continue" confirm-variant="danger" data-confirm-next="project-delete-confirmation">
+    <se-modal id="project-delete-warning" title="Delete this project?" size="small" icon="alert" tone="error" data-confirm-next="project-delete-confirmation">
       <se-text>This permanently deletes <%= @project.name %> and all its sheets. You will type a confirmation before anything is deleted.</se-text>
+      <%= render "shared/modal_footer", confirm: "Continue", variant: "danger" %>
     </se-modal>
-    <se-modal id="project-delete-confirmation" title="Confirm permanent deletion" size="medium" cancel-label="Cancel" confirm-label="Delete permanently" confirm-variant="danger" data-submit-form <%= "open" if @delete_error %>>
+    <se-modal id="project-delete-confirmation" title="Confirm permanent deletion" size="medium" <%= "open" if @delete_error %>>
       <%= form_with model: @project, method: :delete, class: "app-form", html: { novalidate: true } do %>
         <se-text>Type these words exactly to delete <%= @project.name %>.</se-text>
         <se-text class="app-deletion-phrase" data-no-copy>DELETE PROJECT</se-text>
         <se-input name="confirmation" label="Confirmation text" autocomplete="off" data-deletion-confirmation error="<%= @delete_error %>"></se-input>
       <% end %>
+      <%= render "shared/modal_footer", confirm: "Delete permanently", variant: "danger" %>
     </se-modal>
   <% end %>
   <%= render "projects/languages" %>

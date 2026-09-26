@@ -1,4 +1,26 @@
+function wildcardEdges(format) {
+  const parts = String(format || "").split("...");
+  return parts.length === 2 && parts.every(Boolean) ? parts : null;
+}
+export function wildcardParts(text, format) {
+  const edges = wildcardEdges(format);
+  if (!edges) return [String(text)];
+  const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(text).split(new RegExp(`(${escape(edges[0])}[\\s\\S]*?${escape(edges[1])})`, "g")).filter(Boolean);
+}
+function highlightWildcards(element, text = element.textContent, format = element.dataset.wildcardHighlightFormatValue) {
+  const edges = wildcardEdges(format);
+  element.replaceChildren(...wildcardParts(text, format).map(part => {
+    if (!edges || !part.startsWith(edges[0]) || !part.endsWith(edges[1])) return document.createTextNode(part);
+    const mark = document.createElement("span"); mark.className = "translation-wildcard"; mark.textContent = part; return mark;
+  }));
+}
+
 export function registerTranslations(application, Controller) {
+  application.register("wildcard-highlight", class extends Controller {
+    static values = {format: String};
+    connect() { highlightWildcards(this.element, this.element.textContent, this.formatValue); }
+  });
   application.register("membership-languages", class extends Controller {
     static targets = ["role", "assignments"];
     connect() { this.update(); }
@@ -12,6 +34,7 @@ export function registerTranslations(application, Controller) {
     }
   });
   application.register("key-form", class extends Controller {
+    static values = {pluralConfirmation: Boolean, pluralConfirmationId: String};
     async submit(event) {
       event.preventDefault();
       if (this.saving) return;
@@ -23,6 +46,11 @@ export function registerTranslations(application, Controller) {
       try {
         const editor = this.application.getControllerForElementAndIdentifier(this.element, "key-editor");
         if (editor && !(await editor.resolve(true))?.valid) { status.textContent = ""; return; }
+        if (this.pluralConfirmationValue && editor?.pluralTarget.checked && editor.hasTranslations() && !this.element.hasAttribute("data-plural-confirmed")) {
+          status.textContent = "";
+          document.getElementById(this.pluralConfirmationIdValue).open();
+          return;
+        }
         const response = await fetch(this.element.action, {method: this.element.method, body: new FormData(this.element), headers: {Accept: "application/json"}});
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not save. Your input is still here.");
@@ -39,7 +67,12 @@ export function registerTranslations(application, Controller) {
           results.src = url.href;
         }
         else window.location.assign(url.href);
-      } catch (error) { status.textContent = error.message; modal?.open(); }
+      } catch (error) {
+        status.textContent = error.message;
+        const toast = document.createElement("se-toast");
+        toast.setAttribute("tone", "error"); toast.setAttribute("message", error.message); toast.setAttribute("open", "");
+        document.body.append(toast);
+      }
       finally { this.saving = false; }
     }
   });
@@ -50,7 +83,7 @@ export function registerTranslations(application, Controller) {
       this.sequence = 0; this.parentRequestNumber = 0; this.parentPath = this.parentTarget.dataset.path;
       await Promise.all([customElements.whenDefined("se-input"), customElements.whenDefined("se-select")]);
       if (!this.element.isConnected) return;
-      JSON.parse(this.initialTarget.value).forEach(value => this.appendLanguage(value));
+      if (!this.rowsTarget.querySelector("[data-language]")) JSON.parse(this.initialTarget.value).forEach(value => this.appendLanguage(value));
       this.updateToggle(); this.pluralChanged(); this.preview();
     }
     disconnect() { clearTimeout(this.previewTimer); clearTimeout(this.parentTimer); this.previewRequest?.abort(); this.parentRequest?.abort(); }
@@ -114,6 +147,7 @@ export function registerTranslations(application, Controller) {
       if (focused) { const next = replacement.querySelector("input"); next?.focus(); next?.setSelectionRange(start, end); }
     }
     pluralChanged() { this.addTranslationTarget.hidden = this.hasPluralTarget && this.pluralTarget.checked; }
+    hasTranslations() { return [...this.rowsTarget.querySelectorAll("[data-text]")].some(field => field.value.trim()); }
     showBadges(items) {
       this.previewTarget.replaceChildren(...items.map(item => {
         const badge = document.createElement("se-badge"); badge.setAttribute("text", item.text); badge.setAttribute("tone", item.tone); return badge;
@@ -211,7 +245,7 @@ export function registerTranslations(application, Controller) {
         const data = await response.json();
         if (response.status === 409) {
           this.pendingVersion = data;
-          this.currentTarget.textContent = data.text || "(missing)";
+          highlightWildcards(this.currentTarget, data.text || "(missing)");
           this.conflictTarget.hidden = false;
           this.setStatus("error", data.error);
           return;
@@ -224,7 +258,7 @@ export function registerTranslations(application, Controller) {
     apply(data) {
       this.versionValue = String(data.version); this.recordValue = data.translation_id || "";
       this.inputTarget.value = data.text; this.original = data.text;
-      this.displayTarget.textContent = data.text;
+      highlightWildcards(this.displayTarget, data.text);
     }
     keep() { this.versionValue = String(this.pendingVersion.version); this.recordValue = this.pendingVersion.translation_id || ""; this.conflictTarget.hidden = true; this.save(); }
     useCurrent() { this.apply(this.pendingVersion); this.conflictTarget.hidden = true; this.close(); this.setStatus("saved", "Using saved value"); }
@@ -415,7 +449,9 @@ export function registerTranslations(application, Controller) {
       this.saving = true;
       let message, tone = "success";
       try {
-        const response = await fetch(this.urlValue, {method: this.methodValue, headers: {"Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content}, body: JSON.stringify({language: {name: this.nameTarget.value, sheet_ids: Array.isArray(this.sheetsTarget.value) ? this.sheetsTarget.value : this.sheetsTarget.value.split(",").filter(Boolean)}})});
+        const language = {name: this.nameTarget.value, sheet_ids: Array.isArray(this.sheetsTarget.value) ? this.sheetsTarget.value : this.sheetsTarget.value.split(",").filter(Boolean)};
+        if (this.hasIdentifierTarget) language.identifier = this.identifierTarget.value;
+        const response = await fetch(this.urlValue, {method: this.methodValue, headers: {"Content-Type": "application/json", Accept:"application/json", "X-CSRF-Token":document.querySelector('meta[name="csrf-token"]').content}, body:JSON.stringify({language})});
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not save language.");
         this.urlValue = data.url; this.methodValue = "PATCH"; message = data.message;

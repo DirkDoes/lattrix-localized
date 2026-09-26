@@ -1,0 +1,21 @@
+service: localized-lattrix-staging
+
+proxy:
+  hosts:
+    - staging.localized.lattrix.com
+
+env:
+  clear:
+    APP_HOST: staging.localized.lattrix.com
+
+volumes:
+  - "app_storage_staging:/rails/storage"
+
+accessories:
+  db:
+    port: "127.0.0.1:5435:5432"
+    env:
+      clear:
+        POSTGRES_DB: localized_lattrix_staging
+    directories:
+      - postgres_data_staging:/var/lib/postgresql/data

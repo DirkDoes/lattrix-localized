@@ -21,10 +21,11 @@
       <div><se-title level="section">Remove member</se-title><se-text muted>This removes their project membership. Their account remains available.</se-text></div>
       <se-button variant="danger" text="Remove member" data-open-modal="project-member-remove"></se-button>
     </div></se-card>
-    <se-modal id="project-member-remove" title="Remove this member?" size="small" icon="alert" tone="warning" cancel-label="Cancel" confirm-label="Remove member" confirm-variant="danger" data-submit-form>
+    <se-modal id="project-member-remove" title="Remove this member?" size="small" icon="alert" tone="warning">
       <%= form_with url: project_project_membership_path(@project, @membership), method: :delete do %>
         <se-text>Remove <%= @membership.user.name %> from <%= @project.name %>?</se-text>
       <% end %>
+      <%= render "shared/modal_footer", confirm: "Remove member", variant: "danger" %>
     </se-modal>
   <% end %>
   </div>

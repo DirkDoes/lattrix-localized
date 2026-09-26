@@ -20,7 +20,7 @@
       </se-collection>
       <%= render "shared/table_pagination", url: project_project_invites_path(@project, q: @query) %>
     <% else %>
-      <se-empty-illustration variant="inbox" title="No pending invitations" text="<%= @query.present? ? 'No invitations match your search.' : 'New invitations will appear here until they are accepted, declined, or revoked.' %>"></se-empty-illustration>
+      <se-empty-illustration variant="inbox" title="No pending invitations" subtitle="<%= @query.present? ? 'No invitations match your search.' : 'New invitations will appear here until they are accepted, declined, or revoked.' %>"></se-empty-illustration>
     <% end %>
   </section>
 </section>

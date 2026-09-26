@@ -67,6 +67,10 @@ class LanguagesController < ApplicationController
       else
         language.update!(attributes)
       end
+      if !project.advanced_languages? && attributes[:identifier].present?
+        main_set = project.identifier_sets.order(:created_at, :id).first
+        language.language_identifiers.find_by!(identifier_set: main_set).update!(identifier: language.identifier)
+      end
     end
     respond_to do |format|
       format.json { render json: {url: project_language_path(project,language), message: "Language saved.", rows: (new_record && project.advanced_languages? ? render_to_string(partial: "projects/language_identifiers", locals: {language: language}, formats: [:html]) : nil)} }

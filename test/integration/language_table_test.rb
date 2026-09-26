@@ -42,6 +42,25 @@ class LanguageTableTest < ActionDispatch::IntegrationTest
     assert @one.reload.allow_parent_translations?
   end
 
+  test "basic language rows edit the default identifier and always show archive" do
+    language = @project.languages.create!(name: "English", identifier: "en", enabled: true)
+
+    get settings_project_path(@project)
+    assert_select 'se-list-header span', text: "Identifier"
+    assert_select 'se-list-row[data-controller=language-row] se-input[data-language-row-target=identifier][value=en]', count: 1
+    assert_select 'se-list-row[data-controller=language-row] se-button[icon=archive][aria-label="Archive English"]:not([text])', count: 1
+
+    patch project_language_path(@project, language), params: {language: {name: "English", identifier: "en_GB", sheet_ids: []}}, as: :json
+    assert_response :success
+    assert_equal "en_gb", language.reload.identifier
+    assert_equal "en_gb", @project.identifier_sets.first.language_identifiers.find_by!(language: language).identifier
+
+    @project.update!(advanced_languages: true)
+    get settings_project_path(@project)
+    assert_select 'se-list-row[data-controller=language-row] se-input[data-language-row-target=identifier]', count: 0
+    assert_select 'se-list-row[data-controller=language-row] se-button[icon=archive][aria-label="Archive English"]:not([text])', count: 1
+  end
+
   test "languages archive safely and permanent deletion purges translations and history" do
     language = @project.languages.create!(name: "English", identifier: "en", enabled: true)
     key = Recording.create_key!(tree: @one.translation_tree, parent: nil, name: "hello", actor: @user)

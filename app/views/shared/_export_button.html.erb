@@ -1,7 +1,7 @@
 <% export_sheets = sheet ? [sheet] : policy_scope(@project.sheets).order(:name).to_a %>
 <% if export_sheets.any? %>
 <div data-controller="export-download">
-  <se-modal id="export-modal" title="Export translations" size="medium" cancel-label="Cancel" confirm-label="Generate export" data-submit-form>
+  <se-modal id="export-modal" title="Export translations" size="medium">
     <%= form_with url: project_exports_path(@project), class: "app-form", data: {action: "submit->export-download#start"} do %>
       <% if sheet %><input type="hidden" name="sheet_ids[]" value="<%= sheet.id %>"><% else %><se-select label="Sheets" name="sheet_ids[]" multiple searchable placeholder="All sheets" options="<%= export_sheets.map { |item| {id:item.id,label:item.name} }.to_json %>"></se-select><% end %>
       <div class="app-form-row export-format-row">
@@ -12,12 +12,14 @@
       <se-select label="Languages" name="language_ids[]" multiple searchable placeholder="All languages" options="<%= (sheet ? sheet.active_languages : @project.languages.active).order(:name).map { |language| {id:language.id,label:language.name} }.to_json %>"></se-select>
       <div hidden data-export-download-target="descriptions"><se-checkbox variant="switch" label="Include key descriptions" name="descriptions" value="1"></se-checkbox></div>
     <% end %>
+    <%= render "shared/modal_footer", confirm: "Generate export" %>
   </se-modal>
-  <se-modal title="Preparing export" size="medium" data-export-download-target="progressModal" cancel-label="Hide progress" confirm-label="Cancel export" confirm-variant="secondary" data-action="confirm->export-download#cancel">
-    <se-empty-illustration variant="workflow" title="Building your export" text="Your download will start when the files are ready."></se-empty-illustration>
+  <se-modal title="Preparing export" size="medium" data-export-download-target="progressModal" data-action="confirm->export-download#cancel">
+    <se-empty-illustration variant="workflow" title="Building your export" subtitle="Your download will start when the files are ready."></se-empty-illustration>
     <se-spinner label="Generating files"></se-spinner>
     <progress max="100" value="0" data-export-download-target="progress"></progress>
     <se-text role="status" data-export-download-target="status">Queued…</se-text>
+    <%= render "shared/modal_footer", cancel: "Hide progress", confirm: "Cancel export", variant: "secondary" %>
   </se-modal>
 </div>
 <% end %>

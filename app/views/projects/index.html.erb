@@ -12,13 +12,13 @@
       <% end %>
     </div>
   <% else %>
-    <se-empty-illustration variant="folders" title="No projects yet" text="<%= current_user.guest? ? 'Ask a team to invite you to a project. Your invitations are available in the sidebar.' : 'Create a project to organize your sheets and invite your team.' %>">
+    <se-empty-illustration variant="folders" title="No projects yet" subtitle="<%= current_user.guest? ? 'Ask a team to invite you to a project. Your invitations are available in the sidebar.' : 'Create a project to organize your sheets and invite your team.' %>">
       <% if policy(Project).new? %><se-button variant="brand" icon="folder" text="Create new project" data-open-modal="project-create-modal"></se-button><% end %>
     </se-empty-illustration>
   <% end %>
   <% if current_user.member? && !policy(Project).new? %><se-text muted>You already own three or more projects. You can keep using them, but cannot create another with a Member account.</se-text><% end %>
   <% if policy(Project).create? %>
-  <se-modal id="project-create-modal" title="Create a project" subtitle="Bring your team together. You'll join as the owner." size="medium" icon="folder" tone="brand" cancel-label="Cancel" confirm-label="Create project" <%= "open" if @project.errors.any? %>>
+  <se-modal id="project-create-modal" title="Create a project" subtitle="Bring your team together. You'll join as the owner." size="medium" icon="folder" tone="brand" <%= "open" if @project.errors.any? %>>
     <%= form_with model: @project, class: "app-form", data: { controller: "slug-mirror", action: "input->slug-mirror#update" }, html: { novalidate: true } do %>
       <% @project.errors[:base].each do |error| %><se-text role="alert"><%= error %></se-text><% end %>
       <div class="app-form-fields">
@@ -30,6 +30,7 @@
         <% if @project.errors[:visibility].any? %><se-text role="alert"><%= @project.errors.full_messages_for(:visibility).to_sentence %></se-text><% end %>
       </div>
     <% end %>
+    <%= render "shared/modal_footer", confirm: "Create project" %>
   </se-modal>
   <% end %>
 </section>

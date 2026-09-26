@@ -1,0 +1,92 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: Version tag, for example v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment == 'production' && 'https://localized.lattrix.com' || 'https://staging.localized.lattrix.com' }}
+    env:
+      KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CACHE_DATABASE_URL: ${{ secrets.CACHE_DATABASE_URL }}
+      CABLE_DATABASE_URL: ${{ secrets.CABLE_DATABASE_URL }}
+      SMTP_ADDRESS: ${{ vars.SMTP_ADDRESS }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GH_OAUTH_CLIENT_ID: ${{ vars.GH_OAUTH_CLIENT_ID }}
+      GH_OAUTH_CLIENT_SECRET: ${{ secrets.GH_OAUTH_CLIENT_SECRET }}
+      DISCORD_CLIENT_ID: ${{ vars.DISCORD_CLIENT_ID }}
+      DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+      AUTH_METHODS: ${{ vars.AUTH_METHODS || 'password,email_code' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+          fetch-depth: 0
+
+      - name: Verify version and revision
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid version: $VERSION"; exit 1; }
+          git show-ref --tags --verify --quiet "refs/tags/$VERSION" || { echo "Unknown version: $VERSION"; exit 1; }
+          [[ "$(tail -n 1 REVISION.txt)" == "$VERSION" ]] || { echo "REVISION.txt does not match $VERSION"; exit 1; }
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Deploy
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          image_version="${DEPLOY_ENVIRONMENT}-${VERSION}"
+          if [[ "$DEPLOY_ENVIRONMENT" == "staging" ]]; then
+            bundle exec kamal setup -d staging --version "$image_version"
+          else
+            bundle exec kamal setup --version "$image_version"
+          fi
+
+      - name: Verify deployment
+        shell: bash
+        env:
+          URL: ${{ inputs.environment == 'production' && 'https://localized.lattrix.com' || 'https://staging.localized.lattrix.com' }}
+        run: curl --fail --show-error --silent --retry 12 --retry-delay 5 "$URL/up"

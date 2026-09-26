@@ -95,6 +95,10 @@ class TranslationEditorTest < ActionDispatch::IntegrationTest
     parent=Recording.create_key!(tree:@tree,parent:nil,name:"item",values:{@en=>"Parent"})
     Recording.create_key!(tree:@tree,parent:parent,name:"0",values:{@en=>"Literal zero"})
     Recording.create_key!(tree:@tree,parent:parent,name:"a.b",values:{@en=>"Dotted"})
+    checkout=Recording.create_key!(tree:@tree,parent:nil,name:"checkout")
+    Recording.create_key!(tree:@tree,parent:checkout,name:"pay",values:{@en=>"Pay securely"})
+    @export_data = TranslationExport.new(@sheet).generate("json")
+    assert_not JSON.parse(export_entry("nl.json")).key?("checkout")
     @sheet.update!(missing_value_behavior:"fallback")
     @export_data = TranslationExport.new(@sheet).generate("json")
     result=JSON.parse(export_entry("nl.json"))
@@ -159,15 +163,17 @@ class TranslationEditorTest < ActionDispatch::IntegrationTest
   end
 
   test "search uses selected languages and retains tree ancestors and plural groups" do
+    @sheet.update!(wildcard_format: '$[...]')
     parent = Recording.create_key!(tree: @tree, parent: nil, name: "account")
-    child = Recording.create_key!(tree: @tree, parent: parent, name: "name", values: {@en => "100% ready", @nl => "Gereed"})
+    child = Recording.create_key!(tree: @tree, parent: parent, name: "name", values: {@en => '$[count] ready', @nl => "Gereed"})
     Recording.create_key!(tree: @tree, parent: nil, name: "unrelated", values: {@en => "1000 ready"})
-    assert_equal [child.id], @tree.key_rows(query: "%", languages: [@en.id]).map { |row| row['id'] }
+    assert_equal [child.id], @tree.key_rows(query: "$", languages: [@en.id]).map { |row| row['id'] }
     assert_empty @tree.key_rows(query: "Gereed", languages: [@en.id])
     get translations_project_sheet_path(@project, @sheet, q: "Gereed", view: "tree")
     assert_select 'se-list-row', count: 2
     assert_select 'se-list-row[data-key-row=?]', parent.id
     assert_select 'se-list-row[data-key-row=?][level="1"]', child.id
+    assert_select 'se-list-row[data-key-row=?] .translation-value[data-controller="wildcard-highlight"][data-wildcard-highlight-format-value="$[...]"]', child.id, text: /\$\[count\]/
     plural = Recording.create_key!(tree: @tree, parent: nil, name: "items", values: {@nl => "Artikelen"})
     patch pluralization_project_sheet_recording_path(@project, @sheet, plural), params: {enabled: "1", version: plural.lock_version}
     assert_response :see_other
@@ -177,6 +183,7 @@ class TranslationEditorTest < ActionDispatch::IntegrationTest
     assert_select 'se-list-row[level="1"]'
     get translations_project_sheet_path(@project, @sheet, q: "no such translation")
     assert_select 'se-empty-illustration[title="No matching translations"]'
+    assert_select 'se-collection#translation-rows', count: 0
   end
 
   test "later pages append to the same collection and preserve search" do

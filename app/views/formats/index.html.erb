@@ -1,0 +1,59 @@
+<section class="app-page">
+  <se-nav-tabs class="app-page-navigation" label="Import and export navigation" value="<%= @tab %>" options="<%= [{id: 'export', label: 'Export', icon: 'download', href: import_export_path(tab: 'export')}, {id: 'import', label: 'Import', icon: 'upload', href: import_export_path(tab: 'import')}].to_json %>"></se-nav-tabs>
+  <% if @tab == "import" %>
+    <se-empty-illustration variant="workflow" title="Import formats are coming later" subtitle="This page will show how supported files map back into a translation sheet."></se-empty-illustration>
+  <% else %>
+    <%= turbo_frame_tag "format-showcase", class: "format-showcase", data: {turbo_action: "advance"} do %>
+      <header class="app-heading">
+        <div><se-title level="section">Example sheet</se-title><se-text muted>English and Dutch translations using the sample settings below.</se-text></div>
+        <se-button text="Change sheet settings" icon="settings" variant="secondary" data-open-modal="format-settings-modal"></se-button>
+      </header>
+
+      <se-collection type="table" columns="minmax(15rem,1fr) minmax(12rem,1fr) minmax(12rem,1fr)" mobile-columns="minmax(12rem,1fr) repeat(2,minmax(10rem,1fr))" dividers="1,2">
+        <se-list-header><span>Key</span><span>English</span><span>Dutch</span></se-list-header>
+        <% @preview_rows.each do |row| %>
+          <% plural_parent = row[:plural_parent] && @pluralization %>
+          <% plural_form = row[:plural_form] && @pluralization %>
+          <se-list-row <%= "collapsible" if plural_parent %> <%= 'variant="secondary" guides'.html_safe if plural_form %> level="<%= plural_form ? 1 : 0 %>">
+            <div class="app-row-actions"><se-code><%= plural_form ? row[:segments].last : row[:segments].join(@delimiter) %></se-code><% if plural_parent %><se-badge tone="important" text="Plural"></se-badge><% end %></div>
+            <% [:en, :nl].each do |language| %>
+              <% if row[:branch_only] || row[:plural_parent] %><se-text class="translation-empty" muted>—</se-text>
+              <% elsif row[language].nil? %><se-text class="translation-empty" muted>—</se-text>
+              <% else %><se-text class="format-preview-value" data-controller="wildcard-highlight" data-wildcard-highlight-format-value="<%= @wildcard_format %>"><%= row[language] %></se-text><% end %>
+            <% end %>
+          </se-list-row>
+        <% end %>
+      </se-collection>
+
+      <div class="app-heading">
+        <div><se-title level="section">Export preview</se-title><se-text muted>The filenames and contents produced for this example sheet.</se-text></div>
+        <%= form_with url: import_export_path, method: :get, data: {turbo_frame: "format-showcase"} do %>
+          <input type="hidden" name="tab" value="export"><input type="hidden" name="pluralization" value="<%= @pluralization ? 1 : 0 %>"><input type="hidden" name="parent_translations" value="<%= @parent_translations ? 1 : 0 %>"><input type="hidden" name="missing_value_behavior" value="<%= @missing_value_behavior %>">
+          <se-select label="Format" name="export_format" value="<%= @format %>" data-auto-submit options="<%= TranslationExport::FORMATS.map { |format| {id: format, label: format == 'xlsx' ? 'Excel' : format.upcase} }.to_json %>"></se-select>
+        <% end %>
+      </div>
+
+      <% if @format == "xlsx" %>
+        <se-card><div class="app-stack"><se-title level="card">Excel preview unavailable</se-title><se-text muted>Excel exports are binary workbooks, so they cannot be displayed as code. The export contains one worksheet named Example with key, English, and Dutch columns.</se-text></div></se-card>
+      <% else %>
+        <div class="format-preview-files <%= "format-preview-files--single" if @preview_files.one? %>">
+          <% @preview_files.each do |filename, contents| %>
+            <section class="format-preview-file"><se-code><%= filename %></se-code><se-code-editor readonly autosize wrap language="<%= @format %>" value="<%= contents %>" data-controller="format-preview"></se-code-editor></section>
+          <% end %>
+        </div>
+      <% end %>
+
+      <se-modal id="format-settings-modal" title="Example sheet settings" subtitle="These settings only change this preview." size="medium" icon="settings">
+        <%= form_with url: import_export_path, method: :get, class: "app-form", data: {turbo_frame: "format-showcase"} do %>
+          <input type="hidden" name="tab" value="export"><input type="hidden" name="export_format" value="<%= @format %>">
+          <div class="app-form-fields">
+            <input type="hidden" name="pluralization" value="0"><se-checkbox variant="switch" name="pluralization" value="1" label="Enable pluralization" <%= "checked" if @pluralization %>></se-checkbox>
+            <input type="hidden" name="parent_translations" value="0"><se-checkbox variant="switch" name="parent_translations" value="1" label="Allow translations on parent keys" <%= "checked" if @parent_translations %>></se-checkbox>
+            <se-select label="Missing export values" name="missing_value_behavior" value="<%= @missing_value_behavior %>" options='[{"id":"omit","label":"Omit"},{"id":"empty","label":"Write empty values"},{"id":"fallback","label":"Use default language"}]'></se-select>
+          </div>
+        <% end %>
+        <%= render "shared/modal_footer", confirm: "Apply settings" %>
+      </se-modal>
+    <% end %>
+  <% end %>
+</section>

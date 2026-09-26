@@ -15,8 +15,9 @@ module AuthenticationPolicy
   def self.validate!
     raise "AUTH_METHODS must contain supported login methods" if methods.empty? || (methods - (PROVIDERS.keys + %w[password email_code])).any?
     providers.each_key do |name|
+      prefix = name == "github" ? "GH_OAUTH" : name.upcase
       %w[CLIENT_ID CLIENT_SECRET].each do |suffix|
-        raise "Missing #{name.upcase}_#{suffix}" if ENV["#{name.upcase}_#{suffix}"].blank?
+        raise "Missing #{prefix}_#{suffix}" if ENV["#{prefix}_#{suffix}"].blank?
       end
     end
   end

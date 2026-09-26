@@ -26,7 +26,7 @@ class RecordingEventTest < ActiveSupport::TestCase
     assert_nil value.deleted_at
     assert french_value.reload.deleted_at?
     assert later_key.reload.deleted_at?
-    reverted = RecordingEvent.where(reverted: true).order(:id)
+    reverted = RecordingEvent.where(change_type: "revert").order(:id)
     assert_equal %w[updated deleted deleted], reverted.pluck(:action)
     assert_equal 1, reverted.distinct.count(:created_at)
     assert_equal 1, reverted.distinct.count(:change_id)
@@ -42,6 +42,17 @@ class RecordingEventTest < ActiveSupport::TestCase
     assert_equal 1, deletion_events.last.restore_sheet!(actor: @actor)
     assert_nil key.reload.deleted_at
     assert value.reload.deleted_at?
+  end
+
+  test "the selected history event is included in the restored state" do
+    key = Recording.create_key!(tree: @sheet.translation_tree, parent: nil, name: "greeting", actor: @actor)
+    value = key.save_translation!(@language, "Hello", actor: @actor)
+    selected = value.recording_events.sole
+    key.save_translation!(@language, "Later", actor: @actor)
+
+    selected.restore_sheet!(actor: @actor)
+
+    assert_equal "Hello", value.reload.recordable.text
   end
 
   test "restoring a subtree activates parents before children" do

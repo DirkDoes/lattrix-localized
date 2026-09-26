@@ -3,7 +3,7 @@
     <div><se-title level="page">Project invitations</se-title><se-text muted>Invitations for your account.</se-text></div>
   </header>
   <% if @invites.empty? %>
-    <se-empty-illustration variant="inbox" illustration-label="" title="No pending invitations" text="When someone invites you to a project, your invitation will appear here."></se-empty-illustration>
+    <se-empty-illustration variant="inbox" illustration-label="" title="No pending invitations" subtitle="When someone invites you to a project, your invitation will appear here."></se-empty-illustration>
   <% else %>
     <div class="app-stack">
       <% @invites.each do |invite| %>

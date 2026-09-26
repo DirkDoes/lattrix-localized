@@ -1,0 +1,23 @@
+{
+  "dashboard": {
+    "welcome": "Welkom, ${name}",
+    "summary": "Overzicht van je activiteit"
+  },
+  "account": {
+    "profile": {
+      "0": "Profiel",
+      "email": "E-mailadres",
+      "name": "Weergavenaam",
+      "bio": "Biografie"
+    }
+  },
+  "notifications": {
+    "one": "Eén melding",
+    "other": "${count} meldingen",
+    "many": "Veel meldingen"
+  },
+  "actions": {
+    "save": "Opslaan",
+    "cancel": "Annuleren"
+  }
+}

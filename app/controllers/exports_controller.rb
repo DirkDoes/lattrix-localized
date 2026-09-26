@@ -4,7 +4,7 @@ class ExportsController < ApplicationController
   before_action :load_project
   def create
     format = params[:export_format].to_s
-    raise ArgumentError, "Choose an export format" unless %w[yaml json csv xlsx].include?(format)
+    raise ArgumentError, "Choose an export format" unless TranslationExport::FORMATS.include?(format)
     sheets = policy_scope(@project.sheets)
     ids = Array(params[:sheet_ids]).reject(&:blank?).uniq
     sheets = sheets.where(id: ids) if ids.any?

@@ -5,25 +5,41 @@
     <% if @sheets.any? && policy(@sheet).create? %><se-button text="Create sheet" icon="plus" data-open-modal="sheet-create-modal"></se-button><% end %>
   </header>
   <% if @sheets.any? %>
-    <div class="app-grid app-sheet-grid"><% @sheets.each do |sheet| %><se-project-card description="<%= sheet.description %>" <% if sheet.image_data.present? %>banner-image="<%= image_project_sheet_path(@project,sheet,v: sheet.updated_at.to_i) %>"<% end %> title="<%= sheet.name %>" metadata="<%= sheet.effective_visibility.capitalize %>" href="<%= project_sheet_path(@project, sheet) %>"></se-project-card><% end %></div>
+    <div class="app-grid app-sheet-grid"><% @sheets.each do |sheet| %><se-project-card subtitle="<%= sheet.description %>" <% if sheet.image_data.present? %>banner-image="<%= image_project_sheet_path(@project,sheet,v: sheet.updated_at.to_i) %>"<% end %> title="<%= sheet.name %>" metadata="<%= sheet.effective_visibility.capitalize %>" href="<%= project_sheet_path(@project, sheet) %>"></se-project-card><% end %></div>
     <%= render "shared/table_pagination", url: project_sheets_path(@project) %>
   <% else %>
-    <se-empty-illustration variant="folders" title="No sheets yet" text="Sheets keep your translations organized. Create your first sheet to get started in this project.">
+    <se-empty-illustration variant="folders" title="No sheets yet" subtitle="Sheets keep your translations organized. Create your first sheet to get started in this project.">
       <% if policy(@sheet).create? %><se-button text="Create sheet" icon="plus" data-open-modal="sheet-create-modal"></se-button><% end %>
     </se-empty-illustration>
   <% end %>
   <% if policy(@sheet).create? %>
-    <se-modal id="sheet-create-modal" title="Create sheet" size="medium" cancel-label="Cancel" confirm-label="Create sheet" <%= "open" if @sheet.errors.any? %>>
-      <%= form_with model: [@project, @sheet], class: "app-form", data: { controller: "slug-mirror", action: "input->slug-mirror#update" }, html: { novalidate: true } do %>
+    <se-modal id="sheet-create-modal" title="Create sheet" size="medium" <%= "open" if @sheet.errors.any? %>>
+      <%= form_with model: [@project, @sheet], class: "app-form", multipart: true, data: { controller: "slug-mirror sheet-import", action: "input->slug-mirror#update submit->sheet-import#submit reset->sheet-import#reset", sheet_import_preview_value: import_preview_project_sheets_path(@project) }, html: { novalidate: true } do %>
         <% @sheet.errors[:base].each do |error| %><se-text role="alert"><%= error %></se-text><% end %>
         <div class="app-form-row">
-        <se-input data-slug-mirror-target="source" label="Sheet name" name="sheet[name]" value="<%= @sheet.name %>" error="<%= @sheet.errors[:name].first %>"></se-input>
+        <se-input data-slug-mirror-target="source" data-sheet-import-target="name" data-action="input->sheet-import#clearNameError" label="Sheet name" name="sheet[name]" value="<%= @sheet.name %>" error="<%= @sheet.errors[:name].first %>"></se-input>
         <se-input data-slug-mirror-target="destination" label="Identifier" name="sheet[slug]" value="<%= @sheet.slug %>" error="<%= @sheet.errors[:slug].first %>" hint="Generated from the name until you edit it. Use lowercase letters, numbers and underscores."></se-input>
         </div>
-        <se-select label="Default language" name="sheet[default_language_id]" value="<%= @sheet.default_language_id || @project.languages.active.where(enabled: true).order(:created_at).first&.id %>" options="<%= @project.languages.active.where(enabled: true).order(:name).map { |l| {id: l.id, label: l.name} }.presence&.to_json || [{id: '', label: 'None'}].to_json %>"></se-select>
-        <se-select label="Visibility" name="sheet[visibility]" value="<%= @sheet.visibility %>" error="<%= @sheet.errors[:visibility].first %>" options='[{"id":"private","label":"Private"},{"id":"public","label":"Public"}]'></se-select>
+        <div class="app-form-row">
+          <se-select label="Default language" name="sheet[default_language_id]" value="<%= @sheet.default_language_id || @project.languages.active.where(enabled: true).order(:created_at).first&.id %>" options="<%= @project.languages.active.where(enabled: true).order(:name).map { |l| {id: l.id, label: l.name} }.presence&.to_json || [{id: '', label: 'None'}].to_json %>" data-action="change->sheet-import#refresh"></se-select>
+          <se-select label="Visibility" name="sheet[visibility]" value="<%= @sheet.visibility %>" error="<%= @sheet.errors[:visibility].first %>" options='[{"id":"private","label":"Private"},{"id":"public","label":"Public"}]'></se-select>
+        </div>
         <% if @project.visibility == "private" %><se-text muted>Sheets in this private project stay private, even when set to public.</se-text><% end %>
+        <se-file-upload label="Initial translations" name="imports[]" multiple accept=".json,.yaml,.yml,.csv,.xlsx" hint="JSON, YAML, CSV, or Excel. File and column names must match project language identifiers." data-sheet-import-target="upload" data-action="files->sheet-import#files"></se-file-upload>
+        <div class="sheet-import-files" data-sheet-import-target="files"></div>
+        <se-collapsible title="Advanced options">
+          <se-badge data-se-region="heading-end" text="Auto" tone="success" hidden data-sheet-import-target="auto"></se-badge>
+          <div class="app-form-fields">
+            <label>Delimiter</label><se-input name="sheet[delimiter]" value="<%= @sheet.delimiter %>" aria-label="Delimiter"></se-input>
+            <label>Wildcard format</label><se-input name="sheet[wildcard_format]" value="<%= @sheet.wildcard_format %>" placeholder="${...}" aria-label="Wildcard format"></se-input>
+            <label>Case-sensitive keys</label><input type="hidden" name="sheet[case_sensitive_keys]" value="0"><se-checkbox variant="switch" name="sheet[case_sensitive_keys]" value="1" <%= "checked" if @sheet.case_sensitive_keys? %>></se-checkbox>
+            <label>Translations on parent keys</label><input type="hidden" name="sheet[allow_parent_translations]" value="0"><se-checkbox variant="switch" name="sheet[allow_parent_translations]" value="1" <%= "checked" if @sheet.allow_parent_translations? %>></se-checkbox>
+            <label>Plural editor</label><input type="hidden" name="sheet[pluralization_enabled]" value="0"><se-checkbox variant="switch" name="sheet[pluralization_enabled]" value="1" <%= "checked" if @sheet.pluralization_enabled? %>></se-checkbox>
+            <label>Missing export values</label><se-select name="sheet[missing_value_behavior]" value="<%= @sheet.missing_value_behavior %>" options='[{"id":"omit","label":"Omit"},{"id":"empty","label":"Write empty values"},{"id":"fallback","label":"Use default language"}]'></se-select>
+          </div>
+        </se-collapsible>
       <% end %>
+      <%= render "shared/modal_footer", confirm: "Create sheet" %>
     </se-modal>
   <% end %>
 </section>

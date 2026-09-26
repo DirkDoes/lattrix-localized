@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  get "REVISION.txt", to: ->(_env) { [200, { "content-type" => "text/plain; charset=utf-8", "cache-control" => "no-store" }, [Rails.root.join("REVISION.txt").read]] }
+
   resource :profile_photo, only: [:update, :destroy]
   get "profile_photos/:id", to: "profile_photos#show", as: :profile_photo_image
   resources :projects, only: [:index, :create, :show, :update, :destroy] do
@@ -15,6 +17,7 @@ Rails.application.routes.draw do
       patch :restore, on: :member
     end
     resources :sheets, only: [:index, :create, :show, :update] do
+      post :import_preview, on: :collection
       get :settings, on: :member
 
       get :image, on: :member
@@ -35,6 +38,7 @@ Rails.application.routes.draw do
     resources :project_memberships, only: [:edit, :update, :destroy]
   end
   resources :project_invites, only: [:index, :update]
+  get "import-export", to: "formats#index", as: :import_export
   get "up" => "rails/health#show", as: :rails_health_check
 
   devise_for :users, controllers: { omniauth_callbacks: "users/omniauth_callbacks", sessions: "users/sessions", registrations: "users/registrations", passwords: "users/passwords" }

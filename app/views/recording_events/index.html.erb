@@ -26,18 +26,19 @@
     <se-collection class="history-table" type="table" columns="minmax(21rem,.8fr) minmax(0,2fr)" mobile-columns="minmax(0,1fr)" dividers="1">
       <se-list-header><span layout-mode="desktop-only">User</span><span>Change</span></se-list-header>
       <% @history_entries.each do |events| %>
-        <% if events.first.reverted? %>
+        <% if events.first.change_type != "manual" %>
           <% event = events.first %>
+          <% imported = event.import? %>
           <se-list-row level="0" collapsible collapsed data-change-id="<%= event.change_id %>">
             <div class="history-actor">
               <% time = "#{time_ago_in_words(event.created_at)} ago" %>
               <span layout-mode="desktop-only"><% if event.actor %><%= render "shared/table_profile", user: event.actor, show_email: false, subtitle: time %><% else %><se-profile class="app-table-profile" name="Deleted user" subtitle="<%= time %>" initials="?"></se-profile><% end %></span>
               <se-text class="history-mobile-actor" muted small layout-mode="mobile-only"><span class="history-mobile-name"><%= event.actor&.name || "Deleted user" %></span> · <%= time %></se-text>
-              <se-badge tone="warning" text="Restored" layout-mode="desktop-only"></se-badge>
+              <se-badge tone="<%= imported ? 'success' : 'warning' %>" text="<%= imported ? 'Import' : 'Restored' %>" layout-mode="desktop-only"></se-badge>
             </div>
             <div class="history-change">
               <div class="history-description">
-                <div class="history-change-heading"><strong>Restored sheet</strong><se-badge tone="warning" text="Restored" layout-mode="mobile-only"></se-badge></div>
+                <div class="history-change-heading"><strong><%= imported ? 'Imported sheet' : 'Restored sheet' %></strong><se-badge tone="<%= imported ? 'success' : 'warning' %>" text="<%= imported ? 'Import' : 'Restored' %>" layout-mode="mobile-only"></se-badge></div>
                 <se-text muted small><%= pluralize(@event_counts.fetch(event.change_id), "event") %></se-text>
               </div>
               <%= render "recording_events/restore_action", event: event %>
@@ -52,7 +53,7 @@
     </se-collection>
     <%= render "shared/table_pagination", url: history_project_sheet_path(@project, @sheet, q: @query, types: @types, actor_ids: @actor_ids, language_ids: @language_ids) %>
   <% else %>
-    <se-empty-illustration variant="search" title="No history found" text="Changes matching these filters will appear here."></se-empty-illustration>
+    <se-empty-illustration variant="search" title="No history found" subtitle="Changes matching these filters will appear here."></se-empty-illustration>
   <% end %>
   </div>
 </section>

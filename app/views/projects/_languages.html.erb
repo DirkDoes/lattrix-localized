@@ -5,8 +5,8 @@
 <% if @project.advanced_languages? %><%= render "projects/identifier_sets" %><% end %>
 <div class="app-stack" data-controller="language-table">
   <se-title level="section">Languages</se-title>
-  <se-collection type="table" columns="minmax(0,1fr) minmax(0,1.4fr) auto" data-language-table-target="rows">
-    <se-list-header><span>Name</span><span class="app-row-actions">Sheets<se-tooltip content="Leave empty to use this language in all sheets, including future sheets. Select sheets to limit where it is available."><se-button variant="mini" icon="info" aria-label="About language sheets"></se-button></se-tooltip></span><span></span></se-list-header>
+  <se-collection type="table" columns="<%= @project.advanced_languages? ? 'minmax(0,1fr) minmax(0,1.4fr) auto' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) auto' %>" data-language-table-target="rows">
+    <se-list-header><span>Name</span><% unless @project.advanced_languages? %><span>Identifier</span><% end %><span class="app-row-actions">Sheets<se-tooltip><se-button data-se-region="trigger" variant="mini" icon="info" aria-label="About language sheets"></se-button>Leave empty to use this language in all sheets, including future sheets. Select sheets to limit where it is available.</se-tooltip></span><span></span></se-list-header>
     <% @project.languages.active.includes(:sheet_languages).order(:name).each do |language| %>
       <%= render "projects/language_row", language: language %>
       <% if @project.advanced_languages? %><%= render "projects/language_identifiers", language: language %><% end %>
@@ -33,10 +33,11 @@
           </span>
         </se-list-row>
         <% if language.archived? %>
-          <se-modal id="delete-language-<%= language.id %>" title="Permanently delete <%= language.name %>?" size="small" icon="alert" tone="error" cancel-label="Cancel" confirm-label="Delete permanently" confirm-variant="danger" data-submit-form>
+          <se-modal id="delete-language-<%= language.id %>" title="Permanently delete <%= language.name %>?" size="small" icon="alert" tone="error">
             <%= form_with url: project_language_path(@project, language), method: :delete do %>
               <se-text>This permanently deletes every translation, recording, and history event for this language. This cannot be undone.</se-text>
             <% end %>
+            <%= render "shared/modal_footer", confirm: "Delete permanently", variant: "danger" %>
           </se-modal>
         <% end %>
       <% end %>

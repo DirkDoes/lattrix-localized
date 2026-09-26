@@ -5,7 +5,7 @@ const controllers = {};
 let request, replacement, location, prevented = 0;
 const results = {};
 let response = { ok: true, url: "http://localhost/settings/users?status=active&q=Alice", text: async () => "<html>" };
-vm.runInNewContext(fs.readFileSync("app/assets/javascripts/app_forms.js", "utf8").replace(/^(?:import .*;|window\.Turbo\.session.*;|registerTranslations.*;)\r?\n/gm, ""), {
+vm.runInNewContext(fs.readFileSync("app/assets/javascripts/app_forms.js", "utf8").replace(/^(?:import .*;|window\.Turbo\.session.*;|register(?:Translations|FormatPreview).*;)\r?\n/gm, ""), {
   Application: { start: () => ({ register: (name, klass) => controllers[name] = klass }) },
   Controller: class {},
   FormData: class { constructor(form) { this.form = form; } },

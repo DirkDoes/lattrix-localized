@@ -13,9 +13,9 @@
     </se-collection>
   <%= render "shared/table_pagination", url: settings_projects_path(q: @query) %>
   <% elsif @query.present? %>
-    <se-empty-illustration variant="search" title="No projects found" text="Try another project name or identifier."></se-empty-illustration>
+    <se-empty-illustration variant="search" title="No projects found" subtitle="Try another project name or identifier."></se-empty-illustration>
   <% else %>
-    <se-empty-illustration variant="folders-2" title="No projects yet" text="Projects will appear here when they are created."></se-empty-illustration>
+    <se-empty-illustration variant="folders-2" title="No projects yet" subtitle="Projects will appear here when they are created."></se-empty-illustration>
   <% end %>
 
   </div>

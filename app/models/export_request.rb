@@ -1,4 +1,5 @@
 class ExportRequest < ApplicationRecord
+  attribute :storage_key, :string, default: -> { SecureRandom.uuid }
   belongs_to :project
   belongs_to :user, optional: true
   validates :status, inclusion: {in: %w[queued running ready cancelled failed]}

@@ -1,0 +1,2 @@
+<se-button data-se-region="footer" data-modal-action="cancel" variant="secondary" text="<%= local_assigns.fetch(:cancel, 'Cancel') %>"></se-button>
+<% if local_assigns[:confirm] %><se-button data-se-region="footer" data-modal-action="confirm" variant="<%= local_assigns.fetch(:variant, 'brand') %>" text="<%= confirm %>"></se-button><% end %>
