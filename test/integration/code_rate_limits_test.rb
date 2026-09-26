@@ -14,9 +14,9 @@ class CodeRateLimitsTest < ActionDispatch::IntegrationTest
       post users_email_code_path, params: { user: { email: "cooldown@example.com" } }
       travel 10.seconds
       post users_email_code_path, params: { user: { email: "cooldown@example.com" } }
-      assert_response :too_many_requests
+      assert_redirected_to users_email_code_path
       assert_equal "20", response.headers["Retry-After"]
-      assert_includes response.body, "Please wait 20 seconds before you can send another request."
+      assert_equal "A verification code was already sent. Enter it below or resend when the timer ends.", flash[:notice]
       travel 20.seconds
       assert_difference "ActionMailer::Base.deliveries.size", 1 do
         post users_email_code_path, params: { user: { email: "cooldown@example.com" } }

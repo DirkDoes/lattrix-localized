@@ -17,7 +17,7 @@ class AuthenticationPolicyTest < ActionDispatch::IntegrationTest
 
   def security_check
     post users_security_verification_path
-    patch users_email_code_path, params: { code: ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/] }
+    patch users_email_code_path, params: { code: email_code_from_last_delivery }
   end
 
   test "settings hide disabled methods and direct mutations cannot use them" do
@@ -47,7 +47,7 @@ class AuthenticationPolicyTest < ActionDispatch::IntegrationTest
 
   test "pending login code stops working when email code is disabled" do
     post users_email_code_path, params: { user: { email: @user.email } }
-    code = ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/]
+    code = email_code_from_last_delivery
     ENV["AUTH_METHODS"] = "password"
     patch users_email_code_path, params: { code: code }
     assert_response :unprocessable_entity
@@ -69,7 +69,7 @@ class AuthenticationPolicyTest < ActionDispatch::IntegrationTest
 
   test "pending password registration cannot complete after passwords are disabled" do
     post user_registration_path, params: { user: { email: "pending-policy@example.com", password: "Password123!", password_confirmation: "Password123!" } }
-    code = ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/]
+    code = email_code_from_last_delivery
     ENV["AUTH_METHODS"] = "email_code"
     assert_no_difference "User.count" do
       patch users_email_code_path, params: { code: code }

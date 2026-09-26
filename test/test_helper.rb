@@ -11,6 +11,9 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    def email_code_from_last_delivery
+      mail = ActionMailer::Base.deliveries.last
+      (mail.html_part || mail).body.decoded[/\b\d{6}\b/]
+    end
   end
 end

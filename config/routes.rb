@@ -45,6 +45,7 @@ Rails.application.routes.draw do
   post "users/email_code", to: "users/email_codes#create", as: nil
   get "users/email_code", to: "users/email_codes#show", as: :users_email_code
   patch "users/email_code", to: "users/email_codes#verify", as: nil
+  post "users/email_code/resend", to: "users/email_codes#resend", as: :resend_users_email_code
   post "users/security_verification", to: "users/email_codes#security", as: :users_security_verification
   post "users/change_email", to: "users/email_codes#change_email", as: :users_change_email
   resource :authentication_methods, only: [:update, :destroy], controller: "users/authentication_methods"

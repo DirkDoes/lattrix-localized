@@ -18,7 +18,7 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
   end
 
   def code_from_mail
-    ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/]
+    email_code_from_last_delivery
   end
 
   test "email registration waits for proof and code cannot be replayed" do
@@ -167,8 +167,27 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
   test "request throttle is durable and prevents repeated mail" do
     post users_email_code_path, params: { user: { email: @user.email } }
     post users_email_code_path, params: { user: { email: @user.email } }
-    assert_response :too_many_requests
+    assert_redirected_to users_email_code_path
     assert_equal 1, ActionMailer::Base.deliveries.size
+    follow_redirect!
+    assert_select "form[data-controller='email-code-resend'] se-button[disabled]"
+  end
+
+  test "code can be resent after the visible cooldown" do
+    post users_email_code_path, params: { user: { email: @user.email } }
+    original_code = code_from_mail
+    assert_no_difference "ActionMailer::Base.deliveries.size" do
+      post resend_users_email_code_path
+    end
+    assert_redirected_to users_email_code_path
+    travel 31.seconds do
+      assert_difference "ActionMailer::Base.deliveries.size", 1 do
+        post resend_users_email_code_path
+      end
+      assert_redirected_to users_email_code_path
+      patch users_email_code_path, params: { code: original_code }
+      assert_response :unprocessable_entity
+    end
   end
 
   test "normalized email uniqueness is enforced by the database" do

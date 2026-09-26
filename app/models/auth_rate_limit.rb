@@ -1,4 +1,6 @@
 class AuthRateLimit < ApplicationRecord
+  REQUEST_COOLDOWN = 30.seconds
+
   class Exceeded < StandardError
     attr_reader :retry_after
 
@@ -24,6 +26,7 @@ class AuthRateLimit < ApplicationRecord
       WHERE auth_rate_limits.count < ? RETURNING count
     SQL
     raise Exceeded.new([(expiry - Time.current).ceil, 1].max) if connection.select_value(sql).nil?
+    expiry
   end
 
   def self.request!(ip, email)
@@ -33,7 +36,21 @@ class AuthRateLimit < ApplicationRecord
       check!("global", limit: 1000, period: 3600)
       check!("ip:#{ip}", limit: 30, period: 3600)
       check!("email:#{email}", limit: 5, period: 3600)
-      check!("cooldown:#{email}", limit: 1, period: 30)
+      cooldown!(email)
     end
+  end
+
+  def self.cooldown!(email)
+    key = OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, "rate:cooldown:#{email}")
+    expiry = REQUEST_COOLDOWN.from_now
+    sql = sanitize_sql_array([<<~SQL, key, expiry, Time.current])
+      INSERT INTO auth_rate_limits (key, count, expires_at) VALUES (?, 1, ?)
+      ON CONFLICT (key) DO UPDATE SET count = 1, expires_at = EXCLUDED.expires_at
+      WHERE auth_rate_limits.expires_at <= ? RETURNING expires_at
+    SQL
+    return expiry if connection.select_value(sql)
+
+    current_expiry = where(key: key).pick(:expires_at)
+    raise Exceeded.new([((current_expiry || expiry) - Time.current).ceil, 1].max)
   end
 end

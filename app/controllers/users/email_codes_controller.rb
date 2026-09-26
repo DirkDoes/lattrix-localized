@@ -31,6 +31,15 @@ class Users::EmailCodesController < ApplicationController
     redirect_to new_user_session_path unless @challenge
   end
 
+  def resend
+    previous = EmailChallenge.find_by(id: session[:email_challenge_id])
+    return redirect_to new_user_session_path, alert: "Request a new verification code." unless previous&.expires_at&.future? && !previous.consumed_at
+
+    challenge = issue(email: previous.email, purpose: previous.purpose, name: previous.name,
+      password_digest: previous.password_digest, notice: "A new verification code was sent.")
+    session[:email_change]["challenge_id"] = challenge.id if previous.purpose == "email_change" && session[:email_change]
+  end
+
   def change_email
     authorize current_user, :manage_account?
     unless security_verified?
@@ -115,12 +124,14 @@ class Users::EmailCodesController < ApplicationController
     redirect_to edit_settings_user_path(current_user, account_action: next_step)
   end
 
-  def issue(email:, purpose:, name: nil)
-    AuthRateLimit.request!(request.remote_ip, email)
-    challenge, code = EmailChallenge.issue!(email: email, purpose: purpose, name: name)
+  def issue(email:, purpose:, name: nil, password_digest: nil, notice: nil)
+    resend_at = AuthRateLimit.request!(request.remote_ip, email)
+    challenge, code = EmailChallenge.issue!(email: email, purpose: purpose, name: name, password_digest: password_digest)
     session[:email_challenge_id] = challenge.id
     AuthenticationMailer.code(email, code).deliver_now
-    redirect_to users_email_code_path
+    session[:email_code_resend_at] = resend_at.to_i
+    redirect_to users_email_code_path, notice: notice
+    challenge
   end
 
   def throttled(error)
@@ -128,7 +139,8 @@ class Users::EmailCodesController < ApplicationController
     flash.now[:alert] = error.message
     @challenge = EmailChallenge.find_by(id: session[:email_challenge_id])
     if @challenge && @challenge.expires_at > Time.current && !@challenge.consumed_at
-      render :show, status: :too_many_requests
+      session[:email_code_resend_at] = error.retry_after.seconds.from_now.to_i
+      redirect_to users_email_code_path, notice: "A verification code was already sent. Enter it below or resend when the timer ends."
     elsif current_user
       redirect_to edit_settings_user_path(current_user), alert: flash.now[:alert]
     else

@@ -1,4 +1,4 @@
-<%= form_with url: users_email_code_path, class: "app-form", html: { novalidate: true } do %>
+<%= form_with url: users_email_code_path, class: "app-form", html: { novalidate: true }, data: { controller: "email-code-request", action: "submit->email-code-request#submit" } do %>
   <% if local_assigns[:registration] || params[:registration] == "true" %>
     <%= hidden_field_tag :registration, "true" %>
     <se-input label="Name" name="user[name]" value="<%= @name %>" error="<%= @name_error %>"></se-input>

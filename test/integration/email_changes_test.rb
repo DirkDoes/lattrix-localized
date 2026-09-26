@@ -16,7 +16,7 @@ class EmailChangesTest < ActionDispatch::IntegrationTest
   teardown { ENV["AUTH_METHODS"] = @methods }
 
   def verify_latest_code
-    patch users_email_code_path, params: { code: ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/] }
+    patch users_email_code_path, params: { code: email_code_from_last_delivery }
   end
 
   def security_check

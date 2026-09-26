@@ -96,7 +96,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     post link_authentication_method_path("discord")
     assert_redirected_to edit_settings_user_path(@user)
     post users_security_verification_path
-    code = ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/]
+    code = email_code_from_last_delivery
     patch users_email_code_path, params: { code: code }
     post link_authentication_method_path("discord")
     assert_redirected_to edit_settings_user_path(@user, connect: "discord")
@@ -119,7 +119,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     other.update!(email_verified_at: Time.current)
     sign_in other
     post users_security_verification_path
-    code = ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/]
+    code = email_code_from_last_delivery
     patch users_email_code_path, params: { code: code }
     post link_authentication_method_path("github")
     assert_no_difference "AuthIdentity.count" do
@@ -136,7 +136,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
   test "unverified emails cannot link even from a verified session" do
     sign_in @user
     post users_security_verification_path
-    code = ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/]
+    code = email_code_from_last_delivery
     patch users_email_code_path, params: { code: code }
     %w[google github discord].each do |provider|
       post link_authentication_method_path(provider)
@@ -175,7 +175,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
     sign_out user
     post users_email_code_path, params: { user: { email: user.email } }
     assert_no_difference "User.count" do
-      patch users_email_code_path, params: { code: ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/] }
+      patch users_email_code_path, params: { code: email_code_from_last_delivery }
     end
     assert_redirected_to projects_path
   end

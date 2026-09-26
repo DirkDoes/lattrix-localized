@@ -4,5 +4,8 @@
     <se-input label="Verification code" name="code" autocomplete="one-time-code" error="<%= @code_error %>"></se-input>
     <footer class="app-form-actions"><se-button type="submit" variant="brand" text="Verify email"></se-button></footer>
   <% end %>
-  <se-button variant="link" href="<%= current_user ? edit_settings_user_path(current_user) : new_user_session_path %>" text="Back / request another code"></se-button>
+  <%= form_with url: resend_users_email_code_path, class: "app-form-actions", data: { controller: "email-code-resend", action: "submit->email-code-resend#submit", email_code_resend_ready_at_value: session[:email_code_resend_at] } do %>
+    <se-button type="submit" variant="secondary" icon="refresh-cw" text="Resend code" data-email-code-resend-target="button" <%= "disabled" if session[:email_code_resend_at].to_i > Time.current.to_i %>></se-button>
+  <% end %>
+  <se-button variant="link" href="<%= current_user ? edit_settings_user_path(current_user) : new_user_session_path %>" text="Use a different email"></se-button>
 </div></se-card></main>

@@ -13,7 +13,7 @@ class AccountDeletionTest < ActionDispatch::IntegrationTest
 
   def confirm_identity
     post users_security_verification_path, params: { next: "delete" }
-    patch users_email_code_path, params: { code: ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/] }
+    patch users_email_code_path, params: { code: email_code_from_last_delivery }
     assert_redirected_to edit_settings_user_path(@user, account_action: "delete")
   end
 

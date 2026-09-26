@@ -15,7 +15,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
   teardown { ENV["AUTH_METHODS"] = @methods }
 
   def submit_code
-    patch users_email_code_path, params: { code: ActionMailer::Base.deliveries.last.body.decoded[/\b\d{6}\b/] }
+    patch users_email_code_path, params: { code: email_code_from_last_delivery }
   end
 
   test "password signup verifies email and also connects email code after proof" do
@@ -125,6 +125,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
       assert_select "se-segmented-control", count: 1
       assert_select "[data-method=password][hidden]", count: 1
       assert_select "form[novalidate]", count: 2
+      assert_select "form[data-controller='email-code-request']", count: 1
       assert_select "[required]", count: 0
     end
     assert_select "[data-method=email_code] se-input[name='user[name]']", count: 1
@@ -134,7 +135,7 @@ class ConnectedMethodsTest < ActionDispatch::IntegrationTest
     post users_email_code_path, params: { user: { email: @user.email } }
     6.times do
       post users_email_code_path, params: { user: { email: @user.email } }
-      assert_response :too_many_requests
+      assert_redirected_to users_email_code_path
     end
     travel 61.seconds do
       post users_email_code_path, params: { user: { email: @user.email } }

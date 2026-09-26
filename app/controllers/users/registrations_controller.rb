@@ -3,11 +3,17 @@ class Users::RegistrationsController < Devise::RegistrationsController
   before_action :registration_enabled, only: :new
   rescue_from AuthRateLimit::Exceeded do |error|
     response.set_header("Retry-After", error.retry_after.to_s)
-    render plain: error.message, status: :too_many_requests
+    challenge = EmailChallenge.find_by(id: session[:email_challenge_id])
+    if challenge&.expires_at&.future? && !challenge.consumed_at
+      session[:email_code_resend_at] = error.retry_after.seconds.from_now.to_i
+      redirect_to users_email_code_path, notice: "A verification code was already sent. Enter it below or resend when the timer ends."
+    else
+      render plain: error.message, status: :too_many_requests
+    end
   end
 
   def create
-    AuthRateLimit.request!(request.remote_ip, params.dig(:user, :email).to_s.strip.downcase)
+    resend_at = AuthRateLimit.request!(request.remote_ip, params.dig(:user, :email).to_s.strip.downcase)
     build_resource(sign_up_params)
     resource.valid?
     # Do not disclose existing accounts before the email challenge is completed.
@@ -22,6 +28,7 @@ class Users::RegistrationsController < Devise::RegistrationsController
       password_digest: resource.encrypted_password)
     session[:email_challenge_id] = challenge.id
     AuthenticationMailer.code(email, code).deliver_now
+    session[:email_code_resend_at] = resend_at.to_i
     redirect_to users_email_code_path
   end
 
