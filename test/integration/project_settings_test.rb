@@ -77,7 +77,7 @@ class ProjectSettingsTest < ActionDispatch::IntegrationTest
     assert_equal "new_slug", @project.reload.slug
     get old_url
     assert_response :not_found
-    get project_sheets_path(@project)
+    get translations_project_path(@project)
     assert_response :success
   end
 
@@ -104,7 +104,7 @@ class ProjectSettingsTest < ActionDispatch::IntegrationTest
     get members_project_path(@project)
     assert_select "se-menu[icon-only][data-edit-url=?]", edit_project_project_membership_path(@project, @membership)
     get settings_project_path(@project)
-    assert_select "se-collection[type=table] se-list-row", count: 3
+    assert_select "se-collection[type=table] se-list-row", count: 4
     assert_select "form.app-setting-form", count: 3
   end
 

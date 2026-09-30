@@ -1,0 +1,2 @@
+<%= turbo_stream.before "history-more-#{@change.id}-#{@offset}" do %><%= render "events", change: @change, offset: @offset, limit: @limit %><% end %>
+<%= turbo_stream.remove "history-more-#{@change.id}-#{@offset}" %>

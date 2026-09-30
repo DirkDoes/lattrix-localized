@@ -10,7 +10,6 @@ class InvitationManagementTest < ActionDispatch::IntegrationTest
     @recipient.update!(email_verified_at: Time.current, role: :guest)
     @project = Project.create!(name: "Invitation team")
     @project.project_memberships.create!(user: @owner, role: "owner")
-    @sheet = @project.sheets.create!(name: "Private sheet")
     sign_in @owner
   end
 
@@ -38,16 +37,16 @@ class InvitationManagementTest < ActionDispatch::IntegrationTest
     get project_invites_path
     assert_select "se-button[text='View project'][href=?]", project_path(@project)
     assert_select ".app-grid", count: 0
-    get project_sheets_path(@project)
+    get translations_project_path(@project)
     assert_response :success
-    get translations_project_sheet_path(@project, @sheet)
+    get translations_project_path(@project)
     assert_response :success
-    get translations_project_sheet_path(@project, @sheet)
+    get translations_project_path(@project)
     assert_response :success
     get projects_path
     assert_select "se-workspace-card", count: 0
     assert_empty @recipient.project_memberships
-    post project_sheets_path(@project), params: { sheet: { name: "Forbidden" } }
+    post catalog_change_project_path(@project), params: { operation: "add", path: "forbidden", revision: @project.revision }
     assert_response :forbidden
     get members_project_path(@project)
     assert_response :not_found
@@ -62,9 +61,9 @@ class InvitationManagementTest < ActionDispatch::IntegrationTest
     sign_in @recipient
     get projects_path
     assert_response :success
-    get project_sheets_path(@project)
+    get translations_project_path(@project)
     assert_response :not_found
-    get translations_project_sheet_path(@project, @sheet)
+    get translations_project_path(@project)
     assert_response :not_found
   end
 

@@ -76,24 +76,6 @@ class GlobalRolesTest < ActionDispatch::IntegrationTest
     assert_equal 5, @user.projects.count
   end
 
-  test "all projects have a 90 sheet cap even for global owners" do
-    project = Project.create!(name: "Sheet limit")
-    project.project_memberships.create!(user: @user, role: "owner")
-    89.times { |index| project.sheets.create!(name: "Sheet #{index}") }
-    assert_difference "Sheet.count" do
-      post project_sheets_path(project), params: { sheet: { name: "Ninetieth" } }
-    end
-    assert_response :redirect
-    %w[member admin owner].each do |role|
-      @user.update!(role: role)
-      assert_no_difference "Sheet.count" do
-        post project_sheets_path(project), params: { sheet: { name: "Ninety first" } }
-      end
-      assert_response :unprocessable_entity
-      assert_select "se-text[role=alert]", text: /90 sheets/
-    end
-    assert project.sheets.first.update(name: "Existing sheet remains editable")
-  end
 
   test "global admins manage unrelated private projects" do
     @user.update!(role: :admin)
@@ -105,8 +87,8 @@ class GlobalRolesTest < ActionDispatch::IntegrationTest
     patch project_path(project), params: { project: { name: "Updated" } }
     assert_redirected_to settings_project_path(project)
     assert_equal "Updated", project.reload.name
-    post project_sheets_path(project), params: { sheet: { name: "Admin sheet" } }
-    assert_response :redirect
+    post catalog_change_project_path(project), params: {operation: "add", path: "admin", revision: project.revision}
+    assert_response :success
     get members_project_path(project)
     assert_response :success
     assert_select "se-menu[data-members-menu]"

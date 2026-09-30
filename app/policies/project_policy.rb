@@ -24,6 +24,12 @@ class ProjectPolicy < ApplicationPolicy
   def manage_owners? = change_visibility?
   def view_member_emails? = update?
   def settings? = update?
+  def history? = members?
+  def pending? = members?
+  def edit_locale?(locale)
+    return false unless access? && record.languages.active.exists?(identifier: locale)
+    update? || (membership&.role == "translator" && membership.languages.exists?(identifier: locale))
+  end
 
   class Scope < ApplicationPolicy::Scope
     def resolve

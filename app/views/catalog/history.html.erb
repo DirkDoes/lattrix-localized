@@ -1,0 +1,37 @@
+<section class="app-page catalog-page"><%= render "projects/navigation" %>
+  <%= form_with url: history_project_path(@project), method: :get, class: "catalog-filters catalog-filters--right" do %>
+    <se-input type="search" name="q" aria-label="Search keys" placeholder="Search keys" value="<%= @query %>"></se-input>
+    <se-popover icon="funnel" icon-only label="History filters">
+      <div class="history-filter-group"><se-select multiple searchable label="Languages" name="locales" value="<%= @locales.join(',') %>" placeholder="All languages" options="<%= @project.languages.order(:name).map { |l| {id: l.identifier, label: l.name} }.to_json %>"></se-select></div>
+      <div class="history-filter-group"><se-select multiple label="Types" name="types" value="<%= @types.join(',') %>" placeholder="All types" options='[{"id":"CatalogKey","label":"Translation keys"},{"id":"CatalogText","label":"Translations"}]'></se-select></div>
+      <div class="history-filter-group"><se-select multiple searchable label="Users" name="actors" value="<%= @actors.join(',') %>" placeholder="All users" options="<%= @actor_options.to_json %>"></se-select></div>
+      <div class="catalog-filter-actions"><se-button type="submit" text="Apply filters"></se-button></div>
+    </se-popover>
+  <% end %>
+  <% if @changes.empty? %><se-empty-illustration variant="clock" title="No accepted changes yet" subtitle="Accepted edits and merged GitHub revisions appear here."></se-empty-illustration><% end %>
+  <% if @changes.any? %>
+    <se-collection type="table" columns="16rem minmax(0,1fr) auto" mobile-columns="minmax(0,1fr) auto" dividers="1" class="catalog-history">
+      <se-list-header><span class="history-user">User</span><span>Change</span><span>Actions</span></se-list-header>
+      <% @changes.each do |change| %>
+        <se-list-row collapsible collapsed>
+          <div class="history-user"><se-profile initials="<%= profile_initials(change.actor&.name || change.github_author || 'Deleted user') %>" name="<%= change.actor&.name || change.github_author || 'Deleted user' %>" subtitle="<%= l(change.created_at, format: :short) %>"></se-profile><div class="history-mobile-summary"><span class="history-mobile-actor"><%= change.actor&.name || change.github_author || 'Deleted user' %> · <%= l(change.created_at, format: :short) %></span><se-text><%= change.summary %></se-text><se-badge tone="<%= change.origin == 'restore' ? 'warning' : 'info' %>" text="<%= change.origin.capitalize %> · <%= pluralize(change.catalog_events.count, 'event') %>"></se-badge></div></div>
+          <div class="history-group-heading"><span class="history-mobile-actor"><%= change.actor&.name || change.github_author || 'Deleted user' %> · <%= l(change.created_at, format: :short) %></span><se-text><%= change.summary %></se-text><se-badge tone="<%= change.origin == 'restore' ? 'warning' : 'info' %>" text="<%= change.origin.capitalize %> · <%= pluralize(change.catalog_events.count, 'event') %>"></se-badge></div>
+          <div class="history-row-actions"><se-menu icon-only variant="mini" label="Change actions" data-catalog-history-menu options="<%= [
+            (policy(@project).update? ? {id: 'restore', label: 'Restore to this point (inclusive)', icon: 'rotate-ccw', modal: "restore-change-#{change.id}"} : nil),
+            {id: 'export', label: 'Export this version', icon: 'download', modal: "export-change-#{change.id}"}
+          ].compact.to_json %>"></se-menu></div>
+        </se-list-row>
+        <%= render "events", change: change, offset: 0, limit: 10 %>
+      <% end %>
+    </se-collection>
+  <% end %>
+  <div><% @changes.each do |change| %>
+    <se-modal id="restore-change-<%= change.id %>" title="Restore catalog to this point?" size="small" tone="warning">
+      <%= catalog_form restore_catalog_project_path(@project) do %><%= hidden_field_tag :revision, @project.revision %><%= hidden_field_tag :change_set_id, change.id %><se-text>Restore the state including this change, from <%= l(change.created_at, format: :long) %>. Undo <%= @project.catalog_events.where('catalog_events.id > ?', change.catalog_events.maximum(:id)).count %> later events across all languages, regardless of these filters. This creates new changes and follows the normal publishing rules.</se-text><% end %><%= render "shared/modal_footer", confirm: "Restore" %>
+    </se-modal>
+    <se-modal id="export-change-<%= change.id %>" title="Export translations · <%= l(change.created_at, format: :short) %>" size="medium">
+      <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false} do %><%= hidden_field_tag :change_set_id, change.id %><se-select name="format_name" label="Format" value="yaml" options='[{"id":"yaml","label":"YAML"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select><% end %><%= render "shared/modal_footer", confirm: "Export" %>
+    </se-modal>
+  <% end %></div>
+  <se-pagination page="<%= @page %>" pages="<%= @pages %>" data-pagination-url="<%= history_project_path(@project, **history_filter_params) %>"></se-pagination>
+</section>

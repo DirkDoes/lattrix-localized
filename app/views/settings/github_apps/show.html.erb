@@ -1,0 +1,20 @@
+<section class="app-page">
+  <header class="app-heading"><se-title level="page">GitHub App</se-title><se-badge tone="<%= @configuration.configured? ? 'success' : 'warning' %>" text="<%= @configuration.configured? ? 'Configured' : 'Not configured' %>"></se-badge></header>
+  <se-card><div class="app-stack">
+    <se-title level="section">Shared integration</se-title>
+    <se-text>One GitHub App serves all projects in this Lattrix environment. Repository access is limited to its installations, and connecting a project also requires GitHub repository admin permission.</se-text>
+    <se-text>Webhook URL: <se-code><%= request.base_url %>/github/webhook</se-code></se-text>
+    <se-text>Enable Contents, Pull requests and Checks read/write; Metadata read-only. Subscribe to Push, Pull request and Create. Allow installation on any account if other users or organizations will use the app.</se-text>
+    <se-text muted>Use a separate GitHub App for staging and production, each with its own webhook URL. GitHub login remains a separate OAuth configuration.</se-text>
+  </div></se-card>
+  <% if policy(GithubAppConfiguration).update? %>
+    <se-card><%= form_with scope: :github_app_configuration, url: settings_github_app_path, method: :patch, class: 'app-form', html: {novalidate: true} do %>
+      <se-input label="GitHub App ID" name="github_app_configuration[app_id]" value="<%= @configuration.app_id %>" error="<%= @configuration.errors[:app_id].first %>"></se-input>
+      <se-input type="textarea" label="Private key (PEM)" name="github_app_configuration[private_key]" autocomplete="off" placeholder="<%= @configuration.private_key.present? ? 'Configured — leave blank to keep' : 'Paste the downloaded RSA private key' %>" error="<%= @configuration.errors[:private_key].first %>"></se-input>
+      <se-input type="password" label="Webhook secret" name="github_app_configuration[webhook_secret]" autocomplete="new-password" placeholder="<%= @configuration.webhook_secret.present? ? 'Configured — leave blank to keep' : 'At least 32 random characters; use the same secret on GitHub' %>" error="<%= @configuration.errors[:webhook_secret].first %>"></se-input>
+      <div class="app-form-actions"><se-button type="submit" text="Save GitHub App" variant="brand"></se-button></div>
+    <% end %></se-card>
+  <% else %>
+    <se-card><se-text>Only an application owner can change these credentials.</se-text></se-card>
+  <% end %>
+</section>

@@ -16,7 +16,7 @@ class ProjectsController < ApplicationController
 
   def create
     authorize Project
-    @project = Project.new(params.require(:project).permit(:name, :slug, :visibility))
+    @project = Project.new(params.require(:project).permit(:name, :slug, :visibility, :source_locale))
     current_user.with_lock do
       unless policy(Project).new?
         @project.errors.add(:base, "Members can own at most three projects before creating another.")
@@ -33,7 +33,7 @@ class ProjectsController < ApplicationController
 
   def show
     authorize @project
-    redirect_to project_sheets_path(@project)
+    redirect_to translations_project_path(@project)
   end
 
 
@@ -51,7 +51,7 @@ class ProjectsController < ApplicationController
     saved = @project.with_lock do
       authorize @project, :update?
       @original_slug = @project.slug
-      attributes = params.require(:project).permit(:name, :visibility, :slug, :advanced_languages)
+      attributes = params.require(:project).permit(:name, :visibility, :slug)
       slug_changes = attributes.key?(:slug) && attributes[:slug].to_s.strip.downcase != @project.slug
       authorize @project, :change_slug? if slug_changes
       visibility_changes = attributes.key?(:visibility) && attributes[:visibility] != @project.visibility

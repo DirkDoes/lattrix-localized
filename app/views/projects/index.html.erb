@@ -12,7 +12,7 @@
       <% end %>
     </div>
   <% else %>
-    <se-empty-illustration variant="folders" title="No projects yet" subtitle="<%= current_user.guest? ? 'Ask a team to invite you to a project. Your invitations are available in the sidebar.' : 'Create a project to organize your sheets and invite your team.' %>">
+    <se-empty-illustration variant="folders" title="No projects yet" subtitle="<%= current_user.guest? ? 'Ask a team to invite you to a project. Your invitations are available in the sidebar.' : 'Create a translation catalog and invite your team.' %>">
       <% if policy(Project).new? %><se-button variant="brand" icon="folder" text="Create new project" data-open-modal="project-create-modal"></se-button><% end %>
     </se-empty-illustration>
   <% end %>
@@ -26,7 +26,8 @@
         <se-input data-slug-mirror-target="source" label="Project name" name="project[name]" placeholder="e.g. Acme Localization" value="<%= @project.name %>" error="<%= @project.errors[:name].first %>"></se-input>
         <se-input data-slug-mirror-target="destination" label="Identifier" name="project[slug]" value="<%= @project.slug %>" error="<%= @project.errors[:slug].first %>" hint="Generated from the name until you edit it. Use lowercase letters, numbers, underscores or hyphens."></se-input>
         </div>
-        <se-select label="Visibility" name="project[visibility]" value="<%= @project.visibility %>" options='[{"id":"private","label":"Private","icon":"lock"},{"id":"public","label":"Public","icon":"eye"}]'></se-select>
+        <div class="app-form-row"><se-select label="Visibility" name="project[visibility]" value="<%= @project.visibility %>" options='[{"id":"private","label":"Private","icon":"lock"},{"id":"public","label":"Public","icon":"eye"}]'></se-select>
+        <se-select searchable label="Source language" name="project[source_locale]" value="<%= @project.source_locale || 'en' %>" options="<%= CatalogLocale.options.to_json %>"></se-select></div>
         <% if @project.errors[:visibility].any? %><se-text role="alert"><%= @project.errors.full_messages_for(:visibility).to_sentence %></se-text><% end %>
       </div>
     <% end %>

@@ -55,6 +55,8 @@ The role of this file is to describe common mistakes and confusion points that a
 
 - v0.13.3 supersedes the v0.13.2 modal/select notes above: modals preserve child nodes and select menus use the top layer. The app's modal-fields workaround has been removed.
 
+- In v0.16.0, se-button text/disabled attributes are initialization-only. For changing countdown labels, replace the component through its public attributes (without data-ready); setting attributes alone leaves the rendered button stale. se-select multiple initial values are comma-separated IDs, not JSON arrays.
+
 - Simple Elements v0.14.0 tree collapse operates on direct child rows of one collection. Keep lazy-loaded translation rows in that collection via Turbo append; separate collections break collapse across pages.
 - v0.14.0 se-list-row builds its toggle's accessible name from the entire first cell, including hidden menu option text. The library should accept a row label or exclude action content. Do not patch generated internal markup in this app.
 - v0.14.2 adds native se-menu heading options and variant="mini", replacing the disabled pluralization label. It also allows interactive table cells to overflow for focus rings.
@@ -73,4 +75,4 @@ The role of this file is to describe common mistakes and confusion points that a
 
 - Non-user entity primary keys are bigint after migration 20260921000000. Only users and their foreign keys use UUIDs. Compare request/DOM ID strings explicitly with numeric model IDs; never assume UUID-shaped identifiers outside users.
 
-- Before changing translation architecture, read `docs/translation-architecture.md` for the recording/recordable rationale and the explicitly deferred reflection/history ideas.
+- Before changing translation architecture, read `docs/catalog-redesign.md`. It supersedes `docs/translation-architecture.md`: projects are catalogs, with typed immutable payloads, backward-delta events and separate drafts. The prelaunch reset migration intentionally deletes old project/catalog data, not user accounts.

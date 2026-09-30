@@ -1,0 +1,3 @@
+<%= turbo_stream.append "catalog-rows" do %><%= render "rows" %><% end %>
+<%= turbo_stream.append "catalog-modals" do %><%= render "row_modals" %><% end %>
+<%= turbo_stream.replace "catalog-more" do %><%= render "more" %><% end %>

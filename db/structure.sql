@@ -10,34 +10,72 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: bump_translation_revision(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: guard_catalog_event(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.bump_translation_revision() RETURNS trigger
+CREATE FUNCTION public.guard_catalog_event() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
+DECLARE node_project bigint; change_project bigint;
 BEGIN
-  UPDATE translation_trees SET revision=revision+1,updated_at=NOW() WHERE id IN (SELECT DISTINCT translation_tree_id FROM changed_records);
-  RETURN NULL;
+  SELECT project_id INTO STRICT node_project FROM catalog_nodes WHERE id=NEW.catalog_node_id;
+  SELECT project_id INTO STRICT change_project FROM catalog_change_sets WHERE id=NEW.catalog_change_set_id;
+  IF node_project<>change_project THEN RAISE EXCEPTION 'Event crosses projects'; END IF;
+  IF NEW.previous_parent_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM catalog_nodes WHERE id=NEW.previous_parent_id AND project_id=node_project) THEN RAISE EXCEPTION 'Invalid prior parent'; END IF;
+  IF NEW.action='payload_replaced' THEN
+    IF NOT ((NEW.previous_payload_type='CatalogKey' AND EXISTS(SELECT 1 FROM catalog_keys WHERE id=NEW.previous_payload_id)) OR (NEW.previous_payload_type='CatalogText' AND EXISTS(SELECT 1 FROM catalog_texts WHERE id=NEW.previous_payload_id))) THEN RAISE EXCEPTION 'Invalid prior payload'; END IF;
+  END IF;
+  RETURN NEW;
 END $$;
 
 
 --
--- Name: guard_content_owner(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: guard_catalog_node(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.guard_content_owner() RETURNS trigger
+CREATE FUNCTION public.guard_catalog_node() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE p catalog_nodes;
+BEGIN
+  PERFORM 1 FROM projects WHERE id=NEW.project_id FOR UPDATE;
+  IF NEW.payload_type NOT IN ('CatalogKey','CatalogText') THEN RAISE EXCEPTION 'Invalid payload type'; END IF;
+  IF NEW.payload_type='CatalogKey' AND NOT EXISTS(SELECT 1 FROM catalog_keys WHERE id=NEW.payload_id) THEN RAISE EXCEPTION 'Missing key payload'; END IF;
+  IF NEW.payload_type='CatalogText' AND NOT EXISTS(SELECT 1 FROM catalog_texts WHERE id=NEW.payload_id) THEN RAISE EXCEPTION 'Missing text payload'; END IF;
+  IF NEW.parent_id IS NOT NULL THEN
+    SELECT * INTO STRICT p FROM catalog_nodes WHERE id=NEW.parent_id;
+    IF p.project_id<>NEW.project_id OR p.payload_type<>'CatalogKey' THEN RAISE EXCEPTION 'Invalid catalog parent'; END IF;
+    IF EXISTS(WITH RECURSIVE a AS (SELECT id,parent_id FROM catalog_nodes WHERE id=NEW.parent_id UNION SELECT n.id,n.parent_id FROM catalog_nodes n JOIN a ON n.id=a.parent_id) SELECT 1 FROM a WHERE id=NEW.id) THEN RAISE EXCEPTION 'Catalog cycle'; END IF;
+  ELSIF NEW.payload_type='CatalogText' THEN RAISE EXCEPTION 'Translation needs a key'; END IF;
+  RETURN NEW;
+END $$;
+
+
+--
+-- Name: guard_catalog_shape(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.guard_catalog_shape() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-  IF TG_TABLE_NAME='translation_trees' THEN
-    IF NEW.sheet_id<>OLD.sheet_id THEN RAISE EXCEPTION 'Moving trees across sheets is not supported' USING ERRCODE='23514'; END IF;
-  ELSIF TG_TABLE_NAME='project_memberships' THEN
-    IF NEW.project_id<>OLD.project_id THEN RAISE EXCEPTION 'Moving memberships across projects is not supported' USING ERRCODE='23514'; END IF;
-  ELSE
-    IF NEW.project_id IS NOT NULL AND NEW.project_id IS DISTINCT FROM OLD.project_id THEN RAISE EXCEPTION 'Moving languages across projects is not supported' USING ERRCODE='23514'; END IF;
-  END IF;
-  RETURN NEW;
+  IF EXISTS (
+    SELECT 1 FROM catalog_nodes n JOIN catalog_nodes p ON p.id=n.parent_id
+    JOIN catalog_keys k ON p.payload_type='CatalogKey' AND k.id=p.payload_id
+    WHERE n.project_id=NEW.project_id AND NOT n.deleted AND
+      (p.deleted OR (n.payload_type='CatalogText' AND k.kind<>'scalar') OR (n.payload_type='CatalogKey' AND k.kind='scalar'))
+  ) THEN RAISE EXCEPTION 'Invalid active catalog hierarchy'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM catalog_nodes n JOIN catalog_keys k ON n.payload_type='CatalogKey' AND k.id=n.payload_id
+    WHERE n.project_id=NEW.project_id AND NOT n.deleted
+    GROUP BY n.parent_id,k.name HAVING count(*)>1
+  ) THEN RAISE EXCEPTION 'Duplicate active key'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM catalog_nodes n JOIN catalog_texts t ON n.payload_type='CatalogText' AND t.id=n.payload_id
+    WHERE n.project_id=NEW.project_id AND NOT n.deleted
+    GROUP BY n.parent_id,t.locale HAVING count(*)>1
+  ) THEN RAISE EXCEPTION 'Duplicate active translation'; END IF;
+  RETURN NULL;
 END $$;
 
 
@@ -88,167 +126,13 @@ END $$;
 
 
 --
--- Name: guard_recording(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: immutable_catalog_payload(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.guard_recording() RETURNS trigger
+CREATE FUNCTION public.immutable_catalog_payload() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-DECLARE owner_sheet sheets; parent_record recordings; key_name text; lang bigint;
-BEGIN
-  -- Serialize structural checks within one tree, including raw SQL writes.
-  PERFORM 1 FROM translation_trees WHERE id=NEW.translation_tree_id FOR UPDATE;
-  SELECT s.* INTO STRICT owner_sheet FROM sheets s JOIN translation_trees t ON t.sheet_id=s.id WHERE t.id=NEW.translation_tree_id;
-  IF TG_OP='UPDATE' AND NEW.translation_tree_id<>OLD.translation_tree_id THEN RAISE EXCEPTION 'Moving across trees is not supported' USING ERRCODE='23514'; END IF;
-  IF NEW.parent_id IS NOT NULL THEN
-    SELECT * INTO STRICT parent_record FROM recordings WHERE id=NEW.parent_id;
-    IF parent_record.translation_tree_id<>NEW.translation_tree_id OR parent_record.recordable_type<>'TranslationKey' THEN RAISE EXCEPTION 'Invalid parent' USING ERRCODE='23514'; END IF;
-    IF NEW.deleted_at IS NULL AND parent_record.deleted_at IS NOT NULL THEN RAISE EXCEPTION 'Parent is deleted' USING ERRCODE='23514'; END IF;
-    IF EXISTS(WITH RECURSIVE ancestors AS (
-      SELECT id,parent_id FROM recordings WHERE id=NEW.parent_id
-      UNION SELECT r.id,r.parent_id FROM recordings r JOIN ancestors a ON r.id=a.parent_id
-    ) SELECT 1 FROM ancestors WHERE id=NEW.id) THEN RAISE EXCEPTION 'Tree cycle' USING ERRCODE='23514'; END IF;
-  ELSIF NEW.recordable_type<>'TranslationKey' THEN RAISE EXCEPTION 'A translation needs a key' USING ERRCODE='23514'; END IF;
-  IF TG_OP='UPDATE' AND NEW.recordable_type<>OLD.recordable_type THEN RAISE EXCEPTION 'Recording type cannot change' USING ERRCODE='23514'; END IF;
-  IF NEW.recordable_type='TranslationKey' THEN
-    SELECT name INTO STRICT key_name FROM translation_keys WHERE id=NEW.recordable_id;
-    IF NEW.deleted_at IS NULL AND EXISTS(SELECT 1 FROM recordings r JOIN translation_keys k ON k.id=r.recordable_id
-      WHERE r.translation_tree_id=NEW.translation_tree_id AND r.parent_id IS NOT DISTINCT FROM NEW.parent_id
-      AND r.recordable_type='TranslationKey' AND r.deleted_at IS NULL AND r.id<>NEW.id
-      AND CASE WHEN owner_sheet.case_sensitive_keys THEN k.name=key_name ELSE lower(k.name)=lower(key_name) END)
-    THEN RAISE EXCEPTION 'A key with this name already exists under this parent' USING ERRCODE='23514'; END IF;
-  ELSE
-    SELECT language_id INTO STRICT lang FROM text_translations WHERE id=NEW.recordable_id;
-    IF NOT EXISTS(SELECT 1 FROM languages WHERE id=lang AND project_id=owner_sheet.project_id) THEN RAISE EXCEPTION 'Language belongs to another project' USING ERRCODE='23514'; END IF;
-    IF NEW.deleted_at IS NULL AND EXISTS(SELECT 1 FROM recordings r JOIN text_translations v ON v.id=r.recordable_id
-      WHERE r.parent_id=NEW.parent_id AND r.recordable_type='TextTranslation' AND r.deleted_at IS NULL AND r.id<>NEW.id AND v.language_id=lang)
-    THEN RAISE EXCEPTION 'This key already has a translation in this language' USING ERRCODE='23514'; END IF;
-  END IF;
-  RETURN NEW;
-END $$;
-
-
---
--- Name: guard_recording_event(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.guard_recording_event() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  IF NEW.recordable_type='TranslationKey' AND NOT EXISTS(SELECT 1 FROM translation_keys WHERE id=NEW.recordable_id) THEN
-    RAISE EXCEPTION 'History key payload does not exist' USING ERRCODE='23503';
-  ELSIF NEW.recordable_type='TextTranslation' AND NOT EXISTS(SELECT 1 FROM text_translations WHERE id=NEW.recordable_id) THEN
-    RAISE EXCEPTION 'History translation payload does not exist' USING ERRCODE='23503';
-  ELSIF NEW.recordable_type NOT IN ('TranslationKey','TextTranslation') THEN
-    RAISE EXCEPTION 'Unsupported history payload type' USING ERRCODE='23514';
-  END IF;
-  RETURN NEW;
-END $$;
-
-
---
--- Name: guard_recording_identity(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.guard_recording_identity() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  IF NEW.translation_tree_id<>OLD.translation_tree_id OR NEW.parent_id IS DISTINCT FROM OLD.parent_id THEN
-    RAISE EXCEPTION 'Moving recordings is not supported' USING ERRCODE='23514';
-  END IF;
-  RETURN NEW;
-END $$;
-
-
---
--- Name: guard_retained_language(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.guard_retained_language() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  IF NEW.project_id IS NULL AND EXISTS(SELECT 1 FROM projects WHERE id=OLD.project_id) THEN RAISE EXCEPTION 'A language can only be archived when its project is deleted' USING ERRCODE='23514'; END IF;
-  RETURN NULL;
-END $$;
-
-
---
--- Name: guard_sheet_delimiter(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.guard_sheet_delimiter() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE separator text;
-BEGIN
-  IF TG_TABLE_NAME='sheets' THEN
-    IF NEW.delimiter IS DISTINCT FROM OLD.delimiter AND EXISTS(
-      SELECT 1 FROM recordings r JOIN translation_trees t ON t.id=r.translation_tree_id JOIN translation_keys k ON k.id=r.recordable_id
-      WHERE t.sheet_id=NEW.id AND r.recordable_type='TranslationKey' AND r.deleted_at IS NULL AND position(NEW.delimiter in k.name)>0
-    ) THEN RAISE EXCEPTION 'Cannot change delimiter: existing keys contain this character. Rename them first.' USING ERRCODE='23514'; END IF;
-  ELSIF NEW.recordable_type='TranslationKey' AND NEW.deleted_at IS NULL THEN
-    SELECT s.delimiter INTO separator FROM sheets s JOIN translation_trees t ON t.sheet_id=s.id WHERE t.id=NEW.translation_tree_id;
-    IF EXISTS(SELECT 1 FROM translation_keys WHERE id=NEW.recordable_id AND position(separator in name)>0) THEN
-      RAISE EXCEPTION 'A key name cannot contain the sheet delimiter' USING ERRCODE='23514';
-    END IF;
-  END IF;
-  RETURN NEW;
-END $$;
-
-
---
--- Name: guard_sheet_languages(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.guard_sheet_languages() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE project bigint;
-BEGIN
-  IF TG_TABLE_NAME='sheet_languages' THEN SELECT project_id INTO project FROM sheets WHERE id=NEW.sheet_id;
-  ELSE SELECT project_id INTO project FROM project_memberships WHERE id=NEW.project_membership_id; END IF;
-  IF NOT EXISTS(SELECT 1 FROM languages WHERE id=NEW.language_id AND project_id=project) THEN RAISE EXCEPTION 'Language belongs to another project' USING ERRCODE='23514'; END IF;
-  RETURN NEW;
-END $$;
-
-
---
--- Name: guard_sheet_structure(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.guard_sheet_structure() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  PERFORM 1 FROM projects WHERE id=NEW.project_id FOR UPDATE;
-  IF TG_OP='INSERT' AND (SELECT count(*) FROM sheets WHERE project_id=NEW.project_id)>=90 THEN RAISE EXCEPTION 'A project can contain at most 90 sheets' USING ERRCODE='23514'; END IF;
-  IF NEW.default_language_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM languages WHERE id=NEW.default_language_id AND project_id=NEW.project_id) THEN RAISE EXCEPTION 'Default language belongs to another project' USING ERRCODE='23514'; END IF;
-  IF TG_OP='UPDATE' THEN
-    IF NEW.project_id<>OLD.project_id THEN RAISE EXCEPTION 'Moving sheets across projects is not supported' USING ERRCODE='23514'; END IF;
-    PERFORM 1 FROM translation_trees WHERE sheet_id=NEW.id FOR UPDATE;
-    IF NOT NEW.case_sensitive_keys AND EXISTS(SELECT 1 FROM recordings r JOIN translation_keys k ON k.id=r.recordable_id JOIN translation_trees t ON t.id=r.translation_tree_id
-      WHERE t.sheet_id=NEW.id AND r.recordable_type='TranslationKey' AND r.deleted_at IS NULL
-      GROUP BY r.translation_tree_id,r.parent_id,lower(k.name) HAVING count(*)>1)
-    THEN RAISE EXCEPTION 'Resolve case-conflicting keys before disabling case sensitivity' USING ERRCODE='23514'; END IF;
-  END IF;
-  RETURN NEW;
-END $$;
-
-
---
--- Name: immutable_translation_payload(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.immutable_translation_payload() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  IF current_setting('app.purge_language', true)='on' THEN RETURN OLD; END IF;
-  RAISE EXCEPTION 'Translation payloads are immutable' USING ERRCODE='23514';
-END $$;
+BEGIN RAISE EXCEPTION 'Catalog payloads and events are immutable'; END $$;
 
 
 --
@@ -327,6 +211,358 @@ CREATE TABLE public.auth_rate_limits (
 
 
 --
+-- Name: catalog_change_sets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_change_sets (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    actor_id uuid,
+    origin character varying DEFAULT 'manual'::character varying NOT NULL,
+    status character varying DEFAULT 'accepted'::character varying NOT NULL,
+    summary character varying NOT NULL,
+    commit_sha character varying,
+    github_author character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_change_sets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_change_sets_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_change_sets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_change_sets_id_seq OWNED BY public.catalog_change_sets.id;
+
+
+--
+-- Name: catalog_draft_edits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_draft_edits (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    catalog_node_id bigint NOT NULL,
+    actor_id uuid,
+    previous_payload_type character varying,
+    previous_payload_id bigint,
+    previous_parent_id bigint,
+    previous_deleted boolean,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_draft_edits_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_draft_edits_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_draft_edits_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_draft_edits_id_seq OWNED BY public.catalog_draft_edits.id;
+
+
+--
+-- Name: catalog_drafts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_drafts (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    catalog_node_id bigint NOT NULL,
+    actor_id uuid,
+    base_type character varying NOT NULL,
+    base_id bigint NOT NULL,
+    base_parent_id bigint,
+    base_deleted boolean NOT NULL,
+    payload_type character varying NOT NULL,
+    payload_id bigint NOT NULL,
+    parent_id bigint,
+    deleted boolean NOT NULL,
+    conflict boolean DEFAULT false NOT NULL,
+    lock_version integer DEFAULT 0 NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_drafts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_drafts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_drafts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_drafts_id_seq OWNED BY public.catalog_drafts.id;
+
+
+--
+-- Name: catalog_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_events (
+    id bigint NOT NULL,
+    catalog_change_set_id bigint NOT NULL,
+    catalog_node_id bigint NOT NULL,
+    sequence integer NOT NULL,
+    action character varying NOT NULL,
+    previous_parent_id bigint,
+    previous_payload_type character varying,
+    previous_payload_id bigint,
+    created_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT catalog_event_union CHECK (((((action)::text = 'payload_replaced'::text) AND (previous_payload_type IS NOT NULL) AND (previous_payload_id IS NOT NULL) AND (previous_parent_id IS NULL)) OR (((action)::text = 'node_moved'::text) AND (previous_payload_type IS NULL) AND (previous_payload_id IS NULL)) OR (((action)::text = ANY ((ARRAY['node_created'::character varying, 'node_deleted'::character varying, 'node_reactivated'::character varying])::text[])) AND (previous_payload_type IS NULL) AND (previous_payload_id IS NULL) AND (previous_parent_id IS NULL))))
+);
+
+
+--
+-- Name: catalog_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_events_id_seq OWNED BY public.catalog_events.id;
+
+
+--
+-- Name: catalog_git_revisions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_git_revisions (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    commit_sha character varying NOT NULL,
+    status character varying NOT NULL,
+    error text,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_git_revisions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_git_revisions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_git_revisions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_git_revisions_id_seq OWNED BY public.catalog_git_revisions.id;
+
+
+--
+-- Name: catalog_keys; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_keys (
+    id bigint NOT NULL,
+    name character varying NOT NULL,
+    kind character varying NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    CONSTRAINT catalog_key_shape CHECK ((((kind)::text = ANY ((ARRAY['scalar'::character varying, 'branch'::character varying, 'plural'::character varying])::text[])) AND (length((name)::text) > 0) AND (POSITION(('.'::text) IN (name)) = 0) AND ((name)::text !~ '\s'::text)))
+);
+
+
+--
+-- Name: catalog_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_keys_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_keys_id_seq OWNED BY public.catalog_keys.id;
+
+
+--
+-- Name: catalog_nodes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_nodes (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    parent_id bigint,
+    payload_type character varying NOT NULL,
+    payload_id bigint NOT NULL,
+    deleted boolean DEFAULT true NOT NULL,
+    lock_version integer DEFAULT 0 NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_nodes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_nodes_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_nodes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_nodes_id_seq OWNED BY public.catalog_nodes.id;
+
+
+--
+-- Name: catalog_reviews; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_reviews (
+    id bigint NOT NULL,
+    catalog_node_id bigint NOT NULL,
+    actor_id uuid,
+    source_digest character varying NOT NULL,
+    translation_payload_id bigint NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_reviews_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_reviews_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_reviews_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_reviews_id_seq OWNED BY public.catalog_reviews.id;
+
+
+--
+-- Name: catalog_tags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_tags (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    name character varying NOT NULL,
+    commit_sha character varying NOT NULL,
+    event_position bigint,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_tags_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_tags_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_tags_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_tags_id_seq OWNED BY public.catalog_tags.id;
+
+
+--
+-- Name: catalog_texts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_texts (
+    id bigint NOT NULL,
+    locale character varying NOT NULL,
+    value text NOT NULL
+);
+
+
+--
+-- Name: catalog_texts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_texts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_texts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_texts_id_seq OWNED BY public.catalog_texts.id;
+
+
+--
 -- Name: email_challenges; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -366,30 +602,25 @@ ALTER SEQUENCE public.email_challenges_id_seq OWNED BY public.email_challenges.i
 
 
 --
--- Name: export_requests; Type: TABLE; Schema: public; Owner: -
+-- Name: github_app_configurations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.export_requests (
+CREATE TABLE public.github_app_configurations (
     id bigint NOT NULL,
-    project_id bigint NOT NULL,
-    user_id uuid,
-    owner_key character varying NOT NULL,
-    options jsonb DEFAULT '{}'::jsonb NOT NULL,
-    status character varying DEFAULT 'queued'::character varying NOT NULL,
-    progress integer DEFAULT 0 NOT NULL,
-    filename character varying,
-    error text,
+    app_id character varying NOT NULL,
+    private_key text NOT NULL,
+    webhook_secret text NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    storage_key character varying
+    CONSTRAINT one_github_app_configuration CHECK ((id = 1))
 );
 
 
 --
--- Name: export_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: github_app_configurations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.export_requests_id_seq
+CREATE SEQUENCE public.github_app_configurations_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -398,43 +629,10 @@ CREATE SEQUENCE public.export_requests_id_seq
 
 
 --
--- Name: export_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: github_app_configurations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.export_requests_id_seq OWNED BY public.export_requests.id;
-
-
---
--- Name: identifier_sets; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.identifier_sets (
-    id bigint NOT NULL,
-    project_id bigint NOT NULL,
-    name character varying NOT NULL,
-    description text,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
--- Name: identifier_sets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.identifier_sets_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: identifier_sets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.identifier_sets_id_seq OWNED BY public.identifier_sets.id;
+ALTER SEQUENCE public.github_app_configurations_id_seq OWNED BY public.github_app_configurations.id;
 
 
 --
@@ -470,39 +668,6 @@ ALTER SEQUENCE public.invitations_id_seq OWNED BY public.invitations.id;
 
 
 --
--- Name: language_identifiers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.language_identifiers (
-    id bigint NOT NULL,
-    identifier_set_id bigint NOT NULL,
-    language_id bigint NOT NULL,
-    identifier character varying NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
--- Name: language_identifiers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.language_identifiers_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: language_identifiers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.language_identifiers_id_seq OWNED BY public.language_identifiers.id;
-
-
---
 -- Name: languages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -515,7 +680,7 @@ CREATE TABLE public.languages (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     status character varying DEFAULT 'active'::character varying NOT NULL,
-    CONSTRAINT language_identity CHECK (((length((name)::text) > 0) AND ((identifier)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text))),
+    CONSTRAINT language_identity CHECK (((length((name)::text) > 0) AND ((identifier)::text ~ '^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$'::text))),
     CONSTRAINT language_status CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'archived'::character varying, 'pending_deletion'::character varying])::text[])))
 );
 
@@ -660,7 +825,16 @@ CREATE TABLE public.projects (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     slug character varying NOT NULL,
-    advanced_languages boolean DEFAULT false NOT NULL,
+    source_locale character varying DEFAULT 'en'::character varying NOT NULL,
+    revision bigint DEFAULT 0 NOT NULL,
+    repository character varying,
+    installation_id bigint,
+    git_branch character varying,
+    locale_directory character varying DEFAULT 'config/locales'::character varying NOT NULL,
+    git_sha character varying,
+    sync_error text,
+    pull_request_number integer,
+    last_published_at timestamp(6) without time zone,
     CONSTRAINT projects_slug_format CHECK ((((slug)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text) AND (length((slug)::text) <= 100) AND ((slug)::text <> ALL ((ARRAY['new'::character varying, 'edit'::character varying])::text[])))),
     CONSTRAINT projects_visibility CHECK (((visibility)::text = ANY ((ARRAY['public'::character varying, 'private'::character varying])::text[])))
 );
@@ -686,187 +860,12 @@ ALTER SEQUENCE public.projects_id_seq OWNED BY public.projects.id;
 
 
 --
--- Name: recording_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.recording_events (
-    id bigint NOT NULL,
-    recording_id bigint NOT NULL,
-    actor_id uuid,
-    action character varying NOT NULL,
-    recordable_type character varying NOT NULL,
-    recordable_id bigint NOT NULL,
-    deleted_at timestamp(6) without time zone,
-    created_at timestamp(6) without time zone NOT NULL,
-    change_id bigint NOT NULL,
-    change_type character varying DEFAULT 'manual'::character varying NOT NULL,
-    CONSTRAINT recording_event_action CHECK (((action)::text = ANY ((ARRAY['created'::character varying, 'updated'::character varying, 'deleted'::character varying])::text[]))),
-    CONSTRAINT recording_event_change_type CHECK (((change_type)::text = ANY ((ARRAY['manual'::character varying, 'revert'::character varying, 'import'::character varying])::text[]))),
-    CONSTRAINT recording_event_deletion CHECK ((((action)::text = 'deleted'::text) = (deleted_at IS NOT NULL)))
-);
-
-
---
--- Name: recording_event_change_ids; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.recording_event_change_ids
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: recording_event_change_ids; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.recording_event_change_ids OWNED BY public.recording_events.change_id;
-
-
---
--- Name: recording_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.recording_events_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: recording_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.recording_events_id_seq OWNED BY public.recording_events.id;
-
-
---
--- Name: recordings; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.recordings (
-    id bigint NOT NULL,
-    translation_tree_id bigint NOT NULL,
-    parent_id bigint,
-    recordable_type character varying NOT NULL,
-    recordable_id bigint NOT NULL,
-    lock_version integer DEFAULT 0 NOT NULL,
-    deleted_at timestamp(6) without time zone,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT recording_type_parent CHECK ((((recordable_type)::text = ANY (ARRAY[('TranslationKey'::character varying)::text, ('TextTranslation'::character varying)::text])) AND ((parent_id IS NULL) OR (parent_id <> id))))
-);
-
-
---
--- Name: recordings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.recordings_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: recordings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.recordings_id_seq OWNED BY public.recordings.id;
-
-
---
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.schema_migrations (
     version character varying NOT NULL
 );
-
-
---
--- Name: sheet_languages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sheet_languages (
-    id bigint NOT NULL,
-    sheet_id bigint NOT NULL,
-    language_id bigint NOT NULL,
-    enabled boolean DEFAULT true NOT NULL
-);
-
-
---
--- Name: sheet_languages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.sheet_languages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: sheet_languages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.sheet_languages_id_seq OWNED BY public.sheet_languages.id;
-
-
---
--- Name: sheets; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sheets (
-    id bigint NOT NULL,
-    project_id bigint NOT NULL,
-    name character varying NOT NULL,
-    visibility character varying DEFAULT 'private'::character varying NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    slug character varying NOT NULL,
-    default_language_id bigint,
-    case_sensitive_keys boolean DEFAULT false NOT NULL,
-    allow_parent_translations boolean DEFAULT false NOT NULL,
-    pluralization_enabled boolean DEFAULT true NOT NULL,
-    plural_categories character varying[] DEFAULT '{zero,one,two,few,many,other}'::character varying[] NOT NULL,
-    missing_value_behavior character varying DEFAULT 'omit'::character varying NOT NULL,
-    delimiter character varying DEFAULT '.'::character varying NOT NULL,
-    description text,
-    image_data bytea,
-    wildcard_format character varying DEFAULT ''::character varying NOT NULL,
-    CONSTRAINT sheet_delimiter_character CHECK (((char_length((delimiter)::text) >= 1) AND (char_length((delimiter)::text) <= 3))),
-    CONSTRAINT sheet_missing_values CHECK (((missing_value_behavior)::text = ANY ((ARRAY['omit'::character varying, 'empty'::character varying, 'fallback'::character varying])::text[]))),
-    CONSTRAINT sheets_slug_format CHECK ((((slug)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text) AND (length((slug)::text) <= 100) AND ((slug)::text <> ALL ((ARRAY['new'::character varying, 'edit'::character varying])::text[])))),
-    CONSTRAINT sheets_visibility CHECK (((visibility)::text = ANY ((ARRAY['public'::character varying, 'private'::character varying])::text[])))
-);
-
-
---
--- Name: sheets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.sheets_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: sheets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.sheets_id_seq OWNED BY public.sheets.id;
 
 
 --
@@ -1239,106 +1238,6 @@ ALTER SEQUENCE public.solid_queue_semaphores_id_seq OWNED BY public.solid_queue_
 
 
 --
--- Name: text_translations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.text_translations (
-    id bigint NOT NULL,
-    language_id bigint NOT NULL,
-    text text NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT translation_nonempty CHECK ((length(text) > 0))
-);
-
-
---
--- Name: text_translations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.text_translations_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: text_translations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.text_translations_id_seq OWNED BY public.text_translations.id;
-
-
---
--- Name: translation_keys; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.translation_keys (
-    id bigint NOT NULL,
-    name character varying NOT NULL,
-    pluralized boolean DEFAULT false NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    description text DEFAULT ''::text NOT NULL,
-    CONSTRAINT key_name_length CHECK (((length((name)::text) >= 1) AND (length((name)::text) <= 200)))
-);
-
-
---
--- Name: translation_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.translation_keys_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: translation_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.translation_keys_id_seq OWNED BY public.translation_keys.id;
-
-
---
--- Name: translation_trees; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.translation_trees (
-    id bigint NOT NULL,
-    sheet_id bigint NOT NULL,
-    name character varying DEFAULT 'main'::character varying NOT NULL,
-    revision bigint DEFAULT 0 NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
--- Name: translation_trees_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.translation_trees_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: translation_trees_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.translation_trees_id_seq OWNED BY public.translation_trees.id;
-
-
---
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1370,6 +1269,76 @@ ALTER TABLE ONLY public.auth_identities ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: catalog_change_sets id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_change_sets ALTER COLUMN id SET DEFAULT nextval('public.catalog_change_sets_id_seq'::regclass);
+
+
+--
+-- Name: catalog_draft_edits id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_draft_edits ALTER COLUMN id SET DEFAULT nextval('public.catalog_draft_edits_id_seq'::regclass);
+
+
+--
+-- Name: catalog_drafts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_drafts ALTER COLUMN id SET DEFAULT nextval('public.catalog_drafts_id_seq'::regclass);
+
+
+--
+-- Name: catalog_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_events ALTER COLUMN id SET DEFAULT nextval('public.catalog_events_id_seq'::regclass);
+
+
+--
+-- Name: catalog_git_revisions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_git_revisions ALTER COLUMN id SET DEFAULT nextval('public.catalog_git_revisions_id_seq'::regclass);
+
+
+--
+-- Name: catalog_keys id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_keys ALTER COLUMN id SET DEFAULT nextval('public.catalog_keys_id_seq'::regclass);
+
+
+--
+-- Name: catalog_nodes id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_nodes ALTER COLUMN id SET DEFAULT nextval('public.catalog_nodes_id_seq'::regclass);
+
+
+--
+-- Name: catalog_reviews id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_reviews ALTER COLUMN id SET DEFAULT nextval('public.catalog_reviews_id_seq'::regclass);
+
+
+--
+-- Name: catalog_tags id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_tags ALTER COLUMN id SET DEFAULT nextval('public.catalog_tags_id_seq'::regclass);
+
+
+--
+-- Name: catalog_texts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_texts ALTER COLUMN id SET DEFAULT nextval('public.catalog_texts_id_seq'::regclass);
+
+
+--
 -- Name: email_challenges id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1377,17 +1346,10 @@ ALTER TABLE ONLY public.email_challenges ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
--- Name: export_requests id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: github_app_configurations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.export_requests ALTER COLUMN id SET DEFAULT nextval('public.export_requests_id_seq'::regclass);
-
-
---
--- Name: identifier_sets id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.identifier_sets ALTER COLUMN id SET DEFAULT nextval('public.identifier_sets_id_seq'::regclass);
+ALTER TABLE ONLY public.github_app_configurations ALTER COLUMN id SET DEFAULT nextval('public.github_app_configurations_id_seq'::regclass);
 
 
 --
@@ -1395,13 +1357,6 @@ ALTER TABLE ONLY public.identifier_sets ALTER COLUMN id SET DEFAULT nextval('pub
 --
 
 ALTER TABLE ONLY public.invitations ALTER COLUMN id SET DEFAULT nextval('public.invitations_id_seq'::regclass);
-
-
---
--- Name: language_identifiers id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.language_identifiers ALTER COLUMN id SET DEFAULT nextval('public.language_identifiers_id_seq'::regclass);
 
 
 --
@@ -1437,41 +1392,6 @@ ALTER TABLE ONLY public.project_memberships ALTER COLUMN id SET DEFAULT nextval(
 --
 
 ALTER TABLE ONLY public.projects ALTER COLUMN id SET DEFAULT nextval('public.projects_id_seq'::regclass);
-
-
---
--- Name: recording_events id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recording_events ALTER COLUMN id SET DEFAULT nextval('public.recording_events_id_seq'::regclass);
-
-
---
--- Name: recording_events change_id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recording_events ALTER COLUMN change_id SET DEFAULT nextval('public.recording_event_change_ids'::regclass);
-
-
---
--- Name: recordings id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recordings ALTER COLUMN id SET DEFAULT nextval('public.recordings_id_seq'::regclass);
-
-
---
--- Name: sheet_languages id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sheet_languages ALTER COLUMN id SET DEFAULT nextval('public.sheet_languages_id_seq'::regclass);
-
-
---
--- Name: sheets id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sheets ALTER COLUMN id SET DEFAULT nextval('public.sheets_id_seq'::regclass);
 
 
 --
@@ -1552,27 +1472,6 @@ ALTER TABLE ONLY public.solid_queue_semaphores ALTER COLUMN id SET DEFAULT nextv
 
 
 --
--- Name: text_translations id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.text_translations ALTER COLUMN id SET DEFAULT nextval('public.text_translations_id_seq'::regclass);
-
-
---
--- Name: translation_keys id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.translation_keys ALTER COLUMN id SET DEFAULT nextval('public.translation_keys_id_seq'::regclass);
-
-
---
--- Name: translation_trees id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.translation_trees ALTER COLUMN id SET DEFAULT nextval('public.translation_trees_id_seq'::regclass);
-
-
---
 -- Name: ar_internal_metadata ar_internal_metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1597,6 +1496,86 @@ ALTER TABLE ONLY public.auth_rate_limits
 
 
 --
+-- Name: catalog_change_sets catalog_change_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_change_sets
+    ADD CONSTRAINT catalog_change_sets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_draft_edits catalog_draft_edits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_draft_edits
+    ADD CONSTRAINT catalog_draft_edits_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_drafts catalog_drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_drafts
+    ADD CONSTRAINT catalog_drafts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_events catalog_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_events
+    ADD CONSTRAINT catalog_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_git_revisions catalog_git_revisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_git_revisions
+    ADD CONSTRAINT catalog_git_revisions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_keys catalog_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_keys
+    ADD CONSTRAINT catalog_keys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_nodes catalog_nodes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_nodes
+    ADD CONSTRAINT catalog_nodes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_reviews catalog_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_reviews
+    ADD CONSTRAINT catalog_reviews_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_tags catalog_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_tags
+    ADD CONSTRAINT catalog_tags_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_texts catalog_texts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_texts
+    ADD CONSTRAINT catalog_texts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: email_challenges email_challenges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1605,19 +1584,11 @@ ALTER TABLE ONLY public.email_challenges
 
 
 --
--- Name: export_requests export_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: github_app_configurations github_app_configurations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.export_requests
-    ADD CONSTRAINT export_requests_pkey PRIMARY KEY (id);
-
-
---
--- Name: identifier_sets identifier_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.identifier_sets
-    ADD CONSTRAINT identifier_sets_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.github_app_configurations
+    ADD CONSTRAINT github_app_configurations_pkey PRIMARY KEY (id);
 
 
 --
@@ -1626,14 +1597,6 @@ ALTER TABLE ONLY public.identifier_sets
 
 ALTER TABLE ONLY public.invitations
     ADD CONSTRAINT invitations_pkey PRIMARY KEY (id);
-
-
---
--- Name: language_identifiers language_identifiers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.language_identifiers
-    ADD CONSTRAINT language_identifiers_pkey PRIMARY KEY (id);
 
 
 --
@@ -1677,43 +1640,11 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- Name: recording_events recording_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recording_events
-    ADD CONSTRAINT recording_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: recordings recordings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recordings
-    ADD CONSTRAINT recordings_pkey PRIMARY KEY (id);
-
-
---
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
-
-
---
--- Name: sheet_languages sheet_languages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sheet_languages
-    ADD CONSTRAINT sheet_languages_pkey PRIMARY KEY (id);
-
-
---
--- Name: sheets sheets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sheets
-    ADD CONSTRAINT sheets_pkey PRIMARY KEY (id);
 
 
 --
@@ -1805,38 +1736,6 @@ ALTER TABLE ONLY public.solid_queue_semaphores
 
 
 --
--- Name: text_translations text_translations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.text_translations
-    ADD CONSTRAINT text_translations_pkey PRIMARY KEY (id);
-
-
---
--- Name: translation_keys translation_key_no_whitespace; Type: CHECK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE public.translation_keys
-    ADD CONSTRAINT translation_key_no_whitespace CHECK (((name)::text !~ '[[:space:]]'::text)) NOT VALID;
-
-
---
--- Name: translation_keys translation_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.translation_keys
-    ADD CONSTRAINT translation_keys_pkey PRIMARY KEY (id);
-
-
---
--- Name: translation_trees translation_trees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.translation_trees
-    ADD CONSTRAINT translation_trees_pkey PRIMARY KEY (id);
-
-
---
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1845,10 +1744,10 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: active_tree_children; Type: INDEX; Schema: public; Owner: -
+-- Name: catalog_review_node_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX active_tree_children ON public.recordings USING btree (translation_tree_id, parent_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX catalog_review_node_unique ON public.catalog_reviews USING btree (catalog_node_id);
 
 
 --
@@ -1880,6 +1779,146 @@ CREATE INDEX index_auth_rate_limits_on_expires_at ON public.auth_rate_limits USI
 
 
 --
+-- Name: index_catalog_change_sets_on_actor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_change_sets_on_actor_id ON public.catalog_change_sets USING btree (actor_id);
+
+
+--
+-- Name: index_catalog_change_sets_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_change_sets_on_project_id ON public.catalog_change_sets USING btree (project_id);
+
+
+--
+-- Name: index_catalog_draft_edits_on_actor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_draft_edits_on_actor_id ON public.catalog_draft_edits USING btree (actor_id);
+
+
+--
+-- Name: index_catalog_draft_edits_on_catalog_node_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_draft_edits_on_catalog_node_id ON public.catalog_draft_edits USING btree (catalog_node_id);
+
+
+--
+-- Name: index_catalog_draft_edits_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_draft_edits_on_project_id ON public.catalog_draft_edits USING btree (project_id);
+
+
+--
+-- Name: index_catalog_drafts_on_actor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_drafts_on_actor_id ON public.catalog_drafts USING btree (actor_id);
+
+
+--
+-- Name: index_catalog_drafts_on_catalog_node_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_catalog_drafts_on_catalog_node_id ON public.catalog_drafts USING btree (catalog_node_id);
+
+
+--
+-- Name: index_catalog_drafts_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_drafts_on_project_id ON public.catalog_drafts USING btree (project_id);
+
+
+--
+-- Name: index_catalog_events_on_catalog_change_set_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_events_on_catalog_change_set_id ON public.catalog_events USING btree (catalog_change_set_id);
+
+
+--
+-- Name: index_catalog_events_on_catalog_change_set_id_and_sequence; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_catalog_events_on_catalog_change_set_id_and_sequence ON public.catalog_events USING btree (catalog_change_set_id, sequence);
+
+
+--
+-- Name: index_catalog_events_on_catalog_node_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_events_on_catalog_node_id ON public.catalog_events USING btree (catalog_node_id);
+
+
+--
+-- Name: index_catalog_git_revisions_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_git_revisions_on_project_id ON public.catalog_git_revisions USING btree (project_id);
+
+
+--
+-- Name: index_catalog_git_revisions_on_project_id_and_commit_sha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_catalog_git_revisions_on_project_id_and_commit_sha ON public.catalog_git_revisions USING btree (project_id, commit_sha);
+
+
+--
+-- Name: index_catalog_nodes_on_parent_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_nodes_on_parent_id ON public.catalog_nodes USING btree (parent_id);
+
+
+--
+-- Name: index_catalog_nodes_on_payload_type_and_payload_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_nodes_on_payload_type_and_payload_id ON public.catalog_nodes USING btree (payload_type, payload_id);
+
+
+--
+-- Name: index_catalog_nodes_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_nodes_on_project_id ON public.catalog_nodes USING btree (project_id);
+
+
+--
+-- Name: index_catalog_reviews_on_actor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_reviews_on_actor_id ON public.catalog_reviews USING btree (actor_id);
+
+
+--
+-- Name: index_catalog_reviews_on_catalog_node_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_reviews_on_catalog_node_id ON public.catalog_reviews USING btree (catalog_node_id);
+
+
+--
+-- Name: index_catalog_tags_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_catalog_tags_on_project_id ON public.catalog_tags USING btree (project_id);
+
+
+--
+-- Name: index_catalog_tags_on_project_id_and_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_catalog_tags_on_project_id_and_name ON public.catalog_tags USING btree (project_id, name);
+
+
+--
 -- Name: index_email_challenges_on_email_and_purpose; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1894,52 +1933,10 @@ CREATE INDEX index_email_challenges_on_expires_at ON public.email_challenges USI
 
 
 --
--- Name: index_export_requests_on_project_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_export_requests_on_project_id ON public.export_requests USING btree (project_id);
-
-
---
--- Name: index_export_requests_on_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_export_requests_on_user_id ON public.export_requests USING btree (user_id);
-
-
---
--- Name: index_identifier_sets_on_project_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_identifier_sets_on_project_id ON public.identifier_sets USING btree (project_id);
-
-
---
--- Name: index_identifier_sets_on_project_id_and_name; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_identifier_sets_on_project_id_and_name ON public.identifier_sets USING btree (project_id, name);
-
-
---
 -- Name: index_invitations_on_email; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX index_invitations_on_email ON public.invitations USING btree (email);
-
-
---
--- Name: index_language_identifiers_on_identifier_set_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_language_identifiers_on_identifier_set_id ON public.language_identifiers USING btree (identifier_set_id);
-
-
---
--- Name: index_language_identifiers_on_language_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_language_identifiers_on_language_id ON public.language_identifiers USING btree (language_id);
 
 
 --
@@ -2038,104 +2035,6 @@ CREATE INDEX index_project_memberships_on_user_id ON public.project_memberships 
 --
 
 CREATE UNIQUE INDEX index_projects_on_slug ON public.projects USING btree (slug);
-
-
---
--- Name: index_recording_events_on_actor_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recording_events_on_actor_id ON public.recording_events USING btree (actor_id);
-
-
---
--- Name: index_recording_events_on_change_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recording_events_on_change_id ON public.recording_events USING btree (change_id);
-
-
---
--- Name: index_recording_events_on_recordable_type_and_recordable_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recording_events_on_recordable_type_and_recordable_id ON public.recording_events USING btree (recordable_type, recordable_id);
-
-
---
--- Name: index_recording_events_on_recording_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recording_events_on_recording_id ON public.recording_events USING btree (recording_id);
-
-
---
--- Name: index_recording_events_on_recording_id_and_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recording_events_on_recording_id_and_id ON public.recording_events USING btree (recording_id, id);
-
-
---
--- Name: index_recordings_on_parent_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recordings_on_parent_id ON public.recordings USING btree (parent_id);
-
-
---
--- Name: index_recordings_on_recordable_type_and_recordable_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recordings_on_recordable_type_and_recordable_id ON public.recordings USING btree (recordable_type, recordable_id);
-
-
---
--- Name: index_recordings_on_translation_tree_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_recordings_on_translation_tree_id ON public.recordings USING btree (translation_tree_id);
-
-
---
--- Name: index_sheet_languages_on_language_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_sheet_languages_on_language_id ON public.sheet_languages USING btree (language_id);
-
-
---
--- Name: index_sheet_languages_on_sheet_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_sheet_languages_on_sheet_id ON public.sheet_languages USING btree (sheet_id);
-
-
---
--- Name: index_sheet_languages_on_sheet_id_and_language_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_sheet_languages_on_sheet_id_and_language_id ON public.sheet_languages USING btree (sheet_id, language_id);
-
-
---
--- Name: index_sheets_on_default_language_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_sheets_on_default_language_id ON public.sheets USING btree (default_language_id);
-
-
---
--- Name: index_sheets_on_project_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_sheets_on_project_id ON public.sheets USING btree (project_id);
-
-
---
--- Name: index_sheets_on_project_id_and_slug; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_sheets_on_project_id_and_slug ON public.sheets USING btree (project_id, slug);
 
 
 --
@@ -2328,20 +2227,6 @@ CREATE INDEX index_solid_queue_semaphores_on_key_and_value ON public.solid_queue
 
 
 --
--- Name: index_text_translations_on_language_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_text_translations_on_language_id ON public.text_translations USING btree (language_id);
-
-
---
--- Name: index_translation_trees_on_sheet_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_translation_trees_on_sheet_id ON public.translation_trees USING btree (sheet_id);
-
-
---
 -- Name: index_users_on_email; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2370,38 +2255,45 @@ CREATE UNIQUE INDEX membership_language_unique ON public.membership_languages US
 
 
 --
--- Name: unique_identifier_in_set; Type: INDEX; Schema: public; Owner: -
+-- Name: catalog_events catalog_event_integrity; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX unique_identifier_in_set ON public.language_identifiers USING btree (identifier_set_id, identifier);
-
-
---
--- Name: unique_language_in_identifier_set; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX unique_language_in_identifier_set ON public.language_identifiers USING btree (identifier_set_id, language_id);
+CREATE TRIGGER catalog_event_integrity BEFORE INSERT ON public.catalog_events FOR EACH ROW EXECUTE FUNCTION public.guard_catalog_event();
 
 
 --
--- Name: translation_keys immutable_key; Type: TRIGGER; Schema: public; Owner: -
+-- Name: catalog_nodes catalog_node_integrity; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER immutable_key BEFORE DELETE OR UPDATE ON public.translation_keys FOR EACH ROW EXECUTE FUNCTION public.immutable_translation_payload();
-
-
---
--- Name: text_translations immutable_text; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER immutable_text BEFORE DELETE OR UPDATE ON public.text_translations FOR EACH ROW EXECUTE FUNCTION public.immutable_translation_payload();
+CREATE TRIGGER catalog_node_integrity BEFORE INSERT OR UPDATE ON public.catalog_nodes FOR EACH ROW EXECUTE FUNCTION public.guard_catalog_node();
 
 
 --
--- Name: languages language_owner; Type: TRIGGER; Schema: public; Owner: -
+-- Name: catalog_nodes catalog_shape; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER language_owner BEFORE UPDATE ON public.languages FOR EACH ROW EXECUTE FUNCTION public.guard_content_owner();
+CREATE CONSTRAINT TRIGGER catalog_shape AFTER INSERT OR UPDATE ON public.catalog_nodes DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.guard_catalog_shape();
+
+
+--
+-- Name: catalog_events immutable_catalog_events; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER immutable_catalog_events BEFORE UPDATE ON public.catalog_events FOR EACH ROW EXECUTE FUNCTION public.immutable_catalog_payload();
+
+
+--
+-- Name: catalog_keys immutable_catalog_keys; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER immutable_catalog_keys BEFORE UPDATE ON public.catalog_keys FOR EACH ROW EXECUTE FUNCTION public.immutable_catalog_payload();
+
+
+--
+-- Name: catalog_texts immutable_catalog_texts; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER immutable_catalog_texts BEFORE UPDATE ON public.catalog_texts FOR EACH ROW EXECUTE FUNCTION public.immutable_catalog_payload();
 
 
 --
@@ -2419,73 +2311,10 @@ CREATE CONSTRAINT TRIGGER last_project_owner AFTER DELETE OR UPDATE ON public.pr
 
 
 --
--- Name: membership_languages membership_language_integrity; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER membership_language_integrity BEFORE INSERT OR UPDATE ON public.membership_languages FOR EACH ROW EXECUTE FUNCTION public.guard_sheet_languages();
-
-
---
--- Name: project_memberships membership_owner; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER membership_owner BEFORE UPDATE ON public.project_memberships FOR EACH ROW EXECUTE FUNCTION public.guard_content_owner();
-
-
---
 -- Name: project_memberships project_member_capacity; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER project_member_capacity BEFORE INSERT OR DELETE OR UPDATE ON public.project_memberships FOR EACH ROW EXECUTE FUNCTION public.guard_project_membership();
-
-
---
--- Name: recordings recording_delete_revision; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER recording_delete_revision AFTER DELETE ON public.recordings REFERENCING OLD TABLE AS changed_records FOR EACH STATEMENT EXECUTE FUNCTION public.bump_translation_revision();
-
-
---
--- Name: recording_events recording_event_integrity; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER recording_event_integrity BEFORE INSERT ON public.recording_events FOR EACH ROW EXECUTE FUNCTION public.guard_recording_event();
-
-
---
--- Name: recordings recording_identity; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER recording_identity BEFORE UPDATE ON public.recordings FOR EACH ROW EXECUTE FUNCTION public.guard_recording_identity();
-
-
---
--- Name: recordings recording_insert_revision; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER recording_insert_revision AFTER INSERT ON public.recordings REFERENCING NEW TABLE AS changed_records FOR EACH STATEMENT EXECUTE FUNCTION public.bump_translation_revision();
-
-
---
--- Name: recordings recording_integrity; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER recording_integrity BEFORE INSERT OR UPDATE ON public.recordings FOR EACH ROW EXECUTE FUNCTION public.guard_recording();
-
-
---
--- Name: recordings recording_update_revision; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER recording_update_revision AFTER UPDATE ON public.recordings REFERENCING NEW TABLE AS changed_records FOR EACH STATEMENT EXECUTE FUNCTION public.bump_translation_revision();
-
-
---
--- Name: languages retained_language; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE CONSTRAINT TRIGGER retained_language AFTER UPDATE ON public.languages DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.guard_retained_language();
 
 
 --
@@ -2496,46 +2325,19 @@ CREATE TRIGGER serialize_user_owner BEFORE DELETE OR UPDATE ON public.users FOR 
 
 
 --
--- Name: sheets sheet_integrity; Type: TRIGGER; Schema: public; Owner: -
+-- Name: catalog_reviews fk_rails_02131ebbff; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE TRIGGER sheet_integrity BEFORE INSERT OR UPDATE ON public.sheets FOR EACH ROW EXECUTE FUNCTION public.guard_sheet_structure();
-
-
---
--- Name: sheet_languages sheet_language_integrity; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER sheet_language_integrity BEFORE INSERT OR UPDATE ON public.sheet_languages FOR EACH ROW EXECUTE FUNCTION public.guard_sheet_languages();
+ALTER TABLE ONLY public.catalog_reviews
+    ADD CONSTRAINT fk_rails_02131ebbff FOREIGN KEY (catalog_node_id) REFERENCES public.catalog_nodes(id) ON DELETE CASCADE;
 
 
 --
--- Name: translation_trees tree_owner; Type: TRIGGER; Schema: public; Owner: -
+-- Name: catalog_draft_edits fk_rails_1b66e4409b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE TRIGGER tree_owner BEFORE UPDATE ON public.translation_trees FOR EACH ROW EXECUTE FUNCTION public.guard_content_owner();
-
-
---
--- Name: recordings zz_recording_delimiter; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER zz_recording_delimiter BEFORE INSERT OR UPDATE ON public.recordings FOR EACH ROW EXECUTE FUNCTION public.guard_sheet_delimiter();
-
-
---
--- Name: sheets zz_sheet_delimiter; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER zz_sheet_delimiter BEFORE UPDATE ON public.sheets FOR EACH ROW EXECUTE FUNCTION public.guard_sheet_delimiter();
-
-
---
--- Name: recordings fk_rails_01ccc3f93a; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recordings
-    ADD CONSTRAINT fk_rails_01ccc3f93a FOREIGN KEY (parent_id) REFERENCES public.recordings(id);
+ALTER TABLE ONLY public.catalog_draft_edits
+    ADD CONSTRAINT fk_rails_1b66e4409b FOREIGN KEY (catalog_node_id) REFERENCES public.catalog_nodes(id) ON DELETE CASCADE;
 
 
 --
@@ -2555,14 +2357,6 @@ ALTER TABLE ONLY public.project_memberships
 
 
 --
--- Name: sheets fk_rails_2b526e3a7f; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sheets
-    ADD CONSTRAINT fk_rails_2b526e3a7f FOREIGN KEY (project_id) REFERENCES public.projects(id);
-
-
---
 -- Name: solid_queue_recurring_executions fk_rails_318a5533ed; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2571,11 +2365,11 @@ ALTER TABLE ONLY public.solid_queue_recurring_executions
 
 
 --
--- Name: sheets fk_rails_3226d5ff13; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_draft_edits fk_rails_35e019a423; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheets
-    ADD CONSTRAINT fk_rails_3226d5ff13 FOREIGN KEY (default_language_id) REFERENCES public.languages(id);
+ALTER TABLE ONLY public.catalog_draft_edits
+    ADD CONSTRAINT fk_rails_35e019a423 FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -2587,6 +2381,14 @@ ALTER TABLE ONLY public.solid_queue_failed_executions
 
 
 --
+-- Name: catalog_tags fk_rails_3d3efdf5e9; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_tags
+    ADD CONSTRAINT fk_rails_3d3efdf5e9 FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+
+
+--
 -- Name: membership_languages fk_rails_3fc141a6fd; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2595,19 +2397,19 @@ ALTER TABLE ONLY public.membership_languages
 
 
 --
--- Name: export_requests fk_rails_3ff36be8eb; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_reviews fk_rails_45c90e5685; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.export_requests
-    ADD CONSTRAINT fk_rails_3ff36be8eb FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.catalog_reviews
+    ADD CONSTRAINT fk_rails_45c90e5685 FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: text_translations fk_rails_44955cc5bd; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_drafts fk_rails_48a8d553a9; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.text_translations
-    ADD CONSTRAINT fk_rails_44955cc5bd FOREIGN KEY (language_id) REFERENCES public.languages(id);
+ALTER TABLE ONLY public.catalog_drafts
+    ADD CONSTRAINT fk_rails_48a8d553a9 FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -2627,11 +2429,11 @@ ALTER TABLE ONLY public.membership_languages
 
 
 --
--- Name: recording_events fk_rails_6175619b12; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_drafts fk_rails_627e7f0915; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recording_events
-    ADD CONSTRAINT fk_rails_6175619b12 FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.catalog_drafts
+    ADD CONSTRAINT fk_rails_627e7f0915 FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
 
 --
@@ -2643,22 +2445,6 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- Name: export_requests fk_rails_7ab4c5fc15; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.export_requests
-    ADD CONSTRAINT fk_rails_7ab4c5fc15 FOREIGN KEY (project_id) REFERENCES public.projects(id);
-
-
---
--- Name: recording_events fk_rails_7fbf46cf3a; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.recording_events
-    ADD CONSTRAINT fk_rails_7fbf46cf3a FOREIGN KEY (recording_id) REFERENCES public.recordings(id) ON DELETE CASCADE;
-
-
---
 -- Name: solid_queue_ready_executions fk_rails_81fcbd66af; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2667,11 +2453,27 @@ ALTER TABLE ONLY public.solid_queue_ready_executions
 
 
 --
--- Name: sheet_languages fk_rails_97a9740b41; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_events fk_rails_927db5a1ac; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_languages
-    ADD CONSTRAINT fk_rails_97a9740b41 FOREIGN KEY (sheet_id) REFERENCES public.sheets(id);
+ALTER TABLE ONLY public.catalog_events
+    ADD CONSTRAINT fk_rails_927db5a1ac FOREIGN KEY (catalog_node_id) REFERENCES public.catalog_nodes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: catalog_change_sets fk_rails_96526986dd; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_change_sets
+    ADD CONSTRAINT fk_rails_96526986dd FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: catalog_nodes fk_rails_9b79972ae0; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_nodes
+    ADD CONSTRAINT fk_rails_9b79972ae0 FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
 
 --
@@ -2680,14 +2482,6 @@ ALTER TABLE ONLY public.sheet_languages
 
 ALTER TABLE ONLY public.solid_queue_claimed_executions
     ADD CONSTRAINT fk_rails_9cfe4d4944 FOREIGN KEY (job_id) REFERENCES public.solid_queue_jobs(id) ON DELETE CASCADE;
-
-
---
--- Name: translation_trees fk_rails_a253064658; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.translation_trees
-    ADD CONSTRAINT fk_rails_a253064658 FOREIGN KEY (sheet_id) REFERENCES public.sheets(id);
 
 
 --
@@ -2707,19 +2501,27 @@ ALTER TABLE ONLY public.project_memberships
 
 
 --
--- Name: language_identifiers fk_rails_b065a399cc; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_nodes fk_rails_b758e0000e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.language_identifiers
-    ADD CONSTRAINT fk_rails_b065a399cc FOREIGN KEY (language_id) REFERENCES public.languages(id);
+ALTER TABLE ONLY public.catalog_nodes
+    ADD CONSTRAINT fk_rails_b758e0000e FOREIGN KEY (parent_id) REFERENCES public.catalog_nodes(id);
 
 
 --
--- Name: language_identifiers fk_rails_bc9033fce7; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_change_sets fk_rails_b8c955638c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.language_identifiers
-    ADD CONSTRAINT fk_rails_bc9033fce7 FOREIGN KEY (identifier_set_id) REFERENCES public.identifier_sets(id);
+ALTER TABLE ONLY public.catalog_change_sets
+    ADD CONSTRAINT fk_rails_b8c955638c FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+
+
+--
+-- Name: catalog_git_revisions fk_rails_bdad4d7ffd; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_git_revisions
+    ADD CONSTRAINT fk_rails_bdad4d7ffd FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
 
 --
@@ -2731,27 +2533,27 @@ ALTER TABLE ONLY public.solid_queue_scheduled_executions
 
 
 --
--- Name: recordings fk_rails_cf612c75e6; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_events fk_rails_da8627805e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recordings
-    ADD CONSTRAINT fk_rails_cf612c75e6 FOREIGN KEY (translation_tree_id) REFERENCES public.translation_trees(id);
-
-
---
--- Name: identifier_sets fk_rails_cfe162eac5; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.identifier_sets
-    ADD CONSTRAINT fk_rails_cfe162eac5 FOREIGN KEY (project_id) REFERENCES public.projects(id);
+ALTER TABLE ONLY public.catalog_events
+    ADD CONSTRAINT fk_rails_da8627805e FOREIGN KEY (catalog_change_set_id) REFERENCES public.catalog_change_sets(id) ON DELETE CASCADE;
 
 
 --
--- Name: sheet_languages fk_rails_f701e71187; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: catalog_drafts fk_rails_eda0426685; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_languages
-    ADD CONSTRAINT fk_rails_f701e71187 FOREIGN KEY (language_id) REFERENCES public.languages(id);
+ALTER TABLE ONLY public.catalog_drafts
+    ADD CONSTRAINT fk_rails_eda0426685 FOREIGN KEY (catalog_node_id) REFERENCES public.catalog_nodes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: catalog_draft_edits fk_rails_f6c34d0901; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_draft_edits
+    ADD CONSTRAINT fk_rails_f6c34d0901 FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
 
 --
@@ -2769,6 +2571,11 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260930004000'),
+('20260930003000'),
+('20260930002000'),
+('20260930001000'),
+('20260930000000'),
 ('20260921014000'),
 ('20260921013000'),
 ('20260921012000'),

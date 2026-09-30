@@ -8,9 +8,6 @@ class AuthorizationPoliciesTest < ActiveSupport::TestCase
     @other.update!(email_verified_at: Time.current)
     @public = Project.create!(name: "Public policy", visibility: "public")
     @private = Project.create!(name: "Private policy")
-    @public_sheet = @public.sheets.create!(name: "Public", visibility: "public")
-    @private_sheet = @public.sheets.create!(name: "Private")
-    @hidden_sheet = @private.sheets.create!(name: "Hidden", visibility: "public")
   end
 
   test "global roles and project roles retain the existing permission matrix" do
@@ -21,17 +18,14 @@ class AuthorizationPoliciesTest < ActiveSupport::TestCase
       assert_equal privileged, UserPolicy.new(@user, User).index?
       assert_equal privileged, ProjectPolicy.new(@user, @private).show?
       assert_equal privileged, ProjectPolicy.new(@user, @public).update?
-      assert_equal privileged, SheetPolicy.new(@user, @private_sheet).show?
-      assert_equal privileged, SheetPolicy.new(@user, @hidden_sheet).show?
-      assert SheetPolicy.new(@user, @public_sheet).show?
     end
     @user.role = :guest
     membership = @private.project_memberships.create!(user: @user, role: "viewer")
     %w[viewer translator admin owner].each do |role|
       membership.update!(role: role)
       assert_equal role != "viewer", ProjectPolicy.new(@user, @private).members?
-      assert SheetPolicy.new(@user, @hidden_sheet).show?
-      assert_equal %w[admin owner].include?(role), SheetPolicy.new(@user, @private.sheets.new).create?
+      assert ProjectPolicy.new(@user, @private).show?
+      assert_equal %w[admin owner].include?(role), ProjectPolicy.new(@user, @private).update?
     end
   end
 
@@ -39,7 +33,6 @@ class AuthorizationPoliciesTest < ActiveSupport::TestCase
     invite = @private.project_invites.create!(email: @user.email)
     unrelated = @private.project_invites.create!(email: @other.email)
     assert_equal [@public.id, @private.id].sort, ProjectPolicy::Scope.new(@user, Project).resolve.pluck(:id).sort
-    assert_equal [@public_sheet.id, @hidden_sheet.id].sort, SheetPolicy::Scope.new(@user, Sheet).resolve.pluck(:id).sort
     assert_empty ProjectMembershipPolicy::Scope.new(@user, ProjectMembership).resolve
     %w[guest owner].each do |role|
       @user.role = role
@@ -67,7 +60,6 @@ class AuthorizationPoliciesTest < ActiveSupport::TestCase
   test "policies deny anonymous and banned accounts and require explicit scopes" do
     assert_not ApplicationPolicy.new(nil, nil).access?
     assert_not ProjectPolicy.new(nil, Project).create?
-    assert_equal [@public_sheet.id], SheetPolicy::Scope.new(nil, Sheet).resolve.pluck(:id)
     @user.role = :owner
     @user.banned_at = Time.current
     assert_not UserPolicy.new(@user, @other).update?

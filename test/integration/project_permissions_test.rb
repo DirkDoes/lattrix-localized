@@ -16,7 +16,7 @@ class ProjectPermissionsTest < ActionDispatch::IntegrationTest
   test "public access never creates membership or lists unrelated projects" do
     @project.update!(visibility: "public")
     sign_in @other
-    get project_sheets_path(@project)
+    get translations_project_path(@project)
     assert_response :success
     get projects_path
     assert_select "se-workspace-card", count: 0
@@ -24,12 +24,12 @@ class ProjectPermissionsTest < ActionDispatch::IntegrationTest
     assert_select "se-sidebar-button[label=Projects]"
     assert_empty @other.project_memberships
     @project.update!(visibility: "private")
-    get project_sheets_path(@project)
+    get translations_project_path(@project)
     assert_response :not_found
     membership = @project.project_memberships.create!(user: @other, role: "viewer")
     %w[viewer translator admin owner].each do |role|
       membership.update!(role: role)
-      get project_sheets_path(@project)
+      get translations_project_path(@project)
       assert_response :success
       get projects_path
       assert_select "se-workspace-card[title=Team]"
@@ -129,7 +129,7 @@ class ProjectPermissionsTest < ActionDispatch::IntegrationTest
   end
 
   test "project deletion requires exact confirmation and removes dependent data" do
-    sheet = @project.sheets.create!(name: "Website")
+    node = @project.catalog_nodes.create!(payload: CatalogKey.create!(name: "website", kind: "scalar"))
     invite = @project.project_invites.create!(email: @other.email)
     delete project_path(@project), params: { confirmation: "delete project" }
     assert_response :unprocessable_entity
@@ -138,7 +138,7 @@ class ProjectPermissionsTest < ActionDispatch::IntegrationTest
     delete project_path(@project), params: { confirmation: "DELETE PROJECT" }
     assert_redirected_to projects_path
     assert_not Project.exists?(@project.id)
-    assert_not Sheet.exists?(sheet.id)
+    assert_not CatalogNode.exists?(node.id)
     assert_not ProjectInvite.exists?(invite.id)
     assert_not ProjectMembership.exists?(@ownership.id)
   end

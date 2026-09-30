@@ -8,8 +8,7 @@
     <div class="app-stack">
       <% @invites.each do |invite| %>
         <se-card><div class="app-stack">
-          <header><se-title level="card"><%= invite.project.name %></se-title><se-text muted small>You've been invited to join this project.</se-text></header>
-          <div><se-badge tone="brand" text="<%= invite.role.capitalize %>"></se-badge></div>
+          <header class="app-heading"><div><se-title level="card"><%= invite.project.name %></se-title><se-text muted small>You've been invited to join this project.</se-text></div><se-badge tone="brand" text="<%= invite.role.capitalize %>"></se-badge></header>
           <footer class="app-form-actions">
             <se-button variant="ghost" text="View project" href="<%= project_path(invite.project) %>"></se-button>
             <%= form_with url: project_invite_path(invite), method: :patch do %>

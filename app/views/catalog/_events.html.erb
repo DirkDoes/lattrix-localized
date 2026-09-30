@@ -1,0 +1,19 @@
+<% position = change.catalog_events.maximum(:id); after_state = CatalogState.new(@project, at: position); before_state = CatalogState.new(@project, at: change.catalog_events.minimum(:id) - 1); events = history_events(change) %>
+    <% events.offset(offset).limit(limit).each do |event| %>
+      <% before = before_state.items[event.catalog_node_id]; after = after_state.items[event.catalog_node_id]; item = after || before %>
+      <se-list-row level="1" variant="secondary"><div class="history-description history-event-detail">
+        <div class="history-change-heading"><% if item.text? %><se-badge tone="important" text="<%= CatalogLocale.name(item.payload.locale) %>"></se-badge><% end %><se-text><%= catalog_event_label(event, item, change.origin) %> <se-code><%= after_state.path(item) %></se-code></se-text></div>
+        <% if item.text? %>
+          <se-diff-value <%= tag.attributes(before: before && !before.deleted ? before.payload.value : nil, after: after && !after.deleted ? after.payload.value : nil) %>></se-diff-value>
+        <% else %>
+          <% {name: "Key", kind: "Kind", description: "Description"}.each do |attribute, label| %>
+            <% previous = before && !before.deleted ? before.payload.public_send(attribute) : nil; current = after && !after.deleted ? after.payload.public_send(attribute) : nil; next if previous == current %>
+            <div class="history-key-change"><se-text muted><%= label %></se-text><se-diff-value <%= tag.attributes(before: previous, after: current) %>></se-diff-value></div>
+          <% end %>
+          <% if event.action == 'node_moved' %><div class="history-key-change"><se-text muted>Path</se-text><se-diff-value before="<%= before_state.path(before) %>" after="<%= after_state.path(after) %>"></se-diff-value></div><% end %>
+        <% end %>
+      </div></se-list-row>
+    <% end %>
+  <% if events.count > offset + limit %>
+    <se-list-row id="history-more-<%= change.id %>-<%= offset + limit %>" level="1" variant="secondary"><div class="history-event-detail catalog-loading"><se-button variant="secondary" text="Load 20 more events" data-history-more="<%= history_events_project_path(@project, **history_filter_params, change_set_id: change.id, offset: offset + limit) %>"></se-button></div></se-list-row>
+  <% end %>

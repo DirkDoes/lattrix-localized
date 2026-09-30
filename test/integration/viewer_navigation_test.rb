@@ -12,9 +12,6 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     @admin.update!(email_verified_at: Time.current)
     @public = Project.create!(name: "Shared public", visibility: "public")
     @private = Project.create!(name: "Private team")
-    @sheet = @public.sheets.create!(name: "Shared sheet", visibility: "public")
-    @hidden = @public.sheets.create!(name: "Private sheet")
-    @private_sheet = @private.sheets.create!(name: "Hidden by project", visibility: "public")
     sign_in @viewer
   end
 
@@ -40,36 +37,20 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test "shared public links allow reading but not private data or mutations" do
-    get project_sheets_path(@public)
+  test "shared public catalogs allow reading but not private data or mutations" do
+    get translations_project_path(@public)
     assert_response :success
     assert_select "se-sidebar", count: 1
-    get project_sheets_path(@public)
-    assert_select "se-project-card", count: 1
-    assert_select "se-project-card[title='Shared sheet']"
-    assert_select "se-button[data-open-modal=sheet-create-modal]", count: 0
-    get translations_project_sheet_path(@public, @sheet)
-    assert_response :success
-    assert_select "se-sidebar", count: 1
-    assert_select "se-sidebar-chapter", count: 1
-    assert_select "se-sidebar-chapter[title=Project]:not([layout-mode])", count: 1
-    assert_select "se-sidebar-chapter[title=Administration]", count: 0
-    get translations_project_sheet_path(@public, @hidden)
+    assert_select "se-button[data-open-modal=catalog-add-key]", count: 0
+    get translations_project_path(@private)
     assert_response :not_found
-    get translations_project_sheet_path(@private, @private_sheet)
-    assert_response :not_found
-    get members_project_path(@public)
-    assert_response :not_found
-    post project_sheets_path(@public), params: { sheet: { name: "Not allowed" } }
+    get history_project_path(@public)
     assert_response :forbidden
-    post project_project_invites_path(@public), params: { email: "someone@example.com" }
-    assert_response :not_found
+    post catalog_change_project_path(@public), params: {operation: "add", path: "forbidden", revision: 0}
+    assert_response :forbidden
     @private.project_memberships.create!(user: @viewer, role: "viewer")
-    get translations_project_sheet_path(@private, @private_sheet)
+    get translations_project_path(@private)
     assert_response :success
-    get projects_path
-    assert_select "se-workspace-card", count: 1
-    assert_select "se-workspace-card[title='Private team']"
   end
 
   test "admins and owners have the all-projects directory" do

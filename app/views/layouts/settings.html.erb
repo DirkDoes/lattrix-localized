@@ -13,6 +13,7 @@
     <link rel="icon" href="/icons/lattrix/lattrix-icon-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="/icon.png?v=lt">
     <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %><%= javascript_include_tag "navigation_state", "simple-elements", defer: true, "data-turbo-track": "reload" %><%= javascript_include_tag "ui", defer: true, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags "app_forms" %>
+    <%= javascript_include_tag "catalog", defer: true, "data-turbo-track": "reload" %>
   </head>
   <body>
     <%= render "shared/toasts" %>
@@ -54,6 +55,7 @@
               <se-sidebar-chapter id="administration-navigation" title="Administration" collapsible collapsed>
                 <se-sidebar-button href="<%= settings_users_path %>" label="Users" icon="users" <%= "active" if controller_name == "users" && action_name == "index" %>></se-sidebar-button>
                 <se-sidebar-button href="<%= settings_projects_path %>" label="Projects" icon="folder" <%= "active" if controller_path == "settings/projects" %>></se-sidebar-button>
+                <% if policy(GithubAppConfiguration).show? %><se-sidebar-button href="<%= settings_github_app_path %>" label="GitHub App" icon="code" <%= "active" if controller_path == "settings/github_apps" %>></se-sidebar-button><% end %>
               </se-sidebar-chapter>
             <% end %>
           </section>

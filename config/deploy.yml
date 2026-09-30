@@ -61,6 +61,7 @@ env:
     RAILS_LOG_LEVEL: info
     SOLID_QUEUE_IN_PUMA: "true"
     SMTP_PORT: "587"
+    GH_APP_ID: <%= ENV.fetch("GH_APP_ID", "").to_json %>
   secret:
     - RAILS_MASTER_KEY
     - DATABASE_URL
@@ -69,6 +70,10 @@ env:
     - SMTP_ADDRESS
     - SMTP_USERNAME
     - SMTP_PASSWORD
+<% unless ENV["GH_APP_ID"].to_s.empty? %>
+    - GH_APP_PRIVATE_KEY
+    - GH_WEBHOOK_SECRET
+<% end %>
 <% if auth_methods.include?("google") %>
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET

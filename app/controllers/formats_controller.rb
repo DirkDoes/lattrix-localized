@@ -1,65 +1,36 @@
 class FormatsController < ApplicationController
   layout "settings"
-
   def index
     @tab = params[:tab] == "import" ? "import" : "export"
-    @format = params[:export_format].presence_in(TranslationExport::FORMATS) || "yaml"
-    @pluralization = params.fetch(:pluralization, "1") == "1"
-    @parent_translations = params.fetch(:parent_translations, "1") == "1"
-    @missing_value_behavior = params[:missing_value_behavior].presence_in(%w[omit empty fallback]) || "omit"
-    @delimiter = "."
-    @wildcard_format = '${...}'
-    build_preview if @tab == "export"
-  end
-
-  private
-
-  def build_preview
-    dutch_pay = { "empty" => "", "fallback" => "Pay securely" }[@missing_value_behavior]
-    @preview_rows = [
-      { segments: %w[account notifications], plural_parent: true },
-      { segments: %w[account notifications one], plural_form: true, en: "1 notification", nl: "1 melding" },
-      { segments: %w[account notifications other], plural_form: true, en: "${count} notifications", nl: "${count} meldingen" },
-      { segments: %w[account profile], en: (@parent_translations ? "Profile" : nil), nl: (@parent_translations ? "Profiel" : nil), branch_only: !@parent_translations },
-      { segments: %w[account profile email], en: "Email address", nl: "E-mailadres" },
-      { segments: %w[account profile name], en: "Display name", nl: "Weergavenaam" },
-      { segments: %w[account profile bio], en: "Tell people\nabout yourself.", nl: "Vertel anderen\niets over jezelf." },
-      { segments: %w[checkout pay], en: "Pay securely", nl: dutch_pay }
-    ]
-    @preview_rows.reject! { |row| row[:plural_parent] } unless @pluralization
-
-    english = nested_preview("Profile", "Pay securely")
-    dutch = nested_preview("Profiel", dutch_pay)
-    @preview_files = case @format
-    when "yaml", "json" then TranslationExport.files(@format, {"en" => english, "nl" => dutch})
-    when "csv" then [ [ "translations.csv", TranslationExport.csv(csv_rows) ] ]
-    else []
+    @format = params[:export_format].presence_in(%w[yaml csv xlsx]) || "yaml"
+    project = Project.new(name: "Example", slug: "example", source_locale: "en")
+    items = {}; paths = {}
+    examples = {
+      "account.notifications.one" => ["One notification", "Eén melding"],
+      "account.notifications.other" => ["%{count} notifications", "%{count} meldingen"],
+      "account.profile.email" => ["Email address", "E-mailadres"],
+      "account.profile.name" => ["Hello %{name}", "Hallo %{name}"],
+      "account.profile.bio" => ["Tell people\nabout yourself.", "Vertel anderen\niets over jezelf."],
+      "checkout.pay" => ["Pay securely", nil]
+    }
+    examples.each do |path, values|
+      parent = nil
+      path.split(".").each_with_index do |segment, index|
+        partial = path.split(".").first(index+1).join(".")
+        parent = paths[partial] ||= begin
+          kind = partial == "account.notifications" ? "plural" : partial == path ? "scalar" : "branch"
+          id = items.size + 1
+          items[id] = CatalogState::Item.new(id: id, parent_id: parent&.id, payload: CatalogKey.new(name: segment, kind: kind), deleted: false)
+        end
+      end
+      %w[en nl].zip(values).each do |locale, value|
+        next unless value
+        id = items.size + 1
+        items[id] = CatalogState::Item.new(id: id, parent_id: parent.id, payload: CatalogText.new(locale: locale, value: value), deleted: false)
+      end
     end
-  end
-
-  def nested_preview(profile, pay)
-    profile_values = {
-      "email" => profile == "Profile" ? "Email address" : "E-mailadres",
-      "name" => profile == "Profile" ? "Display name" : "Weergavenaam",
-      "bio" => profile == "Profile" ? "Tell people\nabout yourself." : "Vertel anderen\niets over jezelf."
-    }
-    profile_values = { "0" => profile }.merge(profile_values) if @parent_translations
-    checkout = {}
-    checkout["pay"] = pay unless pay.nil?
-    tree = {
-      "account" => {
-        "notifications" => { "one" => profile == "Profile" ? "1 notification" : "1 melding", "other" => profile == "Profile" ? "${count} notifications" : "${count} meldingen" },
-        "profile" => profile_values
-      }
-    }
-    tree["checkout"] = checkout if checkout.any?
-    tree
-  end
-
-  def csv_rows
-    [ %w[key en nl], *@preview_rows.filter_map do |row|
-      next if row[:plural_parent] || row[:branch_only]
-      [ row[:segments].join(@delimiter), row[:en], row[:nl] ]
-    end ]
+    @state = CatalogState.new(project, items: items, locales: %w[en nl])
+    exporter = CatalogExport.new(project, state: @state)
+    @files = @format == "yaml" ? exporter.files.transform_keys { |locale| "#{locale}.yml" } : @format == "csv" ? {"translations.csv" => exporter.download("csv").first} : {}
   end
 end

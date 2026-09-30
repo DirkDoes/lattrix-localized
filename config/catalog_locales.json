@@ -1,0 +1,4607 @@
+{
+  "af": {
+    "name": "Afrikaans",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "af-NA": {
+    "name": "Afrikaans (Namibia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ak": {
+    "name": "Akan",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "am": {
+    "name": "Amharic",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "an": {
+    "name": "Aragonese",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ar": {
+    "name": "Arabic",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-AE": {
+    "name": "Arabic (United Arab Emirates)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-BH": {
+    "name": "Arabic (Bahrain)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-DJ": {
+    "name": "Arabic (Djibouti)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-DZ": {
+    "name": "Arabic (Algeria)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-EG": {
+    "name": "Arabic (Egypt)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-EH": {
+    "name": "Arabic (Western Sahara)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-ER": {
+    "name": "Arabic (Eritrea)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-IL": {
+    "name": "Arabic (Israel)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-IQ": {
+    "name": "Arabic (Iraq)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-JO": {
+    "name": "Arabic (Jordan)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-KM": {
+    "name": "Arabic (Comoros)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-KW": {
+    "name": "Arabic (Kuwait)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-LB": {
+    "name": "Arabic (Lebanon)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-LY": {
+    "name": "Arabic (Libya)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-MA": {
+    "name": "Arabic (Morocco)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-MR": {
+    "name": "Arabic (Mauritania)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-OM": {
+    "name": "Arabic (Oman)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-PS": {
+    "name": "Arabic (Palestinian Territories)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-QA": {
+    "name": "Arabic (Qatar)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-SA": {
+    "name": "Arabic (Saudi Arabia)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-SD": {
+    "name": "Arabic (Sudan)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-SO": {
+    "name": "Arabic (Somalia)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-SS": {
+    "name": "Arabic (South Sudan)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-SY": {
+    "name": "Arabic (Syria)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-TD": {
+    "name": "Arabic (Chad)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-TN": {
+    "name": "Arabic (Tunisia)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ar-YE": {
+    "name": "Arabic (Yemen)",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "as": {
+    "name": "Assamese",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "asa": {
+    "name": "Asu",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ast": {
+    "name": "Asturian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "az": {
+    "name": "Azerbaijani",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "az-Arab": {
+    "name": "Azerbaijani (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "az-Arab-IQ": {
+    "name": "Azerbaijani (Arab-IQ)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "az-Arab-TR": {
+    "name": "Azerbaijani (Arab-TR)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "az-Cyrl": {
+    "name": "Azerbaijani (Cyrl)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "az-Latn": {
+    "name": "Azerbaijani (Latn)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bal": {
+    "name": "Baluchi",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bal-Arab": {
+    "name": "Baluchi (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bal-Latn": {
+    "name": "Baluchi (Latn)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "be": {
+    "name": "Belarusian",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "be-tarask": {
+    "name": "Belarusian (tarask)",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "bem": {
+    "name": "Bemba",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bez": {
+    "name": "Bena",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bg": {
+    "name": "Bulgarian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bho": {
+    "name": "Bhojpuri",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "blo": {
+    "name": "Anii",
+    "categories": [
+      "zero",
+      "one",
+      "other"
+    ]
+  },
+  "bm": {
+    "name": "Bambara",
+    "categories": [
+      "other"
+    ]
+  },
+  "bm-Nkoo": {
+    "name": "Bambara (Nkoo)",
+    "categories": [
+      "other"
+    ]
+  },
+  "bn": {
+    "name": "Bangla",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bn-IN": {
+    "name": "Bangla (India)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bo": {
+    "name": "Tibetan",
+    "categories": [
+      "other"
+    ]
+  },
+  "bo-IN": {
+    "name": "Tibetan (India)",
+    "categories": [
+      "other"
+    ]
+  },
+  "br": {
+    "name": "Breton",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "brx": {
+    "name": "Bodo",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "bs": {
+    "name": "Bosnian",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "bs-Cyrl": {
+    "name": "Bosnian (Cyrl)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "bs-Latn": {
+    "name": "Bosnian (Latn)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "ca": {
+    "name": "Catalan",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "ca-AD": {
+    "name": "Catalan (Andorra)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "ca-ES-valencia": {
+    "name": "Catalan (ES-valencia)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "ca-FR": {
+    "name": "Catalan (France)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "ca-IT": {
+    "name": "Catalan (Italy)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "ce": {
+    "name": "Chechen",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ceb": {
+    "name": "Cebuano",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "cgg": {
+    "name": "Chiga",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "chr": {
+    "name": "Cherokee",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ckb": {
+    "name": "Central Kurdish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ckb-IR": {
+    "name": "Central Kurdish (Iran)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "cs": {
+    "name": "Czech",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "csw": {
+    "name": "Swampy Cree",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "cv": {
+    "name": "Chuvash",
+    "categories": [
+      "zero",
+      "one",
+      "other"
+    ]
+  },
+  "cy": {
+    "name": "Welsh",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "da": {
+    "name": "Danish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "da-GL": {
+    "name": "Danish (Greenland)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de": {
+    "name": "German",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de-AT": {
+    "name": "Austrian German",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de-BE": {
+    "name": "German (Belgium)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de-CH": {
+    "name": "Swiss High German",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de-IT": {
+    "name": "German (Italy)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de-LI": {
+    "name": "German (Liechtenstein)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "de-LU": {
+    "name": "German (Luxembourg)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "doi": {
+    "name": "Dogri",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "dsb": {
+    "name": "Lower Sorbian",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "other"
+    ]
+  },
+  "dv": {
+    "name": "Divehi",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "dz": {
+    "name": "Dzongkha",
+    "categories": [
+      "other"
+    ]
+  },
+  "ee": {
+    "name": "Ewe",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ee-TG": {
+    "name": "Ewe (Togo)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "el": {
+    "name": "Greek",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "el-CY": {
+    "name": "Greek (Cyprus)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "el-polyton": {
+    "name": "Greek (polyton)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en": {
+    "name": "English",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-001": {
+    "name": "English (world)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-150": {
+    "name": "English (Europe)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-AE": {
+    "name": "English (United Arab Emirates)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-AG": {
+    "name": "English (Antigua & Barbuda)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-AI": {
+    "name": "English (Anguilla)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-AS": {
+    "name": "English (American Samoa)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-AT": {
+    "name": "English (Austria)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-AU": {
+    "name": "Australian English",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BB": {
+    "name": "English (Barbados)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BE": {
+    "name": "English (Belgium)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BI": {
+    "name": "English (Burundi)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BM": {
+    "name": "English (Bermuda)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BS": {
+    "name": "English (Bahamas)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BW": {
+    "name": "English (Botswana)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-BZ": {
+    "name": "English (Belize)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CA": {
+    "name": "Canadian English",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CC": {
+    "name": "English (Cocos (Keeling) Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CH": {
+    "name": "English (Switzerland)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CK": {
+    "name": "English (Cook Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CM": {
+    "name": "English (Cameroon)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CX": {
+    "name": "English (Christmas Island)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CY": {
+    "name": "English (Cyprus)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-CZ": {
+    "name": "English (Czechia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-DE": {
+    "name": "English (Germany)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-DG": {
+    "name": "English (Diego Garcia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-DK": {
+    "name": "English (Denmark)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-DM": {
+    "name": "English (Dominica)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-Dsrt": {
+    "name": "English (Dsrt)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-EE": {
+    "name": "English (Estonia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-ER": {
+    "name": "English (Eritrea)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-ES": {
+    "name": "English (Spain)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-FI": {
+    "name": "English (Finland)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-FJ": {
+    "name": "English (Fiji)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-FK": {
+    "name": "English (Falkland Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-FM": {
+    "name": "English (Micronesia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-FR": {
+    "name": "English (France)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GB": {
+    "name": "British English",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GD": {
+    "name": "English (Grenada)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GE": {
+    "name": "English (Georgia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GG": {
+    "name": "English (Guernsey)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GH": {
+    "name": "English (Ghana)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GI": {
+    "name": "English (Gibraltar)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GM": {
+    "name": "English (Gambia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GS": {
+    "name": "English (South Georgia & South Sandwich Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GU": {
+    "name": "English (Guam)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-GY": {
+    "name": "English (Guyana)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-HK": {
+    "name": "English (Hong Kong SAR China)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-HU": {
+    "name": "English (Hungary)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-ID": {
+    "name": "English (Indonesia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-IE": {
+    "name": "English (Ireland)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-IL": {
+    "name": "English (Israel)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-IM": {
+    "name": "English (Isle of Man)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-IN": {
+    "name": "English (India)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-IO": {
+    "name": "English (British Indian Ocean Territory)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-IT": {
+    "name": "English (Italy)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-JE": {
+    "name": "English (Jersey)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-JM": {
+    "name": "English (Jamaica)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-JP": {
+    "name": "English (Japan)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-KE": {
+    "name": "English (Kenya)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-KI": {
+    "name": "English (Kiribati)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-KN": {
+    "name": "English (St. Kitts & Nevis)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-KY": {
+    "name": "English (Cayman Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-LC": {
+    "name": "English (St. Lucia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-LR": {
+    "name": "English (Liberia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-LS": {
+    "name": "English (Lesotho)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-LT": {
+    "name": "English (Lithuania)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-LV": {
+    "name": "English (Latvia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MG": {
+    "name": "English (Madagascar)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MH": {
+    "name": "English (Marshall Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MO": {
+    "name": "English (Macao SAR China)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MP": {
+    "name": "English (Northern Mariana Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MS": {
+    "name": "English (Montserrat)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MT": {
+    "name": "English (Malta)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MU": {
+    "name": "English (Mauritius)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MV": {
+    "name": "English (Maldives)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MW": {
+    "name": "English (Malawi)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-MY": {
+    "name": "English (Malaysia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NA": {
+    "name": "English (Namibia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NF": {
+    "name": "English (Norfolk Island)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NG": {
+    "name": "English (Nigeria)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NL": {
+    "name": "English (Netherlands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NO": {
+    "name": "English (Norway)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NR": {
+    "name": "English (Nauru)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NU": {
+    "name": "English (Niue)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-NZ": {
+    "name": "English (New Zealand)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PG": {
+    "name": "English (Papua New Guinea)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PH": {
+    "name": "English (Philippines)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PK": {
+    "name": "English (Pakistan)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PL": {
+    "name": "English (Poland)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PN": {
+    "name": "English (Pitcairn Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PR": {
+    "name": "English (Puerto Rico)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PT": {
+    "name": "English (Portugal)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-PW": {
+    "name": "English (Palau)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-RO": {
+    "name": "English (Romania)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-RW": {
+    "name": "English (Rwanda)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SB": {
+    "name": "English (Solomon Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SC": {
+    "name": "English (Seychelles)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SD": {
+    "name": "English (Sudan)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SE": {
+    "name": "English (Sweden)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SG": {
+    "name": "English (Singapore)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SH": {
+    "name": "English (St. Helena)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SI": {
+    "name": "English (Slovenia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SK": {
+    "name": "English (Slovakia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SL": {
+    "name": "English (Sierra Leone)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SS": {
+    "name": "English (South Sudan)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SX": {
+    "name": "English (Sint Maarten)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-SZ": {
+    "name": "English (Eswatini)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-Shaw": {
+    "name": "English (Shaw)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-TC": {
+    "name": "English (Turks & Caicos Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-TK": {
+    "name": "English (Tokelau)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-TO": {
+    "name": "English (Tonga)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-TT": {
+    "name": "English (Trinidad & Tobago)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-TV": {
+    "name": "English (Tuvalu)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-TZ": {
+    "name": "English (Tanzania)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-UA": {
+    "name": "English (Ukraine)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-UG": {
+    "name": "English (Uganda)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-UM": {
+    "name": "English (U.S. Outlying Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-VC": {
+    "name": "English (St. Vincent & Grenadines)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-VG": {
+    "name": "English (British Virgin Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-VI": {
+    "name": "English (U.S. Virgin Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-VU": {
+    "name": "English (Vanuatu)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-WS": {
+    "name": "English (Samoa)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-ZA": {
+    "name": "English (South Africa)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-ZM": {
+    "name": "English (Zambia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "en-ZW": {
+    "name": "English (Zimbabwe)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "eo": {
+    "name": "Esperanto",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "es": {
+    "name": "Spanish",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-419": {
+    "name": "Latin American Spanish",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-AR": {
+    "name": "Spanish (Argentina)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-BO": {
+    "name": "Spanish (Bolivia)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-BR": {
+    "name": "Spanish (Brazil)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-BZ": {
+    "name": "Spanish (Belize)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-CL": {
+    "name": "Spanish (Chile)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-CO": {
+    "name": "Spanish (Colombia)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-CR": {
+    "name": "Spanish (Costa Rica)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-CU": {
+    "name": "Spanish (Cuba)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-DO": {
+    "name": "Spanish (Dominican Republic)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-EA": {
+    "name": "Spanish (Ceuta & Melilla)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-EC": {
+    "name": "Spanish (Ecuador)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-GQ": {
+    "name": "Spanish (Equatorial Guinea)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-GT": {
+    "name": "Spanish (Guatemala)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-HN": {
+    "name": "Spanish (Honduras)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-IC": {
+    "name": "Spanish (Canary Islands)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-MX": {
+    "name": "Mexican Spanish",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-NI": {
+    "name": "Spanish (Nicaragua)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-PA": {
+    "name": "Spanish (Panama)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-PE": {
+    "name": "Spanish (Peru)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-PH": {
+    "name": "Spanish (Philippines)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-PR": {
+    "name": "Spanish (Puerto Rico)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-PY": {
+    "name": "Spanish (Paraguay)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-SV": {
+    "name": "Spanish (El Salvador)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-US": {
+    "name": "Spanish (United States)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-UY": {
+    "name": "Spanish (Uruguay)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "es-VE": {
+    "name": "Spanish (Venezuela)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "et": {
+    "name": "Estonian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "eu": {
+    "name": "Basque",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fa": {
+    "name": "Persian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fa-AF": {
+    "name": "Dari",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff": {
+    "name": "Fula",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm": {
+    "name": "Fula (Adlm)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-BF": {
+    "name": "Fula (Adlm-BF)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-CM": {
+    "name": "Fula (Adlm-CM)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-GH": {
+    "name": "Fula (Adlm-GH)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-GM": {
+    "name": "Fula (Adlm-GM)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-GW": {
+    "name": "Fula (Adlm-GW)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-LR": {
+    "name": "Fula (Adlm-LR)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-MR": {
+    "name": "Fula (Adlm-MR)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-NE": {
+    "name": "Fula (Adlm-NE)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-NG": {
+    "name": "Fula (Adlm-NG)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-SL": {
+    "name": "Fula (Adlm-SL)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Adlm-SN": {
+    "name": "Fula (Adlm-SN)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn": {
+    "name": "Fula (Latn)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-BF": {
+    "name": "Fula (Latn-BF)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-CM": {
+    "name": "Fula (Latn-CM)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-GH": {
+    "name": "Fula (Latn-GH)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-GM": {
+    "name": "Fula (Latn-GM)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-GN": {
+    "name": "Fula (Latn-GN)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-GW": {
+    "name": "Fula (Latn-GW)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-LR": {
+    "name": "Fula (Latn-LR)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-MR": {
+    "name": "Fula (Latn-MR)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-NE": {
+    "name": "Fula (Latn-NE)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-NG": {
+    "name": "Fula (Latn-NG)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ff-Latn-SL": {
+    "name": "Fula (Latn-SL)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fi": {
+    "name": "Finnish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fil": {
+    "name": "Filipino",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fo": {
+    "name": "Faroese",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fo-DK": {
+    "name": "Faroese (Denmark)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fr": {
+    "name": "French",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-BE": {
+    "name": "French (Belgium)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-BF": {
+    "name": "French (Burkina Faso)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-BI": {
+    "name": "French (Burundi)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-BJ": {
+    "name": "French (Benin)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-BL": {
+    "name": "French (St. Barthélemy)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CA": {
+    "name": "Canadian French",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CD": {
+    "name": "French (Congo - Kinshasa)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CF": {
+    "name": "French (Central African Republic)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CG": {
+    "name": "French (Congo - Brazzaville)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CH": {
+    "name": "Swiss French",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CI": {
+    "name": "French (Côte d’Ivoire)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-CM": {
+    "name": "French (Cameroon)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-DJ": {
+    "name": "French (Djibouti)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-DZ": {
+    "name": "French (Algeria)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-GA": {
+    "name": "French (Gabon)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-GF": {
+    "name": "French (French Guiana)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-GN": {
+    "name": "French (Guinea)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-GP": {
+    "name": "French (Guadeloupe)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-GQ": {
+    "name": "French (Equatorial Guinea)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-HT": {
+    "name": "French (Haiti)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-KM": {
+    "name": "French (Comoros)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-LU": {
+    "name": "French (Luxembourg)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MA": {
+    "name": "French (Morocco)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MC": {
+    "name": "French (Monaco)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MF": {
+    "name": "French (St. Martin)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MG": {
+    "name": "French (Madagascar)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-ML": {
+    "name": "French (Mali)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MQ": {
+    "name": "French (Martinique)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MR": {
+    "name": "French (Mauritania)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-MU": {
+    "name": "French (Mauritius)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-NC": {
+    "name": "French (New Caledonia)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-NE": {
+    "name": "French (Niger)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-PF": {
+    "name": "French (French Polynesia)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-PM": {
+    "name": "French (St. Pierre & Miquelon)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-RE": {
+    "name": "French (Réunion)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-RW": {
+    "name": "French (Rwanda)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-SC": {
+    "name": "French (Seychelles)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-SN": {
+    "name": "French (Senegal)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-SY": {
+    "name": "French (Syria)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-TD": {
+    "name": "French (Chad)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-TG": {
+    "name": "French (Togo)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-TN": {
+    "name": "French (Tunisia)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-VU": {
+    "name": "French (Vanuatu)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-WF": {
+    "name": "French (Wallis & Futuna)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fr-YT": {
+    "name": "French (Mayotte)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "fur": {
+    "name": "Friulian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "fy": {
+    "name": "Western Frisian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ga": {
+    "name": "Irish",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ga-GB": {
+    "name": "Irish (United Kingdom)",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "gd": {
+    "name": "Scottish Gaelic",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "other"
+    ]
+  },
+  "gl": {
+    "name": "Galician",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "gsw": {
+    "name": "Swiss German",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "gsw-FR": {
+    "name": "Swiss German (France)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "gsw-LI": {
+    "name": "Swiss German (Liechtenstein)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "gu": {
+    "name": "Gujarati",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "gv": {
+    "name": "Manx",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ha": {
+    "name": "Hausa",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ha-Arab": {
+    "name": "Hausa (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ha-Arab-SD": {
+    "name": "Hausa (Arab-SD)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ha-GH": {
+    "name": "Hausa (Ghana)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ha-NE": {
+    "name": "Hausa (Niger)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "haw": {
+    "name": "Hawaiian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "he": {
+    "name": "Hebrew",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "hi": {
+    "name": "Hindi",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "hi-Latn": {
+    "name": "Hindi (Latin)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "hnj": {
+    "name": "Hmong Njua",
+    "categories": [
+      "other"
+    ]
+  },
+  "hnj-Hmnp": {
+    "name": "Hmong Njua (Hmnp)",
+    "categories": [
+      "other"
+    ]
+  },
+  "hr": {
+    "name": "Croatian",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "hr-BA": {
+    "name": "Croatian (Bosnia & Herzegovina)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "hsb": {
+    "name": "Upper Sorbian",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "other"
+    ]
+  },
+  "hu": {
+    "name": "Hungarian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "hy": {
+    "name": "Armenian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ia": {
+    "name": "Interlingua",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "id": {
+    "name": "Indonesian",
+    "categories": [
+      "other"
+    ]
+  },
+  "ie": {
+    "name": "Interlingue",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ig": {
+    "name": "Igbo",
+    "categories": [
+      "other"
+    ]
+  },
+  "ii": {
+    "name": "Sichuan Yi",
+    "categories": [
+      "other"
+    ]
+  },
+  "io": {
+    "name": "Ido",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "is": {
+    "name": "Icelandic",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "it": {
+    "name": "Italian",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "it-CH": {
+    "name": "Italian (Switzerland)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "it-SM": {
+    "name": "Italian (San Marino)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "it-VA": {
+    "name": "Italian (Vatican City)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "iu": {
+    "name": "Inuktitut",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "iu-Latn": {
+    "name": "Inuktitut (Latn)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "ja": {
+    "name": "Japanese",
+    "categories": [
+      "other"
+    ]
+  },
+  "jbo": {
+    "name": "Lojban",
+    "categories": [
+      "other"
+    ]
+  },
+  "jgo": {
+    "name": "Ngomba",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "jmc": {
+    "name": "Machame",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "jv": {
+    "name": "Javanese",
+    "categories": [
+      "other"
+    ]
+  },
+  "ka": {
+    "name": "Georgian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kab": {
+    "name": "Kabyle",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kaj": {
+    "name": "Jju",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kcg": {
+    "name": "Tyap",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kde": {
+    "name": "Makonde",
+    "categories": [
+      "other"
+    ]
+  },
+  "kea": {
+    "name": "Kabuverdianu",
+    "categories": [
+      "other"
+    ]
+  },
+  "kk": {
+    "name": "Kazakh",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kk-Arab": {
+    "name": "Kazakh (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kk-Cyrl": {
+    "name": "Kazakh (Cyrl)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kk-KZ": {
+    "name": "Kazakh (Kazakhstan)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kkj": {
+    "name": "Kako",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kl": {
+    "name": "Kalaallisut",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "km": {
+    "name": "Khmer",
+    "categories": [
+      "other"
+    ]
+  },
+  "kn": {
+    "name": "Kannada",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ko": {
+    "name": "Korean",
+    "categories": [
+      "other"
+    ]
+  },
+  "ko-CN": {
+    "name": "Korean (China)",
+    "categories": [
+      "other"
+    ]
+  },
+  "ko-KP": {
+    "name": "Korean (North Korea)",
+    "categories": [
+      "other"
+    ]
+  },
+  "kok": {
+    "name": "Konkani",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kok-Deva": {
+    "name": "Konkani (Deva)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kok-Latn": {
+    "name": "Konkani (Latn)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ks": {
+    "name": "Kashmiri",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ks-Arab": {
+    "name": "Kashmiri (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ks-Deva": {
+    "name": "Kashmiri (Deva)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ksb": {
+    "name": "Shambala",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ksh": {
+    "name": "Colognian",
+    "categories": [
+      "zero",
+      "one",
+      "other"
+    ]
+  },
+  "ku": {
+    "name": "Kurdish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ku-Arab": {
+    "name": "Kurdish (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ku-Arab-IR": {
+    "name": "Kurdish (Arab-IR)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ku-Latn": {
+    "name": "Kurdish (Latn)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ku-Latn-IQ": {
+    "name": "Kurdish (Latn-IQ)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ku-Latn-SY": {
+    "name": "Kurdish (Latn-SY)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ku-TR": {
+    "name": "Kurdish (Türkiye)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "kw": {
+    "name": "Cornish",
+    "categories": [
+      "zero",
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ky": {
+    "name": "Kyrgyz",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "lag": {
+    "name": "Langi",
+    "categories": [
+      "zero",
+      "one",
+      "other"
+    ]
+  },
+  "lb": {
+    "name": "Luxembourgish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "lg": {
+    "name": "Ganda",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "lij": {
+    "name": "Ligurian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "lkt": {
+    "name": "Lakota",
+    "categories": [
+      "other"
+    ]
+  },
+  "ln": {
+    "name": "Lingala",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ln-AO": {
+    "name": "Lingala (Angola)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ln-CF": {
+    "name": "Lingala (Central African Republic)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ln-CG": {
+    "name": "Lingala (Congo - Brazzaville)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "lo": {
+    "name": "Lao",
+    "categories": [
+      "other"
+    ]
+  },
+  "lt": {
+    "name": "Lithuanian",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "lv": {
+    "name": "Latvian",
+    "categories": [
+      "zero",
+      "one",
+      "other"
+    ]
+  },
+  "mas": {
+    "name": "Masai",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mas-TZ": {
+    "name": "Masai (Tanzania)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mg": {
+    "name": "Malagasy",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mgo": {
+    "name": "Metaʼ",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mk": {
+    "name": "Macedonian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ml": {
+    "name": "Malayalam",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mn": {
+    "name": "Mongolian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mn-Mong": {
+    "name": "Mongolian (Mong)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mn-Mong-MN": {
+    "name": "Mongolian (Mong-MN)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "mr": {
+    "name": "Marathi",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ms": {
+    "name": "Malay",
+    "categories": [
+      "other"
+    ]
+  },
+  "ms-Arab": {
+    "name": "Malay (Arab)",
+    "categories": [
+      "other"
+    ]
+  },
+  "ms-Arab-BN": {
+    "name": "Malay (Arab-BN)",
+    "categories": [
+      "other"
+    ]
+  },
+  "ms-BN": {
+    "name": "Malay (Brunei)",
+    "categories": [
+      "other"
+    ]
+  },
+  "ms-ID": {
+    "name": "Malay (Indonesia)",
+    "categories": [
+      "other"
+    ]
+  },
+  "ms-SG": {
+    "name": "Malay (Singapore)",
+    "categories": [
+      "other"
+    ]
+  },
+  "mt": {
+    "name": "Maltese",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "my": {
+    "name": "Burmese",
+    "categories": [
+      "other"
+    ]
+  },
+  "naq": {
+    "name": "Nama",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "nb": {
+    "name": "Norwegian Bokmål",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nb-SJ": {
+    "name": "Norwegian Bokmål (Svalbard & Jan Mayen)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nd": {
+    "name": "North Ndebele",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ne": {
+    "name": "Nepali",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ne-IN": {
+    "name": "Nepali (India)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl": {
+    "name": "Dutch",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl-AW": {
+    "name": "Dutch (Aruba)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl-BE": {
+    "name": "Flemish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl-BQ": {
+    "name": "Dutch (Caribbean Netherlands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl-CW": {
+    "name": "Dutch (Curaçao)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl-SR": {
+    "name": "Dutch (Suriname)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nl-SX": {
+    "name": "Dutch (Sint Maarten)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nn": {
+    "name": "Norwegian Nynorsk",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nnh": {
+    "name": "Ngiemboon",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "no": {
+    "name": "Norwegian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nqo": {
+    "name": "N’Ko",
+    "categories": [
+      "other"
+    ]
+  },
+  "nr": {
+    "name": "South Ndebele",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nso": {
+    "name": "Northern Sotho",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ny": {
+    "name": "Nyanja",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "nyn": {
+    "name": "Nyankole",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "om": {
+    "name": "Oromo",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "om-KE": {
+    "name": "Oromo (Kenya)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "or": {
+    "name": "Odia",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "os": {
+    "name": "Ossetic",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "os-RU": {
+    "name": "Ossetic (Russia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "osa": {
+    "name": "Osage",
+    "categories": [
+      "other"
+    ]
+  },
+  "pa": {
+    "name": "Punjabi",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pa-Arab": {
+    "name": "Punjabi (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pa-Guru": {
+    "name": "Punjabi (Guru)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pap": {
+    "name": "Papiamento",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pap-AW": {
+    "name": "Papiamento (Aruba)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pcm": {
+    "name": "Nigerian Pidgin",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pl": {
+    "name": "Polish",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "prg": {
+    "name": "Prussian",
+    "categories": [
+      "zero",
+      "one",
+      "other"
+    ]
+  },
+  "ps": {
+    "name": "Pashto",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ps-PK": {
+    "name": "Pashto (Pakistan)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "pt": {
+    "name": "Portuguese",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-AO": {
+    "name": "Portuguese (Angola)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-CH": {
+    "name": "Portuguese (Switzerland)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-CV": {
+    "name": "Portuguese (Cape Verde)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-GQ": {
+    "name": "Portuguese (Equatorial Guinea)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-GW": {
+    "name": "Portuguese (Guinea-Bissau)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-LU": {
+    "name": "Portuguese (Luxembourg)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-MO": {
+    "name": "Portuguese (Macao SAR China)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-MZ": {
+    "name": "Portuguese (Mozambique)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-PT": {
+    "name": "European Portuguese",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-ST": {
+    "name": "Portuguese (São Tomé & Príncipe)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "pt-TL": {
+    "name": "Portuguese (Timor-Leste)",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "rm": {
+    "name": "Romansh",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ro": {
+    "name": "Romanian",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "ro-MD": {
+    "name": "Moldavian",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "rof": {
+    "name": "Rombo",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ru": {
+    "name": "Russian",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ru-BY": {
+    "name": "Russian (Belarus)",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ru-KG": {
+    "name": "Russian (Kyrgyzstan)",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ru-KZ": {
+    "name": "Russian (Kazakhstan)",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ru-MD": {
+    "name": "Russian (Moldova)",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "ru-UA": {
+    "name": "Russian (Ukraine)",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "rwk": {
+    "name": "Rwa",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sah": {
+    "name": "Yakut",
+    "categories": [
+      "other"
+    ]
+  },
+  "saq": {
+    "name": "Samburu",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sat": {
+    "name": "Santali",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "sat-Deva": {
+    "name": "Santali (Deva)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "sat-Olck": {
+    "name": "Santali (Olck)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "sc": {
+    "name": "Sardinian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "scn": {
+    "name": "Sicilian",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "sd": {
+    "name": "Sindhi",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sd-Arab": {
+    "name": "Sindhi (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sd-Deva": {
+    "name": "Sindhi (Deva)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sdh": {
+    "name": "Southern Kurdish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sdh-IQ": {
+    "name": "Southern Kurdish (Iraq)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "se": {
+    "name": "Northern Sami",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "se-FI": {
+    "name": "Northern Sami (Finland)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "se-SE": {
+    "name": "Northern Sami (Sweden)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "seh": {
+    "name": "Sena",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ses": {
+    "name": "Koyraboro Senni",
+    "categories": [
+      "other"
+    ]
+  },
+  "sg": {
+    "name": "Sango",
+    "categories": [
+      "other"
+    ]
+  },
+  "sgs": {
+    "name": "Samogitian",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "shi": {
+    "name": "Tachelhit",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "shi-Latn": {
+    "name": "Tachelhit (Latn)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "shi-Tfng": {
+    "name": "Tachelhit (Tfng)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "si": {
+    "name": "Sinhala",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sk": {
+    "name": "Slovak",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "sl": {
+    "name": "Slovenian",
+    "categories": [
+      "one",
+      "two",
+      "few",
+      "other"
+    ]
+  },
+  "sma": {
+    "name": "Southern Sami",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "sma-NO": {
+    "name": "Southern Sami (Norway)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "smj": {
+    "name": "Lule Sami",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "smj-NO": {
+    "name": "Lule Sami (Norway)",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "smn": {
+    "name": "Inari Sami",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "sms": {
+    "name": "Skolt Sami",
+    "categories": [
+      "one",
+      "two",
+      "other"
+    ]
+  },
+  "sn": {
+    "name": "Shona",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "so": {
+    "name": "Somali",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "so-DJ": {
+    "name": "Somali (Djibouti)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "so-ET": {
+    "name": "Somali (Ethiopia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "so-KE": {
+    "name": "Somali (Kenya)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sq": {
+    "name": "Albanian",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sq-MK": {
+    "name": "Albanian (North Macedonia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sq-XK": {
+    "name": "Albanian (Kosovo)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sr": {
+    "name": "Serbian",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Cyrl": {
+    "name": "Serbian (Cyrl)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Cyrl-BA": {
+    "name": "Serbian (Cyrl-BA)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Cyrl-ME": {
+    "name": "Serbian (Cyrl-ME)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Cyrl-XK": {
+    "name": "Serbian (Cyrl-XK)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Latn": {
+    "name": "Serbian (Latn)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Latn-BA": {
+    "name": "Serbian (Latn-BA)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Latn-ME": {
+    "name": "Serbian (Latn-ME)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "sr-Latn-XK": {
+    "name": "Serbian (Latn-XK)",
+    "categories": [
+      "one",
+      "few",
+      "other"
+    ]
+  },
+  "ss": {
+    "name": "Swati",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ss-SZ": {
+    "name": "Swati (Eswatini)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ssy": {
+    "name": "Saho",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "st": {
+    "name": "Southern Sotho",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "st-LS": {
+    "name": "Southern Sotho (Lesotho)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "su": {
+    "name": "Sundanese",
+    "categories": [
+      "other"
+    ]
+  },
+  "su-Latn": {
+    "name": "Sundanese (Latn)",
+    "categories": [
+      "other"
+    ]
+  },
+  "sv": {
+    "name": "Swedish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sv-AX": {
+    "name": "Swedish (Åland Islands)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sv-FI": {
+    "name": "Swedish (Finland)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sw": {
+    "name": "Swahili",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sw-CD": {
+    "name": "Congo Swahili",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sw-KE": {
+    "name": "Swahili (Kenya)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "sw-UG": {
+    "name": "Swahili (Uganda)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "syr": {
+    "name": "Syriac",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "syr-SY": {
+    "name": "Syriac (Syria)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ta": {
+    "name": "Tamil",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ta-LK": {
+    "name": "Tamil (Sri Lanka)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ta-MY": {
+    "name": "Tamil (Malaysia)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ta-SG": {
+    "name": "Tamil (Singapore)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "te": {
+    "name": "Telugu",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "teo": {
+    "name": "Teso",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "teo-KE": {
+    "name": "Teso (Kenya)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "th": {
+    "name": "Thai",
+    "categories": [
+      "other"
+    ]
+  },
+  "ti": {
+    "name": "Tigrinya",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ti-ER": {
+    "name": "Tigrinya (Eritrea)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "tig": {
+    "name": "Tigre",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "tk": {
+    "name": "Turkmen",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "tn": {
+    "name": "Tswana",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "tn-BW": {
+    "name": "Tswana (Botswana)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "to": {
+    "name": "Tongan",
+    "categories": [
+      "other"
+    ]
+  },
+  "tpi": {
+    "name": "Tok Pisin",
+    "categories": [
+      "other"
+    ]
+  },
+  "tr": {
+    "name": "Turkish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "tr-CY": {
+    "name": "Turkish (Cyprus)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ts": {
+    "name": "Tsonga",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "tzm": {
+    "name": "Central Atlas Tamazight",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ug": {
+    "name": "Uyghur",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "uk": {
+    "name": "Ukrainian",
+    "categories": [
+      "one",
+      "few",
+      "many",
+      "other"
+    ]
+  },
+  "und": {
+    "name": "Unknown language",
+    "categories": [
+      "other"
+    ]
+  },
+  "ur": {
+    "name": "Urdu",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ur-IN": {
+    "name": "Urdu (India)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "uz": {
+    "name": "Uzbek",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "uz-Arab": {
+    "name": "Uzbek (Arab)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "uz-Cyrl": {
+    "name": "Uzbek (Cyrl)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "uz-Latn": {
+    "name": "Uzbek (Latn)",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "ve": {
+    "name": "Venda",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "vec": {
+    "name": "Venetian",
+    "categories": [
+      "one",
+      "many",
+      "other"
+    ]
+  },
+  "vi": {
+    "name": "Vietnamese",
+    "categories": [
+      "other"
+    ]
+  },
+  "vo": {
+    "name": "Volapük",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "vun": {
+    "name": "Vunjo",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "wa": {
+    "name": "Walloon",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "wae": {
+    "name": "Walser",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "wo": {
+    "name": "Wolof",
+    "categories": [
+      "other"
+    ]
+  },
+  "xh": {
+    "name": "Xhosa",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "xog": {
+    "name": "Soga",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "yi": {
+    "name": "Yiddish",
+    "categories": [
+      "one",
+      "other"
+    ]
+  },
+  "yo": {
+    "name": "Yoruba",
+    "categories": [
+      "other"
+    ]
+  },
+  "yo-BJ": {
+    "name": "Yoruba (Benin)",
+    "categories": [
+      "other"
+    ]
+  },
+  "yue": {
+    "name": "Cantonese",
+    "categories": [
+      "other"
+    ]
+  },
+  "yue-Hans": {
+    "name": "Cantonese (Hans)",
+    "categories": [
+      "other"
+    ]
+  },
+  "yue-Hant": {
+    "name": "Cantonese (Hant)",
+    "categories": [
+      "other"
+    ]
+  },
+  "yue-Hant-CN": {
+    "name": "Cantonese (Hant-CN)",
+    "categories": [
+      "other"
+    ]
+  },
+  "yue-Hant-MO": {
+    "name": "Cantonese (Hant-MO)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh": {
+    "name": "Chinese",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hans": {
+    "name": "Simplified Chinese",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hans-HK": {
+    "name": "Chinese (Hans-HK)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hans-MO": {
+    "name": "Chinese (Hans-MO)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hans-MY": {
+    "name": "Chinese (Hans-MY)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hans-SG": {
+    "name": "Chinese (Hans-SG)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hant": {
+    "name": "Traditional Chinese",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hant-HK": {
+    "name": "Chinese (Hant-HK)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hant-MO": {
+    "name": "Chinese (Hant-MO)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Hant-MY": {
+    "name": "Chinese (Hant-MY)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zh-Latn": {
+    "name": "Chinese (Latn)",
+    "categories": [
+      "other"
+    ]
+  },
+  "zu": {
+    "name": "Zulu",
+    "categories": [
+      "one",
+      "other"
+    ]
+  }
+}

@@ -1,46 +1,33 @@
-<%= form_with model: @project, data: {controller: "configuration-toggle", action: "change->configuration-toggle#submit"} do %>
-  <input type="hidden" name="project[advanced_languages]" value="0">
-  <se-checkbox variant="switch" name="project[advanced_languages]" value="1" label="Advanced language configuration" <%= 'checked' if @project.advanced_languages? %>></se-checkbox>
+<se-card><div class="app-stack"><div class="app-heading"><se-title level="section">Languages</se-title><se-button variant="secondary" text="Change source language" data-open-modal="catalog-source-language"></se-button></div>
+<se-collection type="table" columns="minmax(0,1fr) 7rem 8rem auto">
+  <se-list-header><span>Language</span><span>Identifier</span><span>Status</span><span>Actions</span></se-list-header>
+  <% @project.languages.order(:name).each do |language| %>
+    <se-list-row><span><%= language.name %><% if language.identifier == @project.source_locale %> <se-badge text="Source" tone="brand"></se-badge><% end %></span><span><se-code><%= language.identifier %></se-code></span><span><se-badge text="<%= language.active? ? 'Active' : 'Archived' %>" tone="<%= language.active? ? 'success' : 'warning' %>"></se-badge></span>
+      <div><% unless @project.linked? || language.identifier == @project.source_locale %><%= catalog_form(language.active? ? archive_project_language_path(@project, language) : restore_project_language_path(@project, language), method: :patch) do %><se-button type="submit" variant="secondary" icon="<%= language.active? ? 'archive' : 'rotate-ccw' %>" aria-label="<%= language.active? ? 'Archive language' : 'Restore language' %>"></se-button><% end %><% end %></div>
+    </se-list-row>
+  <% end %>
+</se-collection>
+<% unless @project.linked? %>
+  <se-button text="Support another language" icon="plus" data-open-modal="catalog-language"></se-button>
+  <se-modal id="catalog-language" title="Support another language" size="medium"><%= catalog_form project_languages_path(@project) do %><se-select label="Language" name="identifier" searchable options="<%= CatalogLocale.options.to_json %>"></se-select><% end %><%= render 'shared/modal_footer', confirm: 'Add language' %></se-modal>
 <% end %>
-<% if @project.advanced_languages? %><%= render "projects/identifier_sets" %><% end %>
-<div class="app-stack" data-controller="language-table">
-  <se-title level="section">Languages</se-title>
-  <se-collection type="table" columns="<%= @project.advanced_languages? ? 'minmax(0,1fr) minmax(0,1.4fr) auto' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) auto' %>" data-language-table-target="rows">
-    <se-list-header><span>Name</span><% unless @project.advanced_languages? %><span>Identifier</span><% end %><span class="app-row-actions">Sheets<se-tooltip><se-button data-se-region="trigger" variant="mini" icon="info" aria-label="About language sheets"></se-button>Leave empty to use this language in all sheets, including future sheets. Select sheets to limit where it is available.</se-tooltip></span><span></span></se-list-header>
-    <% @project.languages.active.includes(:sheet_languages).order(:name).each do |language| %>
-      <%= render "projects/language_row", language: language %>
-      <% if @project.advanced_languages? %><%= render "projects/language_identifiers", language: language %><% end %>
-    <% end %>
-  </se-collection>
-  <se-button class="app-language-add" variant="secondary" icon="plus" text="Add language" data-action="click->language-table#add"></se-button>
-  <template data-language-table-target="template"><%= render "projects/language_row", language: @project.languages.new %></template>
-</div>
-<% archived = @project.languages.where(status: %w[archived pending_deletion]).order(:name) %>
-<% if archived.any? %>
-  <div class="app-stack">
-    <se-title level="section">Archived languages</se-title>
-    <se-collection type="table" columns="minmax(0,1fr) 10rem auto">
-      <se-list-header><span>Name</span><span>Status</span><span>Actions</span></se-list-header>
-      <% archived.each do |language| %>
-        <se-list-row>
-          <span><strong><%= language.name %></strong><br><se-text muted small><%= language.identifier %></se-text></span>
-          <se-badge tone="<%= language.pending_deletion? ? 'warning' : 'gray' %>" text="<%= language.pending_deletion? ? 'Pending deletion' : 'Archived' %>"></se-badge>
-          <span class="app-row-actions">
-            <% if language.archived? %>
-              <%= form_with url: restore_project_language_path(@project, language), method: :patch do %><se-button type="submit" variant="secondary" icon="rotate-ccw" text="Restore"></se-button><% end %>
-              <se-button variant="danger" icon="trash" text="Delete" data-open-modal="delete-language-<%= language.id %>"></se-button>
-            <% end %>
-          </span>
-        </se-list-row>
-        <% if language.archived? %>
-          <se-modal id="delete-language-<%= language.id %>" title="Permanently delete <%= language.name %>?" size="small" icon="alert" tone="error">
-            <%= form_with url: project_language_path(@project, language), method: :delete do %>
-              <se-text>This permanently deletes every translation, recording, and history event for this language. This cannot be undone.</se-text>
-            <% end %>
-            <%= render "shared/modal_footer", confirm: "Delete permanently", variant: "danger" %>
-          </se-modal>
-        <% end %>
-      <% end %>
-    </se-collection>
-  </div>
+</div></se-card>
+<se-modal id="catalog-source-language" title="Change source language" size="medium">
+  <%= catalog_form source_locale_project_path(@project), class: 'app-form' do %>
+    <%= hidden_field_tag :revision, @project.revision %>
+    <se-select label="Source language" name="source_locale" value="<%= @project.source_locale %>" options="<%= @project.languages.active.order(:name).map { |language| {id: language.identifier, label: language.name} }.to_json %>"></se-select>
+    <se-text muted>This language defines the structure and placeholder validation. Existing translations are kept. The change is only saved if the catalog and pending translations remain valid.</se-text>
+  <% end %><%= render 'shared/modal_footer', confirm: 'Change source language' %>
+</se-modal>
+<se-card><div class="app-stack"><se-title level="section">GitHub</se-title>
+<se-text muted>The GitHub App is configured once for all projects. These settings select this project's repository and installation.</se-text>
+<% if policy(GithubAppConfiguration).show? %><se-button variant="secondary" text="Global GitHub App settings" href="<%= settings_github_app_path %>"></se-button><% end %>
+<%= catalog_form connect_project_path(@project), class: 'app-form' do %>
+  <se-input label="Repository" name="repository" placeholder="owner/repository" value="<%= @project.repository %>"></se-input>
+  <se-input label="GitHub App installation ID" name="installation_id" value="<%= @project.installation_id %>"></se-input>
+  <se-input label="Authoritative branch" name="git_branch" placeholder="Repository default branch" value="<%= @project.git_branch %>"></se-input>
+  <se-input label="Locale directory" name="locale_directory" value="<%= @project.locale_directory %>"></se-input>
+  <se-button type="submit" text="Connect and synchronize"></se-button>
 <% end %>
+<% if @project.linked? %><%= catalog_form connect_project_path(@project) do %><%= hidden_field_tag :disconnect, '1' %><se-button type="submit" variant="secondary" text="Disconnect repository"></se-button><% end %><% end %>
+</div></se-card>

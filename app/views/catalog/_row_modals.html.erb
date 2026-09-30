@@ -1,0 +1,6 @@
+  <% @keys.each do |key| %>
+    <%= render "key_modal", key: key if policy(@project).update? %>
+    <% [@project.source_locale, @locale].uniq.each_with_index do |locale, index| %>
+      <%= render "translation_modal", key: key, locale: locale, index: index if @state.translatable?(key, locale) && policy(@project).edit_locale?(locale) %>
+    <% end %>
+  <% end %>

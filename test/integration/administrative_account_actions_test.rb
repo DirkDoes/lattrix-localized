@@ -27,7 +27,7 @@ class AdministrativeAccountActionsTest < ActionDispatch::IntegrationTest
   test "deleting a nonowner transfers sole ownership and preserves shared projects" do
     sole = Project.create!(name: "Sole")
     sole.project_memberships.create!(user: @target, role: "owner")
-    sheet = sole.sheets.create!(name: "Keep sheet")
+    node = sole.catalog_nodes.create!(payload: CatalogKey.create!(name: "kept", kind: "scalar"))
     joined = Project.create!(name: "Already joined")
     joined.project_memberships.create!(user: @target, role: "owner")
     joined.project_memberships.create!(user: @actor, role: "viewer")
@@ -42,7 +42,7 @@ class AdministrativeAccountActionsTest < ActionDispatch::IntegrationTest
     assert_equal "owner", sole.project_memberships.find_by!(user: @actor).role
     assert_equal "owner", joined.project_memberships.find_by!(user: @actor).role
     assert_equal [remaining.id], shared.project_memberships.pluck(:user_id)
-    assert Sheet.exists?(sheet.id)
+    assert CatalogNode.exists?(node.id)
     assert_nil invite.reload.invited_by_id
     assert_equal 1, sole.project_memberships.count
     assert_equal 1, joined.project_memberships.count

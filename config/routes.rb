@@ -7,38 +7,29 @@ Rails.application.routes.draw do
     get :settings, on: :member
     get :members, on: :member
 
-    resources :identifier_sets, only: [:create, :update]
-    resources :language_identifiers, only: [:update]
-    resources :exports, controller: "exports", only: [:create, :show, :destroy] do
-      get :download, on: :member
-    end
-    resources :languages, only: [:create, :update, :destroy] do
+    get :translations, on: :member, to: "catalog#translations"
+    get :pending, on: :member, to: "catalog#pending"
+    get :history, on: :member, to: "catalog#history"
+    get :history_events, on: :member, to: "catalog#history_events"
+    get :export, on: :member, to: "catalog#export"
+    post :catalog_change, on: :member, to: "catalog#change"
+    post :review, on: :member, to: "catalog#review"
+    post :restore_catalog, on: :member, to: "catalog#restore"
+    post :resolve, on: :member, to: "catalog#resolve"
+    post :restore_draft, on: :member, to: "catalog#restore_draft"
+    post :sync, on: :member, to: "catalog#sync"
+    post :connect, on: :member, to: "catalog#connect"
+    post :source_locale, on: :member, to: "catalog#source_locale"
+    resources :languages, only: [:create] do
       patch :archive, on: :member
       patch :restore, on: :member
-    end
-    resources :sheets, only: [:index, :create, :show, :update] do
-      post :import_preview, on: :collection
-      get :settings, on: :member
-
-      get :image, on: :member
-      get :translations, on: :member
-      get :history, on: :member, to: "recording_events#index"
-      resources :recording_events, only: [] do
-        get :change, on: :collection
-        patch :restore, on: :member
-      end
-      resources :recordings, only: [:new, :edit, :create, :update, :destroy] do
-        get :parents, on: :collection
-        get :preview, on: :collection
-        patch :translation, on: :member
-        patch :pluralization, on: :member
-      end
     end
     resources :project_invites, only: [:index, :create, :destroy]
     resources :project_memberships, only: [:edit, :update, :destroy]
   end
   resources :project_invites, only: [:index, :update]
   get "import-export", to: "formats#index", as: :import_export
+  post "github/webhook", to: "github_webhooks#create"
   get "up" => "rails/health#show", as: :rails_health_check
 
   devise_for :users, controllers: { omniauth_callbacks: "users/omniauth_callbacks", sessions: "users/sessions", registrations: "users/registrations", passwords: "users/passwords" }
@@ -52,6 +43,7 @@ Rails.application.routes.draw do
   post "authentication_methods/:provider/link", to: "users/authentication_methods#link", as: :link_authentication_method
 
   namespace :settings do
+    resource :github_app, only: [:show, :update]
     resources :projects, only: :index
     resources :users, only: [:index, :edit, :update, :destroy] do
       patch :ban, on: :member

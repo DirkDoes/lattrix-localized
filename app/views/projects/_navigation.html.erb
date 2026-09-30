@@ -1,2 +1,24 @@
-<se-nav-tabs class="app-page-navigation" label="Project navigation" value="<%= controller_name == 'sheets' ? 'sheets' : (action_name == 'members' || %w[project_invites project_memberships].include?(controller_name) ? 'members' : (%w[settings update destroy].include?(action_name) ? 'settings' : 'sheets')) %>" options="<%= [{ id: 'sheets', label: 'Sheets', href: project_sheets_path(@project), icon: 'folder' }, (policy(@project).members? ? { id: 'members', label: 'Members', href: members_project_path(@project), icon: 'users' } : nil), (policy(@project).settings? ? { id: 'settings', label: 'Settings', href: settings_project_path(@project), icon: 'settings' } : nil)].compact.to_json %>"><span data-actions class="app-export-action"><% if policy_scope(@project.sheets).exists? %><se-button text="Export" variant="secondary" data-open-modal="export-modal" data-export-current></se-button><% end %></span></se-nav-tabs>
-  <%= render "shared/export_button", sheet: nil %>
+<% selected = controller_name == 'catalog' ? action_name : (%w[project_invites project_memberships].include?(controller_name) || action_name == 'members' ? 'members' : 'settings') %>
+<% navigation_options = [
+  {id: 'translations', label: 'Translations', icon: 'languages', href: translations_project_path(@project)},
+  (policy(@project).pending? ? {id: 'pending', label: 'Pending changes', icon: 'code', href: pending_project_path(@project)} : nil),
+  (policy(@project).history? ? {id: 'history', label: 'History', icon: 'clock', href: history_project_path(@project)} : nil),
+  (policy(@project).members? ? {id: 'members', label: 'Members', icon: 'users', href: members_project_path(@project)} : nil),
+  (policy(@project).settings? ? {id: 'settings', label: 'Settings', icon: 'settings', href: settings_project_path(@project)} : nil)
+].compact.to_json %>
+<div data-controller="project-header">
+  <% [false, true].each do |compact| %>
+    <div class="project-header<%= ' project-header--compact' if compact %>" data-project-header-target="<%= compact ? 'compact' : 'original' %>" <%= 'hidden' if compact %>>
+      <header class="app-heading"><se-title level="<%= compact ? 'section' : 'page' %>"><%= @project.name %></se-title><% if @project.linked? %><se-badge tone="info" icon="code" text="<%= @project.git_branch.presence || 'GitHub' %>"></se-badge><% end %></header>
+      <se-nav-tabs class="app-page-navigation" label="Project navigation" value="<%= selected %>" options="<%= navigation_options %>"><span data-actions><se-button text="Export" icon="download" variant="secondary" data-open-modal="catalog-export"></se-button></span></se-nav-tabs>
+    </div>
+  <% end %>
+</div>
+<% if @project.sync_error.present? %><se-card><se-badge tone="error" text="Git sync failed"></se-badge><se-text><%= @project.sync_error %></se-text><se-text muted>The last accepted catalog remains visible. Editing and export resume after the repository is repaired.</se-text></se-card><% end %>
+<se-modal id="catalog-export" title="Export translations" size="medium">
+  <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false}, class: "app-form" do %>
+    <% if @project.linked? && @project.catalog_tags.exists? %><se-select label="Version" name="tag_id" value="" options="<%= ([{id: '', label: 'Current accepted catalog'}] + @project.catalog_tags.order(created_at: :desc).map { |tag| {id: tag.id.to_s, label: tag.name} }).to_json %>"></se-select><% end %>
+    <se-select label="Format" name="format_name" value="yaml" options='[{"id":"yaml","label":"YAML"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select>
+  <% end %>
+  <%= render "shared/modal_footer", confirm: "Export" %>
+</se-modal>

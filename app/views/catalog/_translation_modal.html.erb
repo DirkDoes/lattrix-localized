@@ -1,0 +1,14 @@
+<% value = @state.translation(key.id, locale) %>
+<se-modal id="catalog-text-<%= key.id %>-<%= locale %>" title="<%= CatalogLocale.name(locale) %> translation" size="medium">
+  <%= catalog_form catalog_change_project_path(@project), class: "app-form" do %>
+    <%= hidden_field_tag :operation, 'translate' %><%= hidden_field_tag :revision, @project.revision %><%= hidden_field_tag :node_id, key.id %><%= hidden_field_tag :locale, locale %>
+    <se-code><%= @state.path(key) %></se-code>
+    <se-input type="textarea" label="Translation" name="value" value="<%= value&.payload&.value %>" hint="Incomplete translations are kept as drafts."></se-input>
+  <% end %>
+  <% if value && locale != @project.source_locale %>
+    <%= catalog_form review_project_path(@project) do %>
+      <%= hidden_field_tag :node_id, key.id %><%= hidden_field_tag :locale, locale %><%= hidden_field_tag :source_digest, @state.source_digest(key) %><%= hidden_field_tag :translation_payload_id, value.payload.id %>
+      <se-button type="submit" variant="secondary" text="Mark reviewed"></se-button>
+    <% end %>
+  <% end %><%= render "shared/modal_footer", confirm: "Save translation" %>
+</se-modal>

@@ -8,32 +8,12 @@ document.addEventListener("select", (event) => {
 
 });
 
-
-
-
-
-
-
-function openExportModal(eventId, eventDate) {
-  const modal = document.getElementById("export-modal");
-  const form = modal.querySelector("form");
-  const footer = [...modal.querySelectorAll('[data-se-region="footer"]')];
-  form.setAttribute("action", `${form.action.split("?")[0]}${eventId ? `?recording_event_id=${eventId}` : ""}`);
-  const replacement = document.createElement("se-modal");
-  for (const {name, value} of modal.attributes) if (name !== "data-ready" && name !== "title") replacement.setAttribute(name, value);
-  replacement.setAttribute("title", eventDate ? `Export translations · ${eventDate}` : "Export translations");
-  replacement.append(form, ...footer);
-  modal.replaceWith(replacement);
-  queueMicrotask(() => replacement.open());
-}
-
 document.addEventListener("click", (event) => {
 
   const modalTrigger = event.target.closest("[data-open-modal]");
 
   if (modalTrigger) {
-    if (modalTrigger.hasAttribute("data-export-current")) openExportModal();
-    else document.getElementById(modalTrigger.dataset.openModal).open();
+    document.getElementById(modalTrigger.dataset.openModal).open();
   }
 
   if (event.target.closest("[data-open-password-modal]")) document.getElementById("password-modal").open();
@@ -47,8 +27,6 @@ document.addEventListener("click", (event) => {
 document.addEventListener("close", (event) => {
   if (event.target.matches("se-modal")) event.target.querySelector("form")?.reset();
 });
-
-
 
 document.addEventListener("files", (event) => {
 
@@ -106,8 +84,6 @@ document.addEventListener("click", (event) => {
 
 });
 
-
-
 for (const type of ["copy", "cut", "paste", "drop"]) {
 
   document.addEventListener(type, (event) => {
@@ -117,12 +93,6 @@ for (const type of ["copy", "cut", "paste", "drop"]) {
   });
 
 }
-
-
-
-
-
-
 
 // Bridge autocomplete until se-input forwards it to its native control.
 
@@ -136,8 +106,6 @@ customElements.whenDefined("se-input").then(() => {
 
 });
 
-
-
 // Use the logo gradient's middle blue; the library derives accessible theme roles.
 
 customElements.whenDefined("se-theme-switch").then(() => {
@@ -145,7 +113,6 @@ customElements.whenDefined("se-theme-switch").then(() => {
   SimpleElements.setBrandTheme({ primary: "#3B82F6" });
 
 });
-
 
 document.addEventListener("change", (event) => {
   if (!event.target.matches("se-segmented-control")) return;
@@ -182,11 +149,7 @@ document.addEventListener("confirm", (event) => {
   const form = event.target.querySelector("form");
   if (form) { event.preventDefault(); form.requestSubmit(); }
   if (event.target.matches("se-modal[data-confirm-next]")) document.getElementById(event.target.dataset.confirmNext).open();
-  if (event.target.matches("se-modal[data-confirm-plural-form]")) {
-    const form = document.getElementById(event.target.dataset.confirmPluralForm);
-    form.setAttribute("data-plural-confirmed", "");
-    form.requestSubmit();
-  }
+
 });
 
 document.addEventListener("select", (event) => {
@@ -199,21 +162,4 @@ document.addEventListener("select", (event) => {
   if (!event.target.matches("se-menu[data-members-menu]")) return;
   if (event.detail.id === "invite") document.getElementById("project-invite-modal").open();
   if (event.detail.id === "invites") window.location.assign(event.target.dataset.invitesUrl);
-});
-
-document.addEventListener("select", (event) => {
-  if (!event.target.matches("se-menu[data-history-actions]")) return;
-  if (event.detail.id === "restore") document.getElementById(`restore-event-${event.target.dataset.eventId}`).open();
-  if (event.detail.id === "export") {
-    openExportModal(event.target.dataset.eventId, event.target.dataset.eventDate);
-  }
-});
-
-document.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-history-more]");
-  if (!button || button.hasAttribute("disabled")) return;
-  button.setAttribute("disabled", "");
-  const response = await fetch(button.dataset.url, {headers: {Accept: "text/vnd.turbo-stream.html"}});
-  if (response.ok) Turbo.renderStreamMessage(await response.text());
-  else button.removeAttribute("disabled");
 });
