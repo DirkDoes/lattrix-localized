@@ -44,8 +44,9 @@
       event.stopImmediatePropagation();
       return;
     }
-    // Let handlers and the browser collect successful controls before disabling them.
-    queueMicrotask(() => { if (!event.defaultPrevented) start(event.target); });
+    // A microtask can run between capture and bubble listeners. Wait for the whole
+    // dispatch so custom handlers can cancel native submission and own their busy state.
+    setTimeout(() => { if (!event.defaultPrevented && event.target.isConnected) start(event.target); }, 0);
   }, true);
   document.addEventListener('turbo:submit-start', event => start(event.target));
   document.addEventListener('turbo:submit-end', event => {

@@ -19,7 +19,12 @@
     <se-text muted>This language defines the structure and placeholder validation. Existing translations are kept. The change is only saved if the catalog and pending translations remain valid.</se-text>
   <% end %><%= render 'shared/modal_footer', confirm: 'Change source language' %>
 </se-modal>
-<se-card><div class="app-stack"><se-title level="section">GitHub</se-title>
+<se-card><div class="app-stack"><div class="app-heading"><se-title level="section">GitHub</se-title>
+<% if !@project.linked? %><se-badge tone="gray" text="Not connected"></se-badge>
+<% elsif @project.sync_error.present? %><se-badge tone="error" text="Synchronization failed"></se-badge>
+<% elsif @project.git_sha.present? %><se-badge tone="success" text="Connected · synchronized"></se-badge>
+<% else %><se-badge tone="info" text="Connected · awaiting first synchronization"></se-badge><% end %>
+</div>
 <se-text muted>The GitHub App is configured once for all projects. These settings select this project's repository and installation.</se-text>
 <% if policy(GithubAppConfiguration).show? %><se-button variant="secondary" text="Global GitHub App settings" href="<%= settings_github_app_path %>"></se-button><% end %>
 <%= catalog_form connect_project_path(@project), class: 'app-form' do %>

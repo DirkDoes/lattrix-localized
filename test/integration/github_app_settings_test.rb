@@ -34,6 +34,16 @@ class GithubAppSettingsTest < ActionDispatch::IntegrationTest
     api.verify
     assert_response :success
     assert_equal 'org/repo', project.reload.repository
+    assert_equal 'Repository connected. Synchronization has been queued.', flash[:notice]
+    get settings_project_path(project)
+    assert_select 'se-badge[text="Connected · awaiting first synchronization"]'
+    project.update!(git_sha: 'test-commit')
+    get settings_project_path(project)
+    assert_select 'se-badge[text="Connected · synchronized"]'
+    project.update!(sync_error: 'Example sync failure')
+    get settings_project_path(project)
+    assert_select 'se-badge[text="Synchronization failed"]'
+    project.update!(sync_error: nil)
 
     failing = Object.new
     def failing.repository = raise(CatalogGithub::Error, 'GitHub returned 404; check the App installation and permissions')

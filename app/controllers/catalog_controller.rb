@@ -228,6 +228,7 @@ class CatalogController < ApplicationController
     @project.with_lock do
     if params[:disconnect] == "1"
       @project.update!(repository: nil, installation_id: nil, git_sha: nil, git_branch: nil, pull_request_number: nil, sync_error: nil)
+      flash[:notice] = "Repository disconnected."
     else
       raise ArgumentError, "Configure the GitHub App credentials before connecting a repository" unless CatalogGithub.configured?
       previous = [@project.repository, @project.installation_id, @project.git_branch, @project.locale_directory]
@@ -238,6 +239,7 @@ class CatalogController < ApplicationController
       @project.assign_attributes(git_sha: nil, pull_request_number: nil, sync_error: nil) if previous != [@project.repository, @project.installation_id, @project.git_branch, @project.locale_directory]
       @project.save!
       CatalogSyncJob.perform_later(@project.id, publish: true, initial: true)
+      flash[:notice] = "Repository connected. Synchronization has been queued."
     end
     end
     render json: {location: settings_project_path(@project)}
