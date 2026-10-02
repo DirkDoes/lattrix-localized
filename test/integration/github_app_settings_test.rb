@@ -16,6 +16,43 @@ class GithubAppSettingsTest < ActionDispatch::IntegrationTest
     patch settings_github_app_path, params: {github_app_configuration: {app_id: '12345', private_key: @private_key, webhook_secret: @secret}.merge(attributes)}
   end
 
+  test 'project admins connect with installation access without a personal GitHub identity' do
+    save_configuration
+    @user = users(:two)
+    @user.update!(role: :member, email_verified_at: Time.current)
+    sign_in @user
+    @user.auth_identities.where(provider: 'github').delete_all
+    project = Project.create!(name: 'Installation connection')
+    project.project_memberships.create!(user: @user, role: 'admin')
+    api = Minitest::Mock.new
+    api.expect(:repository, {'full_name' => 'org/repo'})
+    CatalogGithub.stub(:new, api) do
+      assert_enqueued_with(job: CatalogSyncJob) do
+        post connect_project_path(project), params: {repository: 'org/repo', installation_id: 77, locale_directory: 'config/locales'}
+      end
+    end
+    api.verify
+    assert_response :success
+    assert_equal 'org/repo', project.reload.repository
+
+    failing = Object.new
+    def failing.repository = raise(CatalogGithub::Error, 'GitHub returned 404; check the App installation and permissions')
+    CatalogGithub.stub(:new, failing) do
+      assert_no_enqueued_jobs do
+        post connect_project_path(project), params: {repository: 'org/not-accessible', installation_id: 78}
+      end
+    end
+    assert_response :unprocessable_entity
+    assert_equal 'org/repo', project.reload.repository
+    assert_equal 77, project.installation_id
+
+    project.project_memberships.find_by!(user: @user).update!(role: 'viewer')
+    assert_no_enqueued_jobs do
+      post connect_project_path(project), params: {repository: 'org/repo', installation_id: 77}
+    end
+    assert_response :forbidden
+  end
+
   test 'global owner saves encrypted credentials and blank fields preserve them without exposing secrets' do
     save_configuration
     assert_redirected_to settings_github_app_path

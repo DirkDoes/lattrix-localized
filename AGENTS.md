@@ -12,6 +12,9 @@ The role of this file is to describe common mistakes and confusion points that a
 
 ## Agent Notes (Surprises Encountered)
 
+- SE v0.16 adaptive icons choose light/dark artwork by computed foreground brightness. Layout-brand sets that foreground to --se-primary; scope --se-primary to --se-text on the brand so a blue accent does not select the same artwork in both themes.
+- Turbo Drive is disabled globally. Keep data-turbo="true" on app-content so forms in the content frame opt into Turbo, including modal forms. Loading feedback belongs in form_submission.js, shared with JSON catalog forms.
+
 - Simple Elements v0.13.0's wide layout-brand sizing targets `.se-layout-brand[data-wide-icon]`, but the element does not receive that class. The app stylesheet sizes the expanded sidebar wordmark explicitly; keep compact sizing provided by the library.
 
 - SE file-upload emits dropped files without updating its native input. The profile-photo upload handler bridges this event to the form input so drag-and-drop submits correctly.

@@ -51,5 +51,8 @@ Rails.application.routes.draw do
   end
   get "settings", to: redirect("/settings/users")
 
+  authenticated :user do
+    root to: redirect("/projects"), as: :authenticated_root
+  end
   root to: redirect("/users/sign_in")
 end

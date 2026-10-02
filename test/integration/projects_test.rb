@@ -38,6 +38,30 @@ class ProjectsTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "signed in homepage skips login without an alert" do
+    get root_path
+    assert_redirected_to projects_path
+    follow_redirect!
+    assert_response :success
+    assert_nil flash[:alert]
+    sign_out @owner
+    get root_path
+    assert_redirected_to new_user_session_path
+  end
+
+  test "project creation returns refreshed Turbo content and validation preserves values" do
+    post projects_path, params: {project: {name: 'Frame project', slug: 'frame-project', source_locale: 'nl'}}, headers: {'Turbo-Frame' => 'app-content'}
+    assert_response :see_other
+    assert_redirected_to projects_path
+    follow_redirect!
+    assert_select 'turbo-frame#app-content[data-turbo=true] se-workspace-card[title="Frame project"]'
+    assert_select 'se-modal#project-create-modal:not([open])'
+    post projects_path, params: {project: {name: '', slug: 'keep-this', source_locale: 'nl'}}, headers: {'Turbo-Frame' => 'app-content'}
+    assert_response :unprocessable_entity
+    assert_select 'se-modal#project-create-modal[open] se-input[name="project[slug]"][value="keep-this"]'
+    assert_select 'se-select[name="project[source_locale]"][value=nl]'
+  end
+
   test "email-only invites do not disclose account existence and are idempotent" do
     [ @recipient.email.upcase, "future@example.com", @owner.email ].each do |email|
       assert_difference "ProjectInvite.count" do

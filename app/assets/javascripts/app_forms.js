@@ -111,8 +111,7 @@ application.register("table-search", class extends Controller {
 application.register("table-action", class extends Controller {
   async submit(event) {
     event.preventDefault();
-    if (this.pending) return;
-    this.pending = true;
+    if (!window.AppFormSubmission.start(this.element)) return;
     try {
       const response = await fetch(this.element.action, { method: "POST", body: new FormData(this.element), headers: { Accept: "text/html" } });
       const page = new DOMParser().parseFromString(await response.text(), "text/html");
@@ -123,7 +122,7 @@ application.register("table-action", class extends Controller {
       page.querySelectorAll("se-toast").forEach(toast => document.body.append(toast));
     } catch {
       window.location.reload();
-    } finally { this.pending = false; }
+    } finally { window.AppFormSubmission.finish(this.element); }
   }
 });
 

@@ -233,7 +233,8 @@ class CatalogController < ApplicationController
       previous = [@project.repository, @project.installation_id, @project.git_branch, @project.locale_directory]
       @project.assign_attributes(params.permit(:repository, :installation_id, :git_branch, :locale_directory))
       raise ActiveRecord::RecordInvalid, @project unless @project.valid?
-      CatalogGithub.new(@project).authorize_user!(current_user)
+      # The installation grants repository access; personal login providers are unrelated.
+      CatalogGithub.new(@project).repository
       @project.assign_attributes(git_sha: nil, pull_request_number: nil, sync_error: nil) if previous != [@project.repository, @project.installation_id, @project.git_branch, @project.locale_directory]
       @project.save!
       CatalogSyncJob.perform_later(@project.id, publish: true, initial: true)

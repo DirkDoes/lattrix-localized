@@ -38,13 +38,6 @@ class CatalogGithub
   def repo_path = "/repos/#{project.repository}"
   def escape(value) = ERB::Util.url_encode(value)
   def repository = request(:get, repo_path)
-  def authorize_user!(user)
-    identity = user.auth_identities.find_by(provider: "github")
-    raise ArgumentError, "Connect your GitHub account in Personal settings first" unless identity
-    account = request(:get, "/user/#{escape(identity.provider_uid)}")
-    permission = request(:get, "#{repo_path}/collaborators/#{escape(account.fetch('login'))}/permission")
-    raise ArgumentError, "You must have GitHub repository admin permission to connect it" unless permission["permission"] == "admin"
-  end
   def snapshot(ref = project.git_branch)
     commit = request(:get, "#{repo_path}/commits/#{escape(ref)}")
     tree = request(:get, "#{repo_path}/git/trees/#{commit.fetch('commit').fetch('tree').fetch('sha')}?recursive=1")

@@ -4,10 +4,12 @@
     <%= javascript_include_tag "theme", "data-turbo-track": "reload" %>
     <title><%= content_for(:title) || "Lattrix Localized" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="turbo-visit-control" content="reload">
     <%= csrf_meta_tags %><%= csp_meta_tag %><%= yield :head %>
     <link rel="icon" href="/icons/lattrix/lattrix-icon-small-light.svg" type="image/svg+xml">
     <link rel="icon" href="/icons/lattrix/lattrix-icon-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="/icon.png?v=lt">
     <%= javascript_include_tag "ui", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "form_submission", defer: true, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags "auth_forms" %>
     <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %>
     <%= javascript_include_tag "simple-elements", defer: true, "data-turbo-track": "reload" %>

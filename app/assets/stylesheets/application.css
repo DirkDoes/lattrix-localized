@@ -1,4 +1,6 @@
 html, body { width: 100%; height: 100%; margin: 0; }
+/* Paired brand artwork follows text brightness, not the brand accent color. */
+se-layout-brand { --se-primary: var(--se-text); }
 body { color: var(--se-text); background: var(--se-bg); font-family: var(--se-font); }
 .se-page-layout { height: 100%; }
 

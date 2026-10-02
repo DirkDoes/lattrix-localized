@@ -88,10 +88,11 @@ Subscribe to Push, Pull request and Create events. The webhook endpoint is
 `https://<app-host>/github/webhook`; local testing needs a reachable development
 endpoint. Webhooks are HMAC-verified and scoped by repository and installation.
 
-Connect your GitHub identity in account settings, then configure the project
+Configure the project
 repository (`owner/name`), installation ID, branch (blank means repository
 default branch), and locale directory (default `config/locales`). Connecting
-requires app-project admin and GitHub-repository admin permission.
+requires Lattrix project admin/owner permission and repository access through the
+configured App installation. Personal GitHub login is not required or consulted.
 
 Initial connection performs a three-way merge: identical and non-overlapping
 values reconcile automatically; differing values become explicit conflicts.

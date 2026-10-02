@@ -25,7 +25,7 @@ class ProjectsController < ApplicationController
       @project.save!
       @project.project_memberships.create!(user: current_user, role: "owner")
     end
-    redirect_to project_path(@project), notice: "Project created."
+    redirect_to projects_path, notice: "Project created.", status: :see_other
   rescue ActiveRecord::RecordInvalid
     @memberships = policy_scope(current_user.project_memberships).includes(:project).order(:created_at)
     render :index, status: :unprocessable_entity

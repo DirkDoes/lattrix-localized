@@ -29,18 +29,14 @@ document.addEventListener("submit", async (event) => {
   const form = event.target.closest("form[data-catalog-form]");
   if (!form) return;
   event.preventDefault();
-  if (form.dataset.submitting) return;
-  form.dataset.submitting = "true";
+  if (!window.AppFormSubmission.start(form)) return;
   const modal = form.closest("se-modal");
-  const buttons = [...(modal || form).querySelectorAll('se-button[type="submit"], se-button[data-modal-action="confirm"]')];
-  form.setAttribute("aria-busy", "true");
-  buttons.forEach(button => { button.inert = true; button.setAttribute("aria-disabled", "true"); });
   try {
     const response = await fetch(form.action, {method: form.method, body: new FormData(form), headers: {Accept: "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content}});
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not save this change.");
     modal?.close();
-    window.Turbo ? Turbo.visit(result.location) : window.location.assign(result.location);
+    window.Turbo ? Turbo.visit(result.location, {frame: "app-content"}) : window.location.assign(result.location);
   } catch (error) {
     const toast = document.createElement("se-toast");
     toast.setAttribute("tone", "error");
@@ -48,8 +44,6 @@ document.addEventListener("submit", async (event) => {
     toast.setAttribute("open", "");
     document.body.append(toast);
   } finally {
-    delete form.dataset.submitting;
-    form.removeAttribute("aria-busy");
-    buttons.forEach(button => { button.inert = false; button.removeAttribute("aria-disabled"); });
+    window.AppFormSubmission.finish(form);
   }
 });
