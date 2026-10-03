@@ -5,6 +5,7 @@ class CatalogWriter
   end
 
   def edit(expected:, summary: "Edited catalog", origin: "manual")
+    raise ArgumentError, "Synchronization is in progress. Please wait before editing." if project.reload.sync_busy?
     project.with_lock do
       raise ArgumentError, "Repair Git synchronization before editing" unless project.writable?
       raise ActiveRecord::StaleObjectError.new(project, "edit") unless expected.to_s == project.revision.to_s
@@ -44,6 +45,9 @@ class CatalogWriter
     raise ArgumentError, "Enter a dotted path without empty segments" if parts.empty? || parts.any?(&:blank?)
     parent = nil
     parts.each_with_index do |segment, index|
+      if parent&.payload&.kind == "plural" && CatalogKey::CATEGORIES.include?(segment)
+        raise ArgumentError, "Plural forms are managed automatically for the project's languages"
+      end
       found = @state.keys.find { |k| k.parent_id == parent&.id && k.payload.name == segment }
       raise ArgumentError, "This key already exists" if found && index == parts.length - 1
       if found
@@ -57,9 +61,10 @@ class CatalogWriter
     parent
   end
 
-  def change_key(id, name:, kind:, description: "", file_group: nil)
+  def change_key(id, name: nil, path: nil, kind:, description: "", file_group: nil)
     item = @state.items.fetch(id.to_i)
     raise ArgumentError, "Key not found" unless item.key? && @state.active?(item)
+    name = item.payload.name if path
     raise ArgumentError, "Move this scalar into a child first" if item.payload.kind == "scalar" && kind != "scalar"
     if item.payload.kind == "plural" && kind == "branch"
       @state.children(item.id).select(&:key?).each { |child| remove(child.id) if @state.children(child.id).none?(&:text?) }
@@ -68,6 +73,7 @@ class CatalogWriter
     item.payload = CatalogKey.create!(name: name, kind: kind, description: description, file_group: item.parent_id ? "" : (file_group || item.payload.file_group))
     stage(item)
     ensure_categories(item) if kind == "plural"
+    move(id, path) if path && path != @state.path(item)
   end
 
   def ensure_categories(item)
@@ -115,17 +121,18 @@ class CatalogWriter
     raise ArgumentError, "Enter a dotted path without empty segments" if destination.split(".", -1).any?(&:blank?) || destination.blank?
     old_path = @state.path(item)
     if item.payload.kind == "scalar" && destination.start_with?("#{old_path}.")
-      suffix = destination.delete_prefix("#{old_path}.")
-      raise ArgumentError, "Choose one child segment" if suffix.include?(".") || suffix.blank?
-      child = create_item(CatalogKey.create!(name: suffix, kind: "scalar", description: item.payload.description), item.id)
-      @state.children(item.id).select(&:text?).each { |text| text.parent_id = child.id; stage(text) }
+      texts = @state.children(item.id).select(&:text?)
       item.payload = CatalogKey.create!(name: item.payload.name, kind: "branch", description: item.payload.description, file_group: item.payload.file_group)
       stage(item)
+      child = add_key(destination, description: item.payload.description)
+      texts.each { |text| text.parent_id = child.id; stage(text) }
     else
+      raise ArgumentError, "Cannot move a key inside itself" if destination.start_with?("#{old_path}.")
       parts = destination.split("."); name = parts.pop
       parent = parts.empty? ? nil : @state.keys.find { |k| @state.path(k) == parts.join(".") }
-      raise ArgumentError, "Destination branch does not exist" if parts.any? && !parent
+      parent ||= add_key(parts.join('.'), kind: "branch") if parts.any?
       raise ArgumentError, "Destination must be a branch" if parent && parent.payload.kind == "scalar"
+      raise ArgumentError, "Plural forms are managed automatically for the project's languages" if parent&.payload&.kind == "plural" && CatalogKey::CATEGORIES.include?(name)
       cursor = parent
       while cursor
         raise ArgumentError, "Cannot move a key inside itself" if cursor.id == item.id

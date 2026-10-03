@@ -1,4 +1,5 @@
-<section class="app-page catalog-page">
+<% root_groups = @state.keys.select { |key| key.parent_id.nil? }.to_h { |key| [key.payload.name, key.payload.file_group] } %>
+<section class="app-page catalog-page" data-completion-catalog="<%= {paths: @state.keys.map { |key| @state.path(key) }, groups: root_groups.values.compact_blank.uniq, rootGroups: root_groups, terms: @project.completion_terms, source: @project.source_locale}.to_json %>">
   <%= render "projects/navigation" %>
   <div class="catalog-toolbar">
     <% if policy(@project).update? && @project.writable? %><se-button text="Add key" icon="plus" data-open-modal="catalog-add-key"></se-button><% end %>
@@ -29,10 +30,10 @@
     <se-modal id="catalog-add-key" title="Add key" size="medium">
       <%= catalog_form catalog_change_project_path(@project), class: "app-form" do %>
         <%= hidden_field_tag :operation, 'add' %><%= hidden_field_tag :revision, @project.revision %>
-        <se-input label="Key path" name="path" placeholder="account.profile.name"></se-input>
+        <se-input label="Key path" name="path" data-complete="path" placeholder="account.profile.name"></se-input>
         <se-select label="Kind" name="kind" value="scalar" options="<%= catalog_kind_options.reject { |option| option[:id] == 'branch' }.to_json %>"></se-select>
         <se-input label="Description" name="description"></se-input>
-        <se-input label="File group for a new root" name="file_group" placeholder="Default" hint="Optional lowercase filename prefix, such as devise. Existing roots keep their file group."></se-input>
+        <se-input label="File group for a new root (optional)" name="file_group" data-complete="group" placeholder="Default" hint="Optional lowercase filename prefix, such as devise. Existing roots keep their file group."></se-input>
       <% end %><%= render "shared/modal_footer", confirm: "Add key" %>
     </se-modal>
   <% end %>

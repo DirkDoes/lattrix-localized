@@ -51,7 +51,7 @@ class ProjectsController < ApplicationController
     saved = @project.with_lock do
       authorize @project, :update?
       @original_slug = @project.slug
-      attributes = params.require(:project).permit(:name, :visibility, :slug)
+      attributes = params.require(:project).permit(:name, :visibility, :slug, completion_terms: [:text, :description])
       slug_changes = attributes.key?(:slug) && attributes[:slug].to_s.strip.downcase != @project.slug
       authorize @project, :change_slug? if slug_changes
       visibility_changes = attributes.key?(:visibility) && attributes[:visibility] != @project.visibility

@@ -10,6 +10,43 @@ class CatalogTest < ActiveSupport::TestCase
   def key(path) = CatalogState.new(@project, pending: true).keys.find { |k| CatalogState.new(@project, pending: true).path(k) == path }
   def exported = CatalogExport.new(@project).values
 
+  test "editing the full path renames moves and creates parents while keeping translations" do
+    edit { |w| w.add_key('name') }
+    id = key('name').id
+    edit { |w| w.translate(id, 'en', 'Name') }
+    edit { |w| w.change_key(id, path: 'account.profile.name', kind: 'scalar', description: 'Profile name') }
+    assert_equal id, key('account.profile.name').id
+    assert_equal 'Name', exported.dig('en', 'account.profile.name')
+    edit { |w| w.change_key(id, path: 'account.profile.name.label.text', kind: 'scalar', description: 'Label') }
+    assert_equal 'branch', key('account.profile.name').payload.kind
+    assert_equal 'Name', exported.dig('en', 'account.profile.name.label.text')
+    assert_equal 'Label', key('account.profile.name.label.text').payload.description
+  end
+
+  test "full path edits reject conflicts and cycles atomically" do
+    edit { |w| w.add_key('account.name'); w.add_key('other') }
+    id = key('account').id
+    assert_raises(ArgumentError) { edit { |w| w.change_key(id, path: 'account.nested', kind: 'branch') } }
+    assert_raises(ArgumentError) { edit { |w| w.change_key(key('account.name').id, path: 'other', kind: 'scalar', description: 'Not saved') } }
+    assert_equal '', key('account.name').payload.description
+    assert key('other')
+    assert_raises(ArgumentError) { edit { |w| w.change_key(id, path: 'bad..path', kind: 'branch') } }
+    assert key('account.name')
+  end
+
+  test "plural category keys are generated not manually added while ordinary branches allow them" do
+    edit { |w| w.add_key('items', kind: 'plural') }
+    CatalogKey::CATEGORIES.each do |category|
+      error = assert_raises(ArgumentError) { edit { |w| w.add_key("items.#{category}") } }
+      assert_match(/managed automatically/, error.message)
+      edit { |w| w.add_key("ordinary.#{category}") }
+      assert key("ordinary.#{category}")
+    end
+    assert key('items.one')
+    assert key('items.other')
+    assert_nil key('items.few')
+  end
+
   test "scalar placeholders preserve last accepted translation until draft is valid" do
     edit { |w| w.add_key("greeting") }
     edit { |w| w.translate(key("greeting").id, "en", "Hello %{name}") }

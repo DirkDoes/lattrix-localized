@@ -3,10 +3,55 @@ import { Application, Controller } from "@hotwired/stimulus";
 import "@hotwired/turbo-rails";
 import { registerFormatPreview } from "format_preview";
 import { registerCatalogCell } from "catalog_cell";
+import "catalog_completions";
 window.Turbo.session.drive = false;
 const application = Application.start();
 registerFormatPreview(application, Controller);
 registerCatalogCell(application, Controller);
+document.addEventListener('catalog:before-sync', event => {
+  const unsaved = [...document.querySelectorAll('[data-controller~="catalog-cell"]')].some(element => {
+    const cell = application.getControllerForElementAndIdentifier(element, 'catalog-cell');
+    return cell && (cell.saving || cell.inputTarget.value !== cell.original);
+  });
+  if (!unsaved) return;
+  event.preventDefault();
+  const toast = document.createElement('se-toast');
+  toast.setAttribute('tone', 'warning');
+  toast.setAttribute('message', 'Finish saving your translation before synchronizing.');
+  toast.setAttribute('open', '');
+  document.body.append(toast);
+});
+application.register("catalog-sync", class extends Controller {
+  static values = {url: String};
+  static targets = ["message"];
+  connect() { this.stopped = false; this.poll(); }
+  disconnect() { this.stopped = true; clearTimeout(this.timer); this.request?.abort(); }
+  async poll() {
+    this.request = new AbortController();
+    try {
+      const response = await fetch(this.urlValue, {headers: {Accept: "application/json"}, signal: this.request.signal});
+      if (!response.ok) throw new Error();
+      const result = await response.json();
+      if (this.stopped) return;
+      this.messageTarget.textContent = result.message;
+      const badge = this.element.querySelector('se-badge');
+      if (result.busy && badge) {
+        const replacement = document.createElement('se-badge');
+        replacement.setAttribute('tone', 'info');
+        replacement.setAttribute('text', result.status === 'running' ? 'Syncing' : 'Queued');
+        badge.replaceWith(replacement);
+      }
+      if (!result.busy) {
+        window.Turbo.visit(window.location.href, {frame: "app-content", action: "replace"});
+        return;
+      }
+    } catch (error) {
+      if (this.stopped) return;
+      this.messageTarget.textContent = "Cannot check synchronization right now. Retrying automatically…";
+    }
+    this.timer = setTimeout(() => this.poll(), 3000);
+  }
+});
 application.register("project-header", class extends Controller {
   static targets = ["original", "compact"];
   connect() {
@@ -113,7 +158,7 @@ application.register("table-action", class extends Controller {
     event.preventDefault();
     if (!window.AppFormSubmission.start(this.element)) return;
     try {
-      const response = await fetch(this.element.action, { method: "POST", body: new FormData(this.element), headers: { Accept: "text/html" } });
+      const response = await fetch(this.element.action, { method: "POST", body: new FormData(this.element), signal: AbortSignal.timeout(120000), headers: { Accept: "text/html" } });
       const page = new DOMParser().parseFromString(await response.text(), "text/html");
       const results = page.querySelector("[data-table-results]");
       if (!response.ok || !results) { window.location.assign(response.url); return; }

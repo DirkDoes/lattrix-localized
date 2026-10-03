@@ -158,8 +158,9 @@ se-list-header .app-row-actions > se-select { flex: 1; min-width: 0; }
 .sheet-import-files { display: grid; gap: .5rem; }
 
 .translation-empty { color: var(--se-faint); }
-.translation-wildcard { color: var(--se-warning); }
-.catalog-count { color: #a21caf; }
+.translation-wildcard { color: #8a5900; font-weight: 700; }
+.catalog-count { color: #a21caf; font-weight: 700; }
+[data-theme="dark"] .translation-wildcard { color: #facc15; }
 [data-theme="dark"] .catalog-count { color: #f0abfc; }
 .catalog-page { display: grid; gap: 1rem; }
 se-button[aria-disabled="true"] { opacity: .55; }
@@ -188,6 +189,9 @@ se-button[aria-disabled="true"] { opacity: .55; }
 .catalog-key, .catalog-value { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-width: 0; padding-block: .2rem; }
 .catalog-key se-code { display: inline-block; line-height: 1.5; }
 .catalog-key > se-menu { margin-inline-start: auto; }
+@media (hover: hover) and (pointer: fine) {
+  .catalog-scalar-row:not(:hover):not(:focus-within) .catalog-key > se-menu:not(:has([aria-expanded="true"])) { opacity: 0; }
+}
 .catalog-value > .translation-cell { width: 100%; }
 .translation-cell textarea[aria-invalid="true"] { outline: 1px solid var(--se-danger); }
 .catalog-value { flex-wrap: nowrap; }

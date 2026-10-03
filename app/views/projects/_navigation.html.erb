@@ -1,7 +1,7 @@
 <% selected = controller_name == 'catalog' ? action_name : (%w[project_invites project_memberships].include?(controller_name) || action_name == 'members' ? 'members' : 'settings') %>
 <% navigation_options = [
   {id: 'translations', label: 'Translations', icon: 'languages', href: translations_project_path(@project)},
-  (policy(@project).pending? ? {id: 'pending', label: 'Pending changes', icon: 'code', href: pending_project_path(@project)} : nil),
+  (policy(@project).pending? ? {id: 'pending', label: 'Pending changes', icon: 'code', count: @project.catalog_drafts.count, href: pending_project_path(@project)} : nil),
   (policy(@project).history? ? {id: 'history', label: 'History', icon: 'clock', href: history_project_path(@project)} : nil),
   (policy(@project).members? ? {id: 'members', label: 'Members', icon: 'users', href: members_project_path(@project)} : nil),
   (policy(@project).settings? ? {id: 'settings', label: 'Settings', icon: 'settings', href: settings_project_path(@project)} : nil)
@@ -10,13 +10,27 @@
   <% [false, true].each do |compact| %>
     <div class="project-header<%= ' project-header--compact' if compact %>" data-project-header-target="<%= compact ? 'compact' : 'original' %>" <%= 'hidden' if compact %>>
       <header class="app-heading"><se-title level="<%= compact ? 'section' : 'page' %>"><%= @project.name %></se-title><% if @project.linked? %><se-badge tone="info" icon="code" text="<%= @project.git_branch.presence || 'GitHub' %>"></se-badge><% end %></header>
-      <se-nav-tabs class="app-page-navigation" label="Project navigation" value="<%= selected %>" options="<%= navigation_options %>"><span data-actions><se-button text="Export" icon="download" variant="secondary" data-open-modal="catalog-export"></se-button></span></se-nav-tabs>
+      <% default_action = @project.linked? && policy(@project).update? ? 'sync' : 'export' %>
+      <se-nav-tabs class="app-page-navigation" label="Project navigation" value="<%= selected %>" options="<%= navigation_options %>"><span data-actions>
+        <se-split-button direct="true" variant="secondary" text="<%= default_action == 'sync' ? 'Sync' : 'Export' %>" icon="<%= default_action == 'sync' ? 'refresh-cw' : 'download' %>" data-catalog-actions data-default-action="<%= default_action %>" options="<%= catalog_actions.to_json %>" <%= 'disabled' if @project.sync_busy? || (default_action == 'export' && !@project.writable?) %>></se-split-button>
+      </span></se-nav-tabs>
     </div>
   <% end %>
 </div>
-<% if @project.sync_error.present? %><se-card><se-badge tone="error" text="Git sync failed"></se-badge><se-text><%= @project.sync_error %></se-text><se-text muted>The last accepted catalog remains visible. Editing and export resume after the repository is repaired.</se-text></se-card><% end %>
+<% if @project.linked? %>
+  <% feedback = @project.sync_feedback %>
+  <se-card <%= 'hidden' if feedback[:status] == 'idle' %> <%= tag.attributes('data-controller': @project.sync_busy? ? 'catalog-sync' : nil, 'data-catalog-sync-url-value': sync_status_project_path(@project)) %>>
+    <div class="app-method-label" role="status" aria-live="polite"><% if feedback[:busy] %><se-spinner size="small" label="Synchronizing"></se-spinner><% end %><se-badge tone="<%= feedback[:status] == 'failed' ? 'error' : feedback[:status] == 'succeeded' ? 'success' : 'info' %>" text="<%= { 'idle'=>'Not synced yet', 'queued'=>'Queued', 'running'=>'Syncing', 'failed'=>'Sync failed', 'succeeded'=>'Sync complete' }[feedback[:status]] %>"></se-badge><span data-catalog-sync-target="message"><%= feedback[:message] %></span></div>
+    <% if @project.sync_error.present? && !feedback[:busy] %><se-text muted>The last accepted catalog remains visible. Retry synchronization after resolving the error to resume editing and export.</se-text><% end %>
+    <% if @project.sync_finished_at %><se-text muted>Last attempt: <%= l(@project.sync_finished_at, format: :short) %></se-text><% end %>
+  </se-card>
+<% end %>
+<% if @project.linked? && policy(@project).update? %>
+  <%= catalog_form sync_project_path(@project), id: 'catalog-sync-form', hidden: true do %><%= hidden_field_tag :publish, '0' %><% end %>
+<% end %>
+<% if @project.sync_error.present? && @project.sync_status == 'idle' %><se-card><se-badge tone="error" text="Git sync failed"></se-badge><se-text><%= @project.sync_error %></se-text><se-text muted>The last accepted catalog remains visible. Editing and export resume after the repository is repaired.</se-text></se-card><% end %>
 <se-modal id="catalog-export" title="Export translations" size="medium">
-  <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false}, class: "app-form" do %>
+  <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false, download: true}, class: "app-form" do %>
     <% if @project.linked? && @project.catalog_tags.exists? %><se-select label="Version" name="tag_id" value="" options="<%= ([{id: '', label: 'Current accepted catalog'}] + @project.catalog_tags.order(created_at: :desc).map { |tag| {id: tag.id.to_s, label: tag.name} }).to_json %>"></se-select><% end %>
     <se-select label="Format" name="format_name" value="yaml" options='[{"id":"yaml","label":"YAML"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select>
   <% end %>

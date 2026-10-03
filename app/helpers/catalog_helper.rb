@@ -13,6 +13,13 @@ module CatalogHelper
     form_with(url: url, data: {catalog_form: true, turbo: false}, **options, &block)
   end
   def catalog_kind_options = CatalogKey::KINDS.map { |kind| {id: kind, label: kind.capitalize} }
+  def catalog_actions
+    options = [{id: 'export', label: 'Export', icon: 'download', disabled: !@project.writable?}, {id: 'import', label: 'Import (coming soon)', icon: 'upload', disabled: true}]
+    if @project.linked? && policy(@project).update?
+      options += [{id: 'sync', label: 'Sync', icon: 'refresh-cw', disabled: @project.sync_busy?}, {id: 'publish', label: 'Generate PR', icon: 'code', disabled: @project.sync_busy?}]
+    end
+    options
+  end
 
   def catalog_event_label(event, item, origin)
     noun = item.text? ? "translation for" : "translation key"

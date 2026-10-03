@@ -12,6 +12,96 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
   def change(**params)
     post catalog_change_project_path(@project), params: {revision: @project.reload.revision, **params}, as: :json
   end
+  test "completion settings save, clear, remain scoped and require project management" do
+    patch project_path(@project), params: {project: {completion_terms: [{text: 'Lattrix', description: 'Product'}]}}
+    assert_response :redirect
+    assert_equal 'Lattrix', @project.reload.completion_terms.first['text']
+    other = Project.create!(name: 'Other', completion_terms: [{text: 'Secret term'}])
+    change(operation: 'add', path: 'account.name')
+    get translations_project_path(@project)
+    data = JSON.parse(css_select('[data-completion-catalog]').first['data-completion-catalog'])
+    assert_includes data['paths'], 'account.name'
+    assert_equal ['Lattrix'], data['terms'].map { |term| term['text'] }
+    patch project_path(@project), params: {project: {completion_terms: [{text: '', description: ''}]}}
+    assert_equal [], @project.reload.completion_terms
+    @membership.update!(role: 'translator')
+    patch project_path(@project), params: {project: {completion_terms: [{text: 'Forbidden'}]}}
+    assert_equal [], @project.reload.completion_terms
+  end
+  test "edit modal uses a full key path and removal lives in the row menu" do
+    change(operation: 'add', path: 'account.name')
+    key = CatalogState.new(@project).keys.find { |item| item.payload.name == 'name' }
+    get translations_project_path(@project)
+    assert_select "#catalog-key-#{key.id} se-input[label='Key'][name='path'][value='account.name']"
+    assert_select "#catalog-key-#{key.id} se-button[text='Remove']", count: 0
+    assert_select 'se-modal[id^="catalog-move-"]', count: 0
+    menus = css_select('se-menu[data-catalog-history-menu]').flat_map { |menu| JSON.parse(menu['options']) }
+    assert menus.any? { |option| option['id'] == 'remove' && option['modal'] == "catalog-delete-#{key.id}" }
+    change(operation: 'update', node_id: key.id, path: 'profile.full_name', kind: 'scalar', description: 'Name')
+    assert_response :success
+    state = CatalogState.new(@project)
+    assert_equal 'profile.full_name', state.path(state.items.fetch(key.id))
+  end
+  test "export errors are returned to download forms rather than downloading a redirected page" do
+    get export_project_path(@project), params: {format_name: 'unsupported'}, headers: {'Accept'=>'application/octet-stream'}
+    assert_response :unprocessable_entity
+    assert_equal 'Choose YAML, CSV or Excel', response.parsed_body['error']
+    get export_project_path(@project), params: {format_name: 'csv'}, headers: {'Accept'=>'application/octet-stream'}
+    assert_response :success
+    assert_includes response.headers['Content-Disposition'], 'attachment'
+  end
+  test "connected projects can add languages without waiting for a repository file" do
+    @project.update!(repository: 'org/repo', installation_id: 1)
+    get settings_project_path(@project)
+    assert_select 'se-button[text="Support another language"]'
+    post project_languages_path(@project), params: {identifier: 'fr'}, as: :json
+    assert_response :success
+    language = @project.languages.find_by!(identifier: 'fr')
+    assert language.active?
+    assert language.pending_repository?
+    post project_languages_path(@project), params: {identifier: 'not-a-locale'}, as: :json
+    assert_response :unprocessable_entity
+    assert_not @project.languages.exists?(identifier: 'not-a-locale')
+  end
+  test "split actions and add child shortcut respect connection and permissions" do
+    change(operation: 'add', path: 'account.name')
+    get translations_project_path(@project)
+    assert_select 'se-split-button[direct="true"][data-default-action="export"]', count: 2
+    actions = JSON.parse(css_select('se-split-button').first['options'])
+    assert_equal %w[export import], actions.map { |a| a['id'] }
+    assert actions.last['disabled']
+    menus = css_select('se-menu[data-catalog-history-menu]').flat_map { |m| JSON.parse(m['options']) }
+    assert_equal ['account.'], menus.select { |m| m['id'] == 'add-child' }.map { |m| m['path'] }
+    @project.update!(repository: 'org/repo', installation_id: 1)
+    get translations_project_path(@project)
+    assert_select 'se-split-button[data-default-action="sync"]', count: 2
+    actions = JSON.parse(css_select('se-split-button').first['options'])
+    assert_equal %w[export import sync publish], actions.map { |a| a['id'] }
+  end
+
+  test "sync queues a read only catalog and exposes progress without duplicate submissions" do
+    @project.update!(repository: 'org/repo', installation_id: 1)
+    assert_enqueued_with(job: CatalogSyncJob, args: [@project.id, {publish: false, initial: true}]) do
+      post sync_project_path(@project), as: :json
+    end
+    assert_response :accepted
+    assert @project.reload.sync_busy?
+    assert_not @project.writable?
+    assert_no_enqueued_jobs { post sync_project_path(@project), as: :json }
+    get sync_status_project_path(@project), as: :json
+    assert_equal 'queued', response.parsed_body['status']
+    assert response.parsed_body['busy']
+    get translations_project_path(@project)
+    assert_select '[data-controller="catalog-sync"]'
+    assert_select 'se-split-button[disabled]', count: 2
+    @project.update!(sync_status: 'succeeded', sync_message: 'Already up to date.', sync_finished_at: Time.current)
+    get sync_status_project_path(@project), as: :json
+    assert_not response.parsed_body['busy']
+    assert_equal 'Already up to date.', response.parsed_body['message']
+    assert_enqueued_with(job: CatalogSyncJob, args: [@project.id, {publish: true, initial: true}]) do
+      post sync_project_path(@project), params: {publish: '1'}, as: :json
+    end
+  end
   test "file group filters distinguish Default from default and hide only for an unfiltered empty catalog" do
     get translations_project_path(@project)
     assert_select '#catalog-filters', count: 0

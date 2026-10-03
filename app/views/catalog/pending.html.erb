@@ -1,6 +1,5 @@
 <section class="app-page catalog-page"><%= render "projects/navigation" %>
   <header class="app-heading"><se-title level="section">Pending changes</se-title>
-    <% if @project.linked? && policy(@project).update? %><%= catalog_form sync_project_path(@project) do %><se-button type="submit" text="Sync now" icon="rotate-ccw"></se-button><% end %><% end %>
   </header>
   <% if @project.pull_request_number %><se-button variant="link" icon="external-link" text="Open pull request #<%= @project.pull_request_number %>" href="https://github.com/<%= @project.repository %>/pull/<%= @project.pull_request_number %>"></se-button><% end %>
   <% if @drafts.empty? %><se-empty-illustration variant="check" title="All caught up" subtitle="New edits and incomplete translations will appear here."></se-empty-illustration><% end %>

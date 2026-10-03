@@ -12,6 +12,69 @@ class CatalogGithubTest < ActiveSupport::TestCase
   def key(path) = state.keys.find { |item| state.path(item) == path }
   def sync(files, sha = "abc") = CatalogReconcile.new(@project, files.transform_values { |v| YAML.dump(v) }, sha: sha).apply!
 
+  test "new language survives sync is published empty and becomes repository managed on merge" do
+    files = {'en'=>"# Main translations\nen:\n  hello: Hello\n", 'devise.en'=>"# Account translations\nen:\n  account:\n    login: Sign in # Login label\n"}
+    CatalogReconcile.new(@project, files, sha: 'base').apply!
+    @project.update!(repository: 'org/repo', installation_id: 1, git_branch: 'main')
+    language = @project.languages.create!(identifier: 'fr', pending_repository: true)
+    captured = nil
+    api = Object.new
+    commit = @commit
+    api.define_singleton_method(:snapshot) { [commit, files] }
+    api.define_singleton_method(:publish!) { |_commit, output, _existing| captured = output; true }
+    CatalogGithub.stub(:new, api) { CatalogSyncJob.perform_now(@project.id, publish: true) }
+    assert_equal 'succeeded', @project.reload.sync_status
+    assert language.reload.active?
+    assert language.pending_repository?
+    assert_equal({'fr'=>{}}, YAML.safe_load(captured.fetch('fr')))
+    assert_equal({'fr'=>{}}, YAML.safe_load(captured.fetch('devise.fr')))
+    assert_includes captured.fetch('en'), '# Main translations'
+    assert_includes captured.fetch('devise.en'), '# Account translations'
+    assert_includes captured.fetch('devise.en'), '# Login label'
+    assert_not_includes captured.fetch('fr'), '# Main translations'
+    CatalogReconcile.new(@project, captured, sha: 'merged').apply!
+    assert language.reload.active?
+    assert_not language.pending_repository?
+    CatalogReconcile.new(@project, files, sha: 'removed').apply!
+    assert language.reload.archived?
+  end
+
+  test "background sync reports running then success or no changes and unlocks editing" do
+    @project.update!(repository: 'org/repo', installation_id: 1, git_branch: 'main')
+    job = CatalogSyncJob.new(@project.id)
+    @project.update!(sync_status: 'queued', sync_job_id: job.job_id, sync_requested_at: Time.current)
+    api = Object.new
+    project = @project
+    commit = @commit
+    api.define_singleton_method(:snapshot) do
+      raise 'Status not visible' unless project.reload.sync_status == 'running' && !project.writable?
+      [commit, {'en'=>"en:\n  hello: Hello\n"}]
+    end
+    CatalogGithub.stub(:new, api) { job.perform_now }
+    assert_equal 'succeeded', @project.reload.sync_status
+    assert_match(/changes applied/, @project.sync_message)
+    assert @project.writable?
+    job = CatalogSyncJob.new(@project.id)
+    @project.update!(sync_job_id: job.job_id, sync_status: 'queued')
+    CatalogGithub.stub(:new, api) { job.perform_now }
+    assert_match(/Already up to date/, @project.reload.sync_message)
+  end
+
+  test "failed sync retains accepted catalog and stale queues can be retried" do
+    sync('en'=>{'en'=>{'hello'=>'Hello'}})
+    @project.update!(repository: 'org/repo', installation_id: 1, git_branch: 'main')
+    api = Object.new
+    api.define_singleton_method(:snapshot) { raise CatalogGithub::Error, 'Repository unavailable' }
+    CatalogGithub.stub(:new, api) { CatalogSyncJob.perform_now(@project.id) }
+    assert_equal 'failed', @project.reload.sync_status
+    assert_equal 'Repository unavailable', @project.sync_feedback[:message]
+    assert_not @project.sync_busy?
+    assert_equal 'Hello', CatalogExport.new(@project).values.dig('en', 'hello')
+    @project.update!(sync_status: 'queued', sync_requested_at: 31.minutes.ago)
+    assert_not @project.sync_busy?
+    assert_equal 'failed', @project.sync_feedback[:status]
+  end
+
   test "file groups merge locales and split YAML without changing CSV paths" do
     sync({"en"=>{"en"=>{"hello"=>"Hello"}}, "devise.en"=>{"en"=>{"devise"=>{"login"=>"Sign in"}, "errors"=>{"missing"=>"Missing"}}}, "devise.nl.yaml"=>{"nl"=>{"devise"=>{"login"=>"Inloggen"}}}})
     assert_equal "devise", key("devise").payload.file_group

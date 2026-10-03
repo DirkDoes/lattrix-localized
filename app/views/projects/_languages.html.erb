@@ -7,7 +7,7 @@
     </se-list-row>
   <% end %>
 </se-collection>
-<% unless @project.linked? %>
+<% if @project.writable? %>
   <se-button text="Support another language" icon="plus" data-open-modal="catalog-language"></se-button>
   <se-modal id="catalog-language" title="Support another language" size="medium"><%= catalog_form project_languages_path(@project) do %><se-select label="Language" name="identifier" searchable options="<%= CatalogLocale.options.to_json %>"></se-select><% end %><%= render 'shared/modal_footer', confirm: 'Add language' %></se-modal>
 <% end %>

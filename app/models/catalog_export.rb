@@ -14,7 +14,7 @@ class CatalogExport
       (out[text.payload.locale] ||= {})[@state.path(@state.items.fetch(text.parent_id))] = text.payload.value
     end
   end
-  def files(existing: {})
+  def files(existing: {}, originals: {})
     content = values
     roots = @state.keys.select { |key| key.parent_id.nil? }.to_h { |key| [key.payload.name, key.payload.file_group] }
     trees = existing.transform_values { |tree| CatalogYaml.without_strings(tree) }
@@ -34,7 +34,8 @@ class CatalogExport
       end
     end
     trees.to_h do |file, tree|
-      [file, YAML.dump({CatalogYaml.identity(file).last => tree})]
+      generated = YAML.dump({CatalogYaml.identity(file).last => tree})
+      [file, CatalogYamlComments.preserve(originals[file], generated)]
     end
   end
   def download(format)

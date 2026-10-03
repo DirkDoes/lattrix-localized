@@ -104,7 +104,8 @@ class ProjectSettingsTest < ActionDispatch::IntegrationTest
     get members_project_path(@project)
     assert_select "se-menu[icon-only][data-edit-url=?]", edit_project_project_membership_path(@project, @membership)
     get settings_project_path(@project)
-    assert_select "se-collection[type=table] se-list-row", count: 4
+    assert_select "se-collection[type=table] se-list-row:not([data-term-row])", count: 4
+    assert_select "form[data-completion-terms] se-collection se-list-row[data-term-row]", count: 1
     assert_select "form.app-setting-form", count: 3
   end
 

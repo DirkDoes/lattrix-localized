@@ -30,7 +30,7 @@
       <%= catalog_form restore_catalog_project_path(@project) do %><%= hidden_field_tag :revision, @project.revision %><%= hidden_field_tag :change_set_id, change.id %><se-text>Restore the state including this change, from <%= l(change.created_at, format: :long) %>. Undo <%= @project.catalog_events.where('catalog_events.id > ?', change.catalog_events.maximum(:id)).count %> later events across all languages, regardless of these filters. This creates new changes and follows the normal publishing rules.</se-text><% end %><%= render "shared/modal_footer", confirm: "Restore" %>
     </se-modal>
     <se-modal id="export-change-<%= change.id %>" title="Export translations · <%= l(change.created_at, format: :short) %>" size="medium">
-      <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false} do %><%= hidden_field_tag :change_set_id, change.id %><se-select name="format_name" label="Format" value="yaml" options='[{"id":"yaml","label":"YAML"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select><% end %><%= render "shared/modal_footer", confirm: "Export" %>
+      <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false, download: true} do %><%= hidden_field_tag :change_set_id, change.id %><se-select name="format_name" label="Format" value="yaml" options='[{"id":"yaml","label":"YAML"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select><% end %><%= render "shared/modal_footer", confirm: "Export" %>
     </se-modal>
   <% end %></div>
   <se-pagination page="<%= @page %>" pages="<%= @pages %>" data-pagination-url="<%= history_project_path(@project, **history_filter_params) %>"></se-pagination>

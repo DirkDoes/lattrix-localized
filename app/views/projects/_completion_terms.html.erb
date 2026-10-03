@@ -1,0 +1,18 @@
+<se-card>
+  <se-title level="section">Translation suggestions</se-title>
+  <%= form_with model: @project, class: "app-form", data: {completion_terms: true} do %>
+    <input type="hidden" name="project[completion_terms][][text]" value="">
+    <input type="hidden" name="project[completion_terms][][description]" value="">
+    <se-collection type="table" columns="minmax(0, 1fr) minmax(0, 1fr) auto" mobile-columns="minmax(0, 1fr)">
+      <se-list-header><span>Term</span><span>Description (optional)</span><span></span></se-list-header>
+      <% (@project.completion_terms.presence || [{"text" => "", "description" => ""}]).each do |term| %>
+        <%= render "projects/completion_term", term: term %>
+      <% end %>
+    </se-collection>
+    <template data-term-template><%= render "projects/completion_term", term: {"text" => "", "description" => ""} %></template>
+    <div class="app-setting-form">
+      <se-button type="button" variant="secondary" icon="plus" text="Add term" data-add-term></se-button>
+      <se-button type="submit" text="Save suggestions"></se-button>
+    </div>
+  <% end %>
+</se-card>

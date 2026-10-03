@@ -8,11 +8,12 @@ test('inline editor queues saves, preserves failures, and handles keyboard contr
   const cells = [], requests = [];
   let fail = false;
   const document = {
+    dispatchEvent() {},
     querySelector: () => ({content: 'csrf'}),
     querySelectorAll: selector => selector.includes('revision-value') ? cells.map(c => c.element) : [],
     createElement: () => ({setAttribute() {}}), body: {append() {}}
   };
-  const context = vm.createContext({document, fetch: async (_url, request) => {
+  const context = vm.createContext({document, CustomEvent: class {}, fetch: async (_url, request) => {
     const body = JSON.parse(request.body); requests.push(body);
     return {ok: !fail, json: async () => fail ? {error: 'Conflict'} : {value: body.value, html: body.value, revision: body.revision + 1}};
   }});
@@ -35,6 +36,8 @@ test('inline editor queues saves, preserves failures, and handles keyboard contr
   assert.equal(a.editorTarget.hidden, true);
   assert.match(a.statusTarget.innerHTML, /Saved/);
   a.inputTarget.value = 'line\nline';
+  a.keydown({key: 'Enter', defaultPrevented: true});
+  assert.equal(requests.length, 2);
   a.keydown({key: 'Enter', shiftKey: true});
   assert.equal(requests.length, 2);
   a.keydown({key: 'Escape', preventDefault() {}});

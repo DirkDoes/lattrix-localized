@@ -18,6 +18,7 @@ Rails.application.routes.draw do
     post :resolve, on: :member, to: "catalog#resolve"
     post :restore_draft, on: :member, to: "catalog#restore_draft"
     post :sync, on: :member, to: "catalog#sync"
+    get :sync_status, on: :member, to: "catalog#sync_status"
     post :connect, on: :member, to: "catalog#connect"
     post :source_locale, on: :member, to: "catalog#source_locale"
     resources :languages, only: [:create] do

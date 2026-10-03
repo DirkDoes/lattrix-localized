@@ -1,0 +1,5 @@
+<se-list-row data-term-row>
+  <se-input aria-label="Term" name="project[completion_terms][][text]" value="<%= term['text'] %>" error="<%= @project.errors[:completion_terms].first %>"></se-input>
+  <se-input aria-label="Description (optional)" name="project[completion_terms][][description]" value="<%= term['description'] %>"></se-input>
+  <se-button type="button" variant="secondary" icon="trash" icon-only aria-label="Remove term" data-remove-term></se-button>
+</se-list-row>

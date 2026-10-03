@@ -681,6 +681,7 @@ CREATE TABLE public.languages (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     status character varying DEFAULT 'active'::character varying NOT NULL,
+    pending_repository boolean DEFAULT false NOT NULL,
     CONSTRAINT language_identity CHECK (((length((name)::text) > 0) AND ((identifier)::text ~ '^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$'::text))),
     CONSTRAINT language_status CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'archived'::character varying, 'pending_deletion'::character varying])::text[])))
 );
@@ -836,6 +837,12 @@ CREATE TABLE public.projects (
     sync_error text,
     pull_request_number integer,
     last_published_at timestamp(6) without time zone,
+    sync_status character varying DEFAULT 'idle'::character varying NOT NULL,
+    sync_job_id character varying,
+    sync_requested_at timestamp(6) without time zone,
+    sync_finished_at timestamp(6) without time zone,
+    sync_message text,
+    completion_terms jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT projects_slug_format CHECK ((((slug)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text) AND (length((slug)::text) <= 100) AND ((slug)::text <> ALL ((ARRAY['new'::character varying, 'edit'::character varying])::text[])))),
     CONSTRAINT projects_visibility CHECK (((visibility)::text = ANY ((ARRAY['public'::character varying, 'private'::character varying])::text[])))
 );
@@ -2572,6 +2579,9 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261003003000'),
+('20261003002000'),
+('20261003001000'),
 ('20261003000000'),
 ('20260930004000'),
 ('20260930003000'),

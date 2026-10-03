@@ -1,6 +1,6 @@
 class CatalogController < ApplicationController
   layout "settings"
-  allow_unauthenticated_access only: [:translations, :export]
+  allow_unauthenticated_access only: [:translations, :export, :sync_status]
   before_action :set_project
   after_action :verify_authorized
 
@@ -125,8 +125,7 @@ class CatalogController < ApplicationController
       case operation
       when "add" then edit.add_key(params[:path], kind: params[:kind].presence || "scalar", description: params[:description].to_s, file_group: params[:file_group].to_s)
       when "translate" then edit.translate(params[:node_id], params[:locale], params[:value].to_s)
-      when "update" then edit.change_key(params[:node_id], name: params[:name], kind: params[:kind], description: params[:description].to_s, file_group: params[:file_group])
-      when "move" then edit.move(params[:node_id], params[:path].to_s)
+      when "update" then edit.change_key(params[:node_id], name: params[:name], path: params[:path], kind: params[:kind], description: params[:description].to_s, file_group: params[:file_group])
       when "delete" then edit.remove(params[:node_id])
       else raise ArgumentError, "Unknown change"
       end
@@ -210,13 +209,30 @@ class CatalogController < ApplicationController
       send_data data, filename: filename, type: type
     end
   rescue ArgumentError, CatalogGithub::Error => error
-    redirect_to translations_project_path(@project), alert: error.message
+    if request.headers['Accept'].to_s.include?('application/octet-stream')
+      render json: {error: error.message}, status: :unprocessable_entity
+    else
+      redirect_to translations_project_path(@project), alert: error.message
+    end
   end
 
   def sync
     authorize @project, :update?
-    CatalogSyncJob.perform_later(@project.id, publish: true)
-    render json: {location: pending_project_path(@project)}
+    raise ArgumentError, "Connect a repository first" unless @project.linked?
+    unless @project.sync_busy?
+      @project.with_lock do
+        CatalogSyncJob.perform_later(@project.id, publish: params[:publish] == "1", initial: @project.git_sha.nil?) unless @project.sync_busy?
+      end
+    end
+    render json: {location: translations_project_path(@project)}, status: :accepted
+  rescue ArgumentError => error
+    render json: {error: error.message}, status: :unprocessable_entity
+  end
+
+  def sync_status
+    authorize @project, :show?
+    response.headers["Cache-Control"] = "no-store"
+    render json: @project.sync_feedback
   end
 
   def source_locale
@@ -229,9 +245,10 @@ class CatalogController < ApplicationController
 
   def connect
     authorize @project, :update?
+    raise ArgumentError, "Wait for synchronization to finish before changing the connection" if @project.sync_busy?
     @project.with_lock do
     if params[:disconnect] == "1"
-      @project.update!(repository: nil, installation_id: nil, git_sha: nil, git_branch: nil, pull_request_number: nil, sync_error: nil)
+      @project.update!(repository: nil, installation_id: nil, git_sha: nil, git_branch: nil, pull_request_number: nil, sync_error: nil, sync_status: "idle", sync_job_id: nil, sync_message: nil)
       flash[:notice] = "Repository disconnected."
     else
       raise ArgumentError, "Configure the GitHub App credentials before connecting a repository" unless CatalogGithub.configured?
@@ -242,7 +259,7 @@ class CatalogController < ApplicationController
       CatalogGithub.new(@project).repository
       @project.assign_attributes(git_sha: nil, pull_request_number: nil, sync_error: nil) if previous != [@project.repository, @project.installation_id, @project.git_branch, @project.locale_directory]
       @project.save!
-      CatalogSyncJob.perform_later(@project.id, publish: true, initial: true)
+      CatalogSyncJob.perform_later(@project.id, initial: true)
       flash[:notice] = "Repository connected. Synchronization has been queued."
     end
     end

@@ -16,7 +16,7 @@ export function registerCatalogCell(application, Controller) {
     }
     changed() { if (!this.saving) this.statusTarget.textContent = ""; }
     keydown(event) {
-      if (event.isComposing || this.saving) return;
+      if (event.defaultPrevented || event.isComposing || this.saving) return;
       if (event.key === "Escape") {
         event.preventDefault(); this.inputTarget.value = this.original;
         this.inputTarget.querySelector("textarea")?.removeAttribute("aria-invalid");
@@ -46,6 +46,7 @@ export function registerCatalogCell(application, Controller) {
           document.querySelectorAll('[data-catalog-cell-revision-value]').forEach(cell => { cell.dataset.catalogCellRevisionValue = result.revision; });
           document.querySelectorAll('input[name="revision"]').forEach(field => { field.value = result.revision; });
           this.original = result.value;
+          document.dispatchEvent(new CustomEvent("catalog:translation-saved", {detail: {node: this.nodeValue, locale: this.localeValue, value: result.value}}));
           this.inputTarget.value = result.value;
           this.displayTarget.innerHTML = result.html;
           input.removeAttribute("aria-invalid");

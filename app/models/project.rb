@@ -1,4 +1,19 @@
 class Project < ApplicationRecord
+  before_validation :normalize_completion_terms
+  validate :validate_completion_terms
+
+  def normalize_completion_terms
+    self.completion_terms = Array(completion_terms).map do |term|
+      {"text" => term.fetch("text", "").to_s.strip, "description" => term.fetch("description", "").to_s.strip}
+    end.reject { |term| term.values.all?(&:blank?) }.uniq { |term| term["text"].downcase }
+  end
+
+  def validate_completion_terms
+    if completion_terms.size > 200 || completion_terms.any? { |term| term["text"].blank? || term["text"].length > 100 || term["description"].length > 300 }
+      errors.add(:completion_terms, "Use up to 200 terms, each with a name of 1–100 characters and an optional description of up to 300 characters.")
+    end
+  end
+
   include Sluggable
   has_many :languages, dependent: :destroy
   has_many :catalog_nodes, dependent: :delete_all
@@ -13,7 +28,22 @@ class Project < ApplicationRecord
   validates :locale_directory, format: {with: /\A[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\z/}
   after_create { languages.create!(identifier: source_locale) }
   def linked? = repository.present?
-  def writable? = sync_error.blank?
+  def sync_busy? = %w[queued running].include?(sync_status) && sync_requested_at && sync_requested_at > 30.minutes.ago
+  def writable? = sync_error.blank? && !sync_busy?
+  def sync_feedback
+    expired = %w[queued running].include?(sync_status) && !sync_busy?
+    status = expired ? "failed" : sync_status
+    message = if expired
+      "Synchronization did not finish. Please retry; if this persists, check the background worker."
+    elsif status == "queued"
+      "Synchronization queued. Waiting for the background worker…"
+    elsif status == "running"
+      "Synchronizing with GitHub… The catalog is temporarily read-only."
+    else
+      sync_message
+    end
+    {status: status, busy: !!sync_busy?, message: message, token: [sync_job_id, status, sync_finished_at&.iso8601(6)]}
+  end
   def change_source_locale!(locale, expected:)
     with_lock do
       raise ActiveRecord::StaleObjectError.new(self, "change source language") unless revision.to_s == expected.to_s

@@ -118,12 +118,21 @@ Git snapshots accept `.yml` and `.yaml` and retain existing extensions on public
 Each file has its locale wrapper. A root must belong to one group across all locales;
 ambiguous roots split over different groups are rejected rather than silently losing
 data. Reassigning a root clears its managed strings from the old file while keeping
-unsupported values there. Empty old files are retained, not deleted. Non-string YAML
+unsupported values there. Empty old files are retained, not deleted. YAML
+comments are preserved from the current GitHub file when publishing, without storing
+them as catalog data. Comments follow matching YAML keys; inline comments become
+standalone lines, and comments for removed keys stay at the end of their original
+file. New files and standalone downloads have no repository comments. Existing
+formatting and quoting may still be normalized by the YAML writer. Non-string YAML
 leaves are ignored by the catalog but preserved when writing existing files.
 Aliases, duplicate keys, excessive depth/size and unsupported locale IDs are
 rejected. Deleting all files for a locale archives its values; deleting source keys
-removes their target subtree. While connected, locale-file availability is
-managed in GitHub; standalone projects manage languages in Settings.
+removes their target subtree. Connected projects can add languages in Settings:
+they remain active as pending repository additions until their locale files appear
+on the authoritative branch. Generate PR includes these files even before any
+translations have been entered (empty locale mappings, never copied source text).
+Once merged, removing the locale files in GitHub archives the language as usual.
+Archiving/restoring existing connected languages remains managed in GitHub.
 
 Tag creation pins an immutable commit SHA. Tagged exports read that SHA and
 validate/project it in a rolled-back transaction, without changing the live
@@ -142,3 +151,9 @@ Network integration is covered with simulated API responses locally. A real
 App installation is required to verify end-to-end PR/check delivery. Sync holds
 a per-project database lock through network I/O; use a leased sync lock if
 large repositories or network latency make that a practical bottleneck.
+
+## Synchronization feedback and catalog actions
+
+Manual Sync only pulls/reconciles GitHub. Generate PR first synchronizes, then publishes eligible pending changes; the daily publication job retains the same behavior. Both use the existing background job. Project status records queued, running, succeeded or failed, including a human-readable outcome and completion time. No-op syncs and publications explicitly say that nothing changed. During synchronization, the last accepted catalog remains visible but editing/export is disabled. The page polls while busy and replaces only the app-content frame when the job finishes. A failed repository sync keeps the prior accepted catalog and reports the error; retry after repairing the cause. A 15-minute execution timeout and a 30-minute stale-queue limit prevent an abandoned worker from leaving the UI permanently busy.
+
+The header uses a direct split button: Export, disabled Import, and (for connected projects with management permissions) Sync and Generate PR. Sync is the connected administrator's default; Export is the default otherwise. Branch/plural key menus offer Add child key, prefilling the existing add-key dialog with the full parent path.

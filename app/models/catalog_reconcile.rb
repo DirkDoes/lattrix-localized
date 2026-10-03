@@ -21,9 +21,15 @@ class CatalogReconcile
     @project.with_lock do
       raise ArgumentError, "The source locale file is missing" unless @yaml.values.key?(@project.source_locale)
       current = CatalogState.new(@project)
-      desired = CatalogState.new(@project)
-      @project.languages.each { |language| language.update!(status: @yaml.values.key?(language.identifier) ? "active" : "archived") }
+      @project.languages.each do |language|
+        if @yaml.values.key?(language.identifier)
+          language.update!(status: "active", pending_repository: false)
+        elsif !language.pending_repository?
+          language.update!(status: "archived")
+        end
+      end
       @yaml.values.each_key { |locale| @project.languages.find_or_create_by!(identifier: locale) }
+      desired = CatalogState.new(@project)
       by_path = current.keys.index_by { |key| current.path(key) }
       pending_state = CatalogState.new(@project, pending: true)
       pending_state.keys.each { |key| by_path[pending_state.path(key)] ||= key unless current.active?(current.items[key.id]) }

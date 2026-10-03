@@ -12,7 +12,12 @@ The role of this file is to describe common mistakes and confusion points that a
 
 ## Agent Notes (Surprises Encountered)
 
+- SE v0.16.2 completion insertion replaces only a trailing ASCII word. catalog_completions.js uses the public completion event and a saved native-input range to replace full wildcard tokens and Unicode/multiword terms without duplicated prefixes.
+- SE v0.16.3 fixes completion reconnection after modal/table composition moves inputs, and cleans up old listeners. The v0.16.2 field-recreation workaround has been removed; keep the separate wildcard insertion-range handling.
+
 - Locale filenames may have a file-group prefix (e.g. devise.en.yml); do not treat the whole basename as a locale. CatalogYaml.identity resolves the group/locale and CatalogYaml.filename preserves existing .yaml extensions. File groups belong only to root key payloads, not translation paths.
+
+- Locally added languages in connected projects use `pending_repository` until their files appear on the authoritative branch. Preserve these during sync and include them in PR generation even without text drafts; otherwise sync archives the language before it can be published.
 
 - Do not start form loading in a capture-listener microtask: browsers may run it before a later bubble submit listener, making the custom handler reject its own first submission as a duplicate. Native loading waits until the next task; custom and Turbo handlers own their own start/end lifecycle.
 
@@ -83,3 +88,6 @@ The role of this file is to describe common mistakes and confusion points that a
 - Non-user entity primary keys are bigint after migration 20260921000000. Only users and their foreign keys use UUIDs. Compare request/DOM ID strings explicitly with numeric model IDs; never assume UUID-shaped identifiers outside users.
 
 - Before changing translation architecture, read `docs/catalog-redesign.md`. It supersedes `docs/translation-architecture.md`: projects are catalogs, with typed immutable payloads, backward-delta events and separate drafts. The prelaunch reset migration intentionally deletes old project/catalog data, not user accounts.
+
+- `se-split-button direct` emits `action` without an id for its primary button (use the app's explicit default action). Menu actions preserve option ids. v0.16.1 fixes the dropdown clipping inside `se-nav-tabs`; use its `data-actions` region.
+- Download forms need `data-download`: normal attachment responses do not trigger a navigation/submit-end lifecycle. The shared handler fetches the file, resets loading on success/failure and closes the modal only after receiving the file.

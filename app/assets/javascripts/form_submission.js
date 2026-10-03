@@ -38,10 +38,44 @@
     form.removeAttribute('aria-busy');
   }
   window.AppFormSubmission = {start, finish};
+  async function download(form) {
+    if (!start(form)) return;
+    try {
+      const url = new URL(form.action, window.location.href);
+      for (const [key, value] of new FormData(form)) url.searchParams.set(key, value);
+      const response = await fetch(url, {headers: {Accept: 'application/octet-stream'}, signal: AbortSignal.timeout(120000)});
+      const disposition = response.headers.get('Content-Disposition') || '';
+      if (!response.ok || !disposition.includes('attachment')) {
+        const error = response.headers.get('Content-Type')?.includes('json') ? (await response.json()).error : null;
+        throw new Error(error || 'Export failed. Please try again.');
+      }
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      link.download = encoded ? decodeURIComponent(encoded[1]) : (disposition.match(/filename="([^"]+)"/i)?.[1] || 'translations.zip');
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+      form.closest('se-modal')?.close();
+    } catch (error) {
+      const toast = document.createElement('se-toast');
+      toast.setAttribute('tone', 'error');
+      toast.setAttribute('message', error.name === 'TimeoutError' ? 'Export timed out. Please try again.' : error.message);
+      toast.setAttribute('open', '');
+      document.body.append(toast);
+    } finally { finish(form); }
+  }
   document.addEventListener('submit', event => {
     if (pending.has(event.target)) {
       event.preventDefault();
       event.stopImmediatePropagation();
+      return;
+    }
+    if (event.target.matches?.('form[data-download]')) {
+      event.preventDefault();
+      download(event.target);
       return;
     }
     // A microtask can run between capture and bubble listeners. Wait for the whole
