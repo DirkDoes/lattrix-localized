@@ -13,6 +13,9 @@ class CatalogController < ApplicationController
     @status = params[:status].presence_in(%w[all incomplete review]) || "all"
     @kind = params[:kind].presence_in(%w[all scalar plural]) || "all"
     @sort = params[:sort].presence_in(%w[path oldest newest]) || "path"
+    @file_group_options = [{id: ":default", label: "Default"}] + @state.keys.select { |key| key.parent_id.nil? }.map { |key| key.payload.file_group }.reject(&:blank?).uniq.sort.map { |group| {id: group, label: group} }
+    @file_groups = Array(params[:file_groups]) & @file_group_options.map { |option| option[:id] }
+    @filters_active = @query.present? || @status != "all" || @kind != "all" || @sort != "path" || Array(params[:file_groups]).any?
     @flat_results = @query.present? || @status != "all" || @kind != "all" || @sort != "path"
     @reviews = CatalogReview.where(catalog_node_id: @state.texts.map(&:id)).index_by(&:catalog_node_id)
     @invalid = @state.invalid_groups
@@ -23,6 +26,7 @@ class CatalogController < ApplicationController
       parts
     end
     @all_keys.select! { |key| @state.path(key).include?(@query) || @state.children(key.id).any? { |i| i.text? && i.payload.value.downcase.include?(@query.downcase) } } if @query.present?
+    @all_keys.select! { |key| @file_groups.include?(@state.file_group(key).presence || ":default") } if @file_groups.any?
     @all_keys.select! do |key|
       parent = @state.plural_parent(key)
       next false if parent && ![@project.source_locale, @locale].flat_map { |locale| CatalogLocale.categories(locale) }.include?(key.payload.name)
@@ -119,9 +123,9 @@ class CatalogController < ApplicationController
     end
     writer.edit(expected: params.require(:revision), summary: operation.humanize) do |edit|
       case operation
-      when "add" then edit.add_key(params[:path], kind: params[:kind].presence || "scalar", description: params[:description].to_s)
+      when "add" then edit.add_key(params[:path], kind: params[:kind].presence || "scalar", description: params[:description].to_s, file_group: params[:file_group].to_s)
       when "translate" then edit.translate(params[:node_id], params[:locale], params[:value].to_s)
-      when "update" then edit.change_key(params[:node_id], name: params[:name], kind: params[:kind], description: params[:description].to_s)
+      when "update" then edit.change_key(params[:node_id], name: params[:name], kind: params[:kind], description: params[:description].to_s, file_group: params[:file_group])
       when "move" then edit.move(params[:node_id], params[:path].to_s)
       when "delete" then edit.remove(params[:node_id])
       else raise ArgumentError, "Unknown change"

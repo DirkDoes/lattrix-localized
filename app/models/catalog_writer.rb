@@ -39,7 +39,7 @@ class CatalogWriter
     item
   end
 
-  def add_key(path, kind: "scalar", description: "")
+  def add_key(path, kind: "scalar", description: "", file_group: "")
     parts = path.to_s.split(".", -1)
     raise ArgumentError, "Enter a dotted path without empty segments" if parts.empty? || parts.any?(&:blank?)
     parent = nil
@@ -50,21 +50,22 @@ class CatalogWriter
         raise ArgumentError, "Move the scalar into a child before adding nested keys" if found.payload.kind == "scalar"
         parent = found
       else
-        parent = create_item(CatalogKey.create!(name: segment, kind: index == parts.length - 1 ? kind : "branch", description: index == parts.length - 1 ? description : ""), parent&.id)
+        parent = create_item(CatalogKey.create!(name: segment, kind: index == parts.length - 1 ? kind : "branch", description: index == parts.length - 1 ? description : "", file_group: index.zero? ? file_group : ""), parent&.id)
       end
     end
     ensure_categories(parent) if kind == "plural"
     parent
   end
 
-  def change_key(id, name:, kind:, description: "")
+  def change_key(id, name:, kind:, description: "", file_group: nil)
     item = @state.items.fetch(id.to_i)
     raise ArgumentError, "Key not found" unless item.key? && @state.active?(item)
     raise ArgumentError, "Move this scalar into a child first" if item.payload.kind == "scalar" && kind != "scalar"
     if item.payload.kind == "plural" && kind == "branch"
       @state.children(item.id).select(&:key?).each { |child| remove(child.id) if @state.children(child.id).none?(&:text?) }
     end
-    item.payload = CatalogKey.create!(name: name, kind: kind, description: description)
+    raise ArgumentError, "File groups can only be assigned to root keys" if item.parent_id && file_group.present?
+    item.payload = CatalogKey.create!(name: name, kind: kind, description: description, file_group: item.parent_id ? "" : (file_group || item.payload.file_group))
     stage(item)
     ensure_categories(item) if kind == "plural"
   end
@@ -118,7 +119,7 @@ class CatalogWriter
       raise ArgumentError, "Choose one child segment" if suffix.include?(".") || suffix.blank?
       child = create_item(CatalogKey.create!(name: suffix, kind: "scalar", description: item.payload.description), item.id)
       @state.children(item.id).select(&:text?).each { |text| text.parent_id = child.id; stage(text) }
-      item.payload = CatalogKey.create!(name: item.payload.name, kind: "branch", description: item.payload.description)
+      item.payload = CatalogKey.create!(name: item.payload.name, kind: "branch", description: item.payload.description, file_group: item.payload.file_group)
       stage(item)
     else
       parts = destination.split("."); name = parts.pop
@@ -130,8 +131,9 @@ class CatalogWriter
         raise ArgumentError, "Cannot move a key inside itself" if cursor.id == item.id
         cursor = @state.items[cursor.parent_id]
       end
+      file_group = parent ? "" : @state.file_group(item)
       item.parent_id = parent&.id
-      item.payload = CatalogKey.create!(name: name, kind: item.payload.kind, description: item.payload.description)
+      item.payload = CatalogKey.create!(name: name, kind: item.payload.kind, description: item.payload.description, file_group: file_group)
       stage(item)
     end
   end

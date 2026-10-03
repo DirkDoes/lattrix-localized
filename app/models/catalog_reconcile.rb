@@ -42,7 +42,8 @@ class CatalogReconcile
         kind = plural_paths.include?(path) ? "plural" : (source.key?(path) || plural_paths.include?(parts.join(".")) ? "scalar" : "branch")
         previous = by_path[path]
         payload = previous&.payload
-        payload = CatalogKey.create!(name: name, kind: kind) unless payload && payload.kind == kind
+        file_group = parts.empty? ? @yaml.root_groups.fetch(name, "") : ""
+        payload = CatalogKey.create!(name: name, kind: kind, description: payload&.description.to_s, file_group: file_group) unless payload && payload.kind == kind && payload.file_group == file_group
         parent_id = by_path[parts.join(".")]&.id
         node = previous ? @project.catalog_nodes.find(previous.id) : @project.catalog_nodes.create!(payload: payload, parent_id: parent_id, deleted: true)
         item = CatalogState::Item.new(id: node.id, parent_id: parent_id, payload: payload, deleted: false)

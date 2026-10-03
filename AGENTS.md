@@ -12,6 +12,8 @@ The role of this file is to describe common mistakes and confusion points that a
 
 ## Agent Notes (Surprises Encountered)
 
+- Locale filenames may have a file-group prefix (e.g. devise.en.yml); do not treat the whole basename as a locale. CatalogYaml.identity resolves the group/locale and CatalogYaml.filename preserves existing .yaml extensions. File groups belong only to root key payloads, not translation paths.
+
 - Do not start form loading in a capture-listener microtask: browsers may run it before a later bubble submit listener, making the custom handler reject its own first submission as a duplicate. Native loading waits until the next task; custom and Turbo handlers own their own start/end lifecycle.
 
 - SE v0.16 adaptive icons choose light/dark artwork by computed foreground brightness. Layout-brand sets that foreground to --se-primary; scope --se-primary to --se-text on the brand so a blue accent does not select the same artwork in both themes.

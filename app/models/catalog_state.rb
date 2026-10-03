@@ -50,6 +50,10 @@ class CatalogState
     parts.join(".")
   end
   def translation(key_id, locale) = (@translations ||= texts.index_by { |i| [i.parent_id, i.payload.locale] })[[key_id, locale]]
+  def file_group(item)
+    item = items.fetch(item.parent_id) while item.parent_id
+    item.payload.file_group
+  end
   def plural_parent(key)
     parent = items[key.parent_id]
     parent if parent&.key? && parent.payload.kind == "plural"

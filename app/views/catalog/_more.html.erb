@@ -1,6 +1,6 @@
 <div id="catalog-more">
   <% if @all_keys.size > @page * 40 %>
-    <se-card data-controller="catalog-more" data-catalog-more-url-value="<%= translations_project_path(@project, **params.permit(:q, :locale, :status, :kind, :sort).to_h, page: @page+1) %>">
+    <se-card data-controller="catalog-more" data-catalog-more-url-value="<%= translations_project_path(@project, **params.permit(:q, :locale, :status, :kind, :sort, file_groups: []).to_h, page: @page+1) %>">
       <div class="catalog-loading" role="status" data-catalog-more-target="status"><se-icon name="refresh-cw" class="catalog-spinner"></se-icon>Loading translations…</div>
       <se-button hidden data-catalog-more-target="retry" data-action="click->catalog-more#load" variant="secondary" text="Retry loading"></se-button>
     </se-card>

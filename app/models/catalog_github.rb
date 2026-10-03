@@ -43,7 +43,7 @@ class CatalogGithub
     tree = request(:get, "#{repo_path}/git/trees/#{commit.fetch('commit').fetch('tree').fetch('sha')}?recursive=1")
     raise Error, "Repository tree is too large for a complete snapshot" if tree["truncated"]
     prefix = "#{project.locale_directory}/"
-    entries = tree.fetch("tree").select { |entry| entry["path"].start_with?(prefix) && entry["path"].delete_prefix(prefix).match?(/\A[^\/]+\.yml\z/) }
+    entries = tree.fetch("tree").select { |entry| entry["path"].start_with?(prefix) && entry["path"].delete_prefix(prefix).match?(/\A[^\/]+\.ya?ml\z/) }
     raise Error, "Too many locale files" if entries.size > 500
     raise Error, "Locale files exceed 20 MB combined" if entries.sum { |entry| entry.fetch("size", 0) } > 20.megabytes
     files = entries.to_h do |entry|
@@ -56,7 +56,7 @@ class CatalogGithub
   def publish!(commit, contents, existing)
     entries = contents.filter_map do |locale, content|
       next if existing[locale] == content
-      {path: "#{project.locale_directory}/#{locale}.yml", mode: "100644", type: "blob", content: content}
+      {path: "#{project.locale_directory}/#{CatalogYaml.filename(locale)}", mode: "100644", type: "blob", content: content}
     end
     return if entries.empty?
     tree = request(:post, "#{repo_path}/git/trees", {base_tree: commit.fetch("commit").fetch("tree").fetch("sha"), tree: entries})

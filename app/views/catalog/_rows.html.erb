@@ -2,6 +2,7 @@
     <% parent_plural = @state.plural_parent(key); next if parent_plural && !([@project.source_locale, @locale].flat_map { |locale| CatalogLocale.categories(locale) }.include?(key.payload.name)) %>
     <se-list-row guides level="<%= @flat_results ? 0 : @state.path(key).count('.') %>" <%= 'collapsible'.html_safe if key.payload.kind != 'scalar' && !@flat_results %> <%= 'variant="secondary"'.html_safe if key.payload.kind != 'scalar' %>>
       <div class="catalog-key"><se-code><%= @flat_results ? @state.path(key) : key.payload.name %></se-code><% if key.payload.kind == 'plural' %><se-badge tone="important" text="Plural"></se-badge><% end %>
+    <% if key.parent_id.nil? && key.payload.file_group.present? %><se-badge tone="info" text="<%= key.payload.file_group %>"></se-badge><% end %>
     <% if @drafts[key.id] %><se-badge tone="<%= @drafts[key.id].conflict? ? 'error' : 'warning' %>" text="<%= @drafts[key.id].conflict? ? 'Conflict' : 'Pending' %>"></se-badge><% end %>
     <% if policy(@project).update? && @project.writable? %><se-menu variant="mini" icon-only label="Key actions" data-catalog-history-menu options="<%= [{id: 'edit', label: 'Edit key', icon: 'pencil', modal: "catalog-key-#{key.id}"}].to_json %>"></se-menu><% end %>
       </div>

@@ -9,6 +9,9 @@
     <se-card><div class="app-heading"><se-code><%= @state.path(item) %></se-code><se-badge tone="<%= draft.conflict? ? 'error' : 'warning' %>" text="<%= draft.conflict? ? 'Merge conflict' : 'Pending' %>"></se-badge></div>
       <% if draft.payload.is_a?(CatalogText) %><se-badge tone="important" text="<%= CatalogLocale.name(draft.payload.locale) %>"></se-badge><% end %>
       <se-diff title="Proposed change" before-label="Accepted" after-label="Lattrix" before="<%= before %>" after="<%= after %>" language="text"></se-diff>
+      <% if draft.payload.is_a?(CatalogKey) && node.payload.file_group != draft.payload.file_group %>
+        <div class="history-key-change"><se-text muted>File group</se-text><se-diff-value before="<%= node.payload.file_group.presence || 'Default' %>" after="<%= draft.payload.file_group.presence || 'Default' %>"></se-diff-value></div>
+      <% end %>
       <% (@invalid[@state.group_for(item)] || []).each do |message| %><se-badge tone="error" text="<%= message %>"></se-badge><% end %>
       <% if draft.conflict? && policy(@project).update? %><div class="app-row-actions"><% %w[github lattrix].each do |choice| %><%= catalog_form resolve_project_path(@project) do %><%= hidden_field_tag :draft_id, draft.id %><%= hidden_field_tag :choice, choice %><%= hidden_field_tag :revision, @project.revision %><se-button type="submit" variant="secondary" text="Keep <%= choice == 'github' ? 'GitHub' : 'Lattrix' %>"></se-button><% end %><% end %></div><% end %>
     </se-card>

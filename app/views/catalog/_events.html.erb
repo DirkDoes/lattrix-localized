@@ -6,7 +6,7 @@
         <% if item.text? %>
           <se-diff-value <%= tag.attributes(before: before && !before.deleted ? before.payload.value : nil, after: after && !after.deleted ? after.payload.value : nil) %>></se-diff-value>
         <% else %>
-          <% {name: "Key", kind: "Kind", description: "Description"}.each do |attribute, label| %>
+          <% {name: "Key", kind: "Kind", description: "Description", file_group: "File group"}.each do |attribute, label| %>
             <% previous = before && !before.deleted ? before.payload.public_send(attribute) : nil; current = after && !after.deleted ? after.payload.public_send(attribute) : nil; next if previous == current %>
             <div class="history-key-change"><se-text muted><%= label %></se-text><se-diff-value <%= tag.attributes(before: previous, after: current) %>></se-diff-value></div>
           <% end %>

@@ -19,20 +19,23 @@
     <se-text muted>This language defines the structure and placeholder validation. Existing translations are kept. The change is only saved if the catalog and pending translations remain valid.</se-text>
   <% end %><%= render 'shared/modal_footer', confirm: 'Change source language' %>
 </se-modal>
-<se-card><div class="app-stack"><div class="app-heading"><se-title level="section">GitHub</se-title>
+<se-card><div class="app-stack"><div class="app-heading"><div class="app-method-label"><se-title level="section">GitHub</se-title>
+<% if policy(GithubAppConfiguration).show? %><se-button variant="mini" text="Go to Global GitHub App settings" href="<%= settings_github_app_path %>"></se-button><% end %>
+</div>
 <% if !@project.linked? %><se-badge tone="gray" text="Not connected"></se-badge>
 <% elsif @project.sync_error.present? %><se-badge tone="error" text="Synchronization failed"></se-badge>
 <% elsif @project.git_sha.present? %><se-badge tone="success" text="Connected · synchronized"></se-badge>
 <% else %><se-badge tone="info" text="Connected · awaiting first synchronization"></se-badge><% end %>
 </div>
 <se-text muted>The GitHub App is configured once for all projects. These settings select this project's repository and installation.</se-text>
-<% if policy(GithubAppConfiguration).show? %><se-button variant="secondary" text="Global GitHub App settings" href="<%= settings_github_app_path %>"></se-button><% end %>
-<%= catalog_form connect_project_path(@project), class: 'app-form' do %>
+<div class="catalog-github-forms <%= 'catalog-github-forms--connected' if @project.linked? %>">
+<%= catalog_form connect_project_path(@project), class: 'catalog-github-connect' do %>
   <se-input label="Repository" name="repository" placeholder="owner/repository" value="<%= @project.repository %>"></se-input>
   <se-input label="GitHub App installation ID" name="installation_id" value="<%= @project.installation_id %>"></se-input>
   <se-input label="Authoritative branch" name="git_branch" placeholder="Repository default branch" value="<%= @project.git_branch %>"></se-input>
   <se-input label="Locale directory" name="locale_directory" value="<%= @project.locale_directory %>"></se-input>
   <se-button type="submit" text="Connect and synchronize"></se-button>
 <% end %>
-<% if @project.linked? %><%= catalog_form connect_project_path(@project) do %><%= hidden_field_tag :disconnect, '1' %><se-button type="submit" variant="secondary" text="Disconnect repository"></se-button><% end %><% end %>
+<% if @project.linked? %><%= catalog_form connect_project_path(@project), class: 'catalog-github-disconnect' do %><%= hidden_field_tag :disconnect, '1' %><se-button type="submit" variant="danger" text="Disconnect repository"></se-button><% end %><% end %>
+</div>
 </div></se-card>

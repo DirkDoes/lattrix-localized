@@ -2,19 +2,22 @@
   <%= render "projects/navigation" %>
   <div class="catalog-toolbar">
     <% if policy(@project).update? && @project.writable? %><se-button text="Add key" icon="plus" data-open-modal="catalog-add-key"></se-button><% end %>
+    <% if @state.keys.any? || @filters_active %>
     <%= form_with url: translations_project_path(@project), method: :get, id: "catalog-filters", class: "catalog-filters catalog-filters--right" do %>
       <%= hidden_field_tag :locale, @locale %>
       <se-input name="q" type="search" aria-label="Search translations" placeholder="Search keys and translations" value="<%= @query %>"></se-input>
       <se-popover icon="funnel" icon-only label="Translation filters">
+        <div class="history-filter-group"><se-select multiple searchable label="File groups" name="file_groups" value="<%= @file_groups.join(',') %>" placeholder="All file groups" options="<%= @file_group_options.to_json %>"></se-select></div>
         <div class="history-filter-group"><se-select label="Status" name="status" value="<%= @status %>" options='[{"id":"all","label":"All translations"},{"id":"incomplete","label":"Incomplete translations"},{"id":"review","label":"Needs review"}]'></se-select></div>
         <div class="history-filter-group"><se-select label="Type" name="kind" value="<%= @kind %>" options='[{"id":"all","label":"All keys"},{"id":"plural","label":"Plural translations"},{"id":"scalar","label":"Non-plural translations"}]'></se-select></div>
         <div class="history-filter-group"><se-select label="Sort by" name="sort" value="<%= @sort %>" options='[{"id":"path","label":"Key path"},{"id":"oldest","label":"Oldest edited first"},{"id":"newest","label":"Newest edited first"}]'></se-select></div>
         <div class="catalog-filter-actions"><se-button type="submit" text="Apply filters"></se-button></div>
       </se-popover>
     <% end %>
+    <% end %>
   </div>
   <% if @keys.empty? %>
-    <se-empty-illustration variant="search" title="<%= @query.present? ? 'No matching keys' : 'Your catalog is empty' %>" subtitle="Add keys or connect a repository in Settings."></se-empty-illustration>
+    <se-empty-illustration variant="search" title="<%= @filters_active ? 'No matching keys' : 'Your catalog is empty' %>" subtitle="<%= @filters_active ? 'Try changing your filters or search.' : 'Add keys or connect a repository in Settings.' %>"></se-empty-illustration>
   <% else %>
     <se-collection id="catalog-rows" type="table" dividers="1" guides columns="minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr)" mobile-columns="minmax(0, 1fr)">
       <se-list-header><span>Key</span><span><%= CatalogLocale.name(@project.source_locale) %></span><span><se-select size="small" searchable aria-label="Target language" data-catalog-locale value="<%= @locale %>" options="<%= @languages.map { |l| {id: l.identifier, label: l.name} }.to_json %>"></se-select></span></se-list-header>
@@ -29,6 +32,7 @@
         <se-input label="Key path" name="path" placeholder="account.profile.name"></se-input>
         <se-select label="Kind" name="kind" value="scalar" options="<%= catalog_kind_options.reject { |option| option[:id] == 'branch' }.to_json %>"></se-select>
         <se-input label="Description" name="description"></se-input>
+        <se-input label="File group for a new root" name="file_group" placeholder="Default" hint="Optional lowercase filename prefix, such as devise. Existing roots keep their file group."></se-input>
       <% end %><%= render "shared/modal_footer", confirm: "Add key" %>
     </se-modal>
   <% end %>

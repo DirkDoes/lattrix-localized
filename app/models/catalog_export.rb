@@ -16,16 +16,31 @@ class CatalogExport
   end
   def files(existing: {})
     content = values
-    @state.locales.to_h do |locale|
-      tree = CatalogYaml.without_strings(existing.fetch(locale, {}))
-      content.fetch(locale, {}).sort.each { |path, value| CatalogYaml.assign(tree, path, value) }
-      [locale, YAML.dump({locale => tree})]
+    roots = @state.keys.select { |key| key.parent_id.nil? }.to_h { |key| [key.payload.name, key.payload.file_group] }
+    trees = existing.transform_values { |tree| CatalogYaml.without_strings(tree) }
+    filenames = existing.keys.to_h { |file| [CatalogYaml.identity(file), file] }
+    # Keep old files (including unsupported YAML values), removing managed strings
+    # from their previous location when a root is reassigned.
+    @state.locales.each do |locale|
+      groups = roots.values.uniq.presence || [""]
+      groups.each do |group|
+        file = filenames[[group, locale]] || [group.presence, locale].compact.join('.')
+        trees[file] ||= {}
+      end
+      content.fetch(locale, {}).sort.each do |path, value|
+        group = roots.fetch(path.split('.').first)
+        file = filenames[[group, locale]] || [group.presence, locale].compact.join('.')
+        CatalogYaml.assign(trees.fetch(file), path, value)
+      end
+    end
+    trees.to_h do |file, tree|
+      [file, YAML.dump({CatalogYaml.identity(file).last => tree})]
     end
   end
   def download(format)
     case format
     when "yaml"
-      data = Zip::OutputStream.write_buffer { |zip| files.each { |locale, text| zip.put_next_entry("#{locale}.yml"); zip.write(text) } }.string
+      data = Zip::OutputStream.write_buffer { |zip| files.each { |file, text| zip.put_next_entry(CatalogYaml.filename(file)); zip.write(text) } }.string
       [data, "#{@project.slug}.zip", "application/zip"]
     when "csv", "xlsx"
       content = values

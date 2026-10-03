@@ -406,6 +406,7 @@ CREATE TABLE public.catalog_keys (
     name character varying NOT NULL,
     kind character varying NOT NULL,
     description text DEFAULT ''::text NOT NULL,
+    file_group character varying DEFAULT ''::character varying NOT NULL,
     CONSTRAINT catalog_key_shape CHECK ((((kind)::text = ANY ((ARRAY['scalar'::character varying, 'branch'::character varying, 'plural'::character varying])::text[])) AND (length((name)::text) > 0) AND (POSITION(('.'::text) IN (name)) = 0) AND ((name)::text !~ '\s'::text)))
 );
 
@@ -2571,6 +2572,7 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261003000000'),
 ('20260930004000'),
 ('20260930003000'),
 ('20260930002000'),

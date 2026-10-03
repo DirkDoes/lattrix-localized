@@ -12,6 +12,48 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
   def change(**params)
     post catalog_change_project_path(@project), params: {revision: @project.reload.revision, **params}, as: :json
   end
+  test "file group filters distinguish Default from default and hide only for an unfiltered empty catalog" do
+    get translations_project_path(@project)
+    assert_select '#catalog-filters', count: 0
+    get translations_project_path(@project), params: {q: 'nothing'}
+    assert_select '#catalog-filters', count: 1
+    change(operation: 'add', path: 'hello')
+    change(operation: 'add', path: 'default.name', file_group: 'default')
+    assert_response :success
+    get translations_project_path(@project), params: {file_groups: ['default']}
+    assert_select '.catalog-key se-code', text: 'hello', count: 0
+    assert_select '.catalog-key se-code', text: 'default', count: 1
+    assert_select '.catalog-key se-code', text: 'name', count: 1
+    assert_select 'se-select[name="file_groups"][multiple]'
+    get translations_project_path(@project), params: {file_groups: [':default']}
+    assert_select '.catalog-key se-code', text: 'hello', count: 1
+    assert_select '.catalog-key se-code', text: 'default', count: 0
+    root = CatalogState.new(@project).keys.find { |key| key.payload.name == 'default' }
+    change(operation: 'update', node_id: root.id, name: 'default', kind: 'branch', file_group: 'DEVise')
+    assert_response :success
+    assert_equal 'devise', CatalogState.new(@project).items.fetch(root.id).payload.file_group
+  end
+
+  test "GitHub settings share the connected action row without nesting forms" do
+    get settings_project_path(@project)
+    assert_select '.catalog-github-connect se-button[text="Connect and synchronize"]'
+    assert_select '.catalog-github-disconnect', count: 0
+    @project.update!(repository: 'org/repo', installation_id: 1)
+    get settings_project_path(@project)
+    assert_select '.catalog-github-forms--connected > form', count: 2
+    assert_select '.catalog-github-disconnect se-button[variant="danger"]'
+    assert_select 'form form', count: 0
+  end
+
+  test "file group badges appear only on assigned roots and coexist with plural badges" do
+    change(operation: 'add', path: 'account.name', file_group: 'accounts')
+    change(operation: 'add', path: 'notifications', kind: 'plural', file_group: 'messages')
+    change(operation: 'add', path: 'hello')
+    get translations_project_path(@project)
+    assert_select '.catalog-key se-badge[tone="info"]', count: 2
+    assert_select '.catalog-key se-badge[tone="info"][text="accounts"]', count: 1
+    assert_select '.catalog-key:has(se-badge[text="Plural"]) se-badge[tone="info"][text="messages"]', count: 1
+  end
   test "cell statuses use one severity icon and invalid reviewed translations stay in review filter" do
     change(operation: 'add', path: 'greeting')
     key = CatalogState.new(@project).keys.sole

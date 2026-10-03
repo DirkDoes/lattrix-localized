@@ -106,10 +106,22 @@ PR retains drafts; the next publication makes a new PR. Merging accepts matching
 drafts. PR validation uses the same reconciliation inside a rolled-back
 transaction. Disconnecting keeps the catalog and drafts, and leaves the PR alone.
 
-Each locale is one `<identifier>.yml`, with its locale root. Non-string YAML
+Each root key has an optional lowercase **file group**, inherited by its descendants.
+The empty group is displayed as Default and exports to `<identifier>.yml`;
+`devise` exports to `devise.<identifier>.yml`. Multiple roots can share a group.
+The literal group `default` is allowed and is distinct from Default. Groups are
+immutable key payload attributes, so drafts, reconciliation and history restoration
+include changes to file placement. CSV/Excel still use ordinary dotted key paths.
+The translations filter supports multiple groups (none selected means all).
+
+Git snapshots accept `.yml` and `.yaml` and retain existing extensions on publication.
+Each file has its locale wrapper. A root must belong to one group across all locales;
+ambiguous roots split over different groups are rejected rather than silently losing
+data. Reassigning a root clears its managed strings from the old file while keeping
+unsupported values there. Empty old files are retained, not deleted. Non-string YAML
 leaves are ignored by the catalog but preserved when writing existing files.
 Aliases, duplicate keys, excessive depth/size and unsupported locale IDs are
-rejected. Deleting a locale file archives its values; deleting source keys
+rejected. Deleting all files for a locale archives its values; deleting source keys
 removes their target subtree. While connected, locale-file availability is
 managed in GitHub; standalone projects manage languages in Settings.
 

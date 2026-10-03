@@ -1,12 +1,24 @@
 require "yaml"
 class CatalogYaml
   MAX_BYTES = 5.megabytes
-  attr_reader :documents, :values
+  attr_reader :documents, :values, :root_groups
+  def self.identity(filename)
+    stem = filename.sub(/\.ya?ml\z/, "")
+    group, _, locale = stem.rpartition(".")
+    raise ArgumentError, "Unknown locale #{locale}" unless CatalogLocale.valid?(locale)
+    raise ArgumentError, "Invalid file group #{group.inspect}; use lowercase letters, digits, dots, underscores or hyphens" unless group.length <= 100 && group.match?(CatalogKey::FILE_GROUP_FORMAT)
+    [group, locale]
+  end
+
+  def self.filename(file) = file.match?(/\.ya?ml\z/) ? file : "#{file}.yml"
+
   def initialize(files)
-    @documents, @values = {}, {}
+    @documents, @values, @root_groups = {}, {}, {}
+    identities = Set.new
     raise ArgumentError, "Locale files exceed 20 MB combined" if files.values.sum(&:bytesize) > 20.megabytes
-    files.each do |locale, content|
-      raise ArgumentError, "Unknown locale #{locale}" unless CatalogLocale.valid?(locale)
+    files.each do |file, content|
+      group, locale = self.class.identity(file)
+      raise ArgumentError, "Duplicate locale file for #{file}" unless identities.add?([group, locale])
       raise ArgumentError, "Locale file exceeds 5 MB" if content.bytesize > MAX_BYTES
       stack = [[Psych.parse_stream(content), 0]]
       until stack.empty?
@@ -20,9 +32,18 @@ class CatalogYaml
       end
       data = YAML.safe_load(content, permitted_classes: [], permitted_symbols: [], aliases: false)
       raise ArgumentError, "#{locale}.yml must contain exactly one #{locale}: root" unless data.is_a?(Hash) && data.keys == [locale] && data[locale].is_a?(Hash)
-      @documents[locale] = data[locale]
-      @values[locale] = {}
-      flatten(data[locale], [], @values[locale])
+      @documents[file] = data[locale]
+      flat = {}
+      flatten(data[locale], [], flat)
+      flat.each do |path, value|
+        root = path.split('.').first
+        if @root_groups.key?(root) && @root_groups[root] != group
+          raise ArgumentError, "Root #{root} occurs in different file groups; keep each root in one file group across languages"
+        end
+        @root_groups[root] = group
+        (@values[locale] ||= {})[path] = value
+      end
+      @values[locale] ||= {}
     end
   rescue Psych::Exception => error
     raise ArgumentError, "Invalid YAML: #{error.message}"

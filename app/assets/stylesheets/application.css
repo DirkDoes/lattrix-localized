@@ -242,3 +242,9 @@ button.catalog-status-icon { cursor: pointer; }
   .history-table .se-list__row:has(> .history-actor) .se-list__toggle { left: 1rem; }
   .history-table .se-list__row:has(> .history-actor) .history-restore-action { right: 1rem; }
 }
+/* Separate forms share an action row without nesting forms or custom submission. */
+.catalog-github-forms { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.catalog-github-forms--connected { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.catalog-github-connect { display: contents; }
+.catalog-github-connect > se-input { grid-column: 1 / -1; }
+.catalog-github-disconnect, .catalog-github-disconnect > se-button { width: 100%; }

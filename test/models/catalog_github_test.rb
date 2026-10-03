@@ -12,6 +12,89 @@ class CatalogGithubTest < ActiveSupport::TestCase
   def key(path) = state.keys.find { |item| state.path(item) == path }
   def sync(files, sha = "abc") = CatalogReconcile.new(@project, files.transform_values { |v| YAML.dump(v) }, sha: sha).apply!
 
+  test "file groups merge locales and split YAML without changing CSV paths" do
+    sync({"en"=>{"en"=>{"hello"=>"Hello"}}, "devise.en"=>{"en"=>{"devise"=>{"login"=>"Sign in"}, "errors"=>{"missing"=>"Missing"}}}, "devise.nl.yaml"=>{"nl"=>{"devise"=>{"login"=>"Inloggen"}}}})
+    assert_equal "devise", key("devise").payload.file_group
+    assert_equal "devise", state.file_group(key("errors.missing"))
+    assert_equal "", key("hello").payload.file_group
+    files = CatalogExport.new(@project).files
+    assert_equal({"en"=>{"hello"=>"Hello"}}, YAML.safe_load(files.fetch("en")))
+    assert_equal "Sign in", YAML.safe_load(files.fetch("devise.en")).dig("en", "devise", "login")
+    assert_equal "Inloggen", YAML.safe_load(files.fetch("devise.nl")).dig("nl", "devise", "login")
+    csv = CatalogExport.new(@project).download("csv").first
+    assert_includes csv, "devise.login"
+    assert_not_includes csv, "devise.devise.login"
+  end
+
+  test "file group changes remove old managed strings preserve unsupported values and restore inclusively" do
+    originals = {"en"=>{"en"=>{"hello"=>"Hello"}}, "devise.en.yaml"=>{"en"=>{"devise"=>{"login"=>"Sign in"}, "enabled"=>true}}}
+    sync(originals)
+    position = @project.catalog_events.maximum(:id)
+    root = key("devise")
+    edit { |w| w.change_key(root.id, name: "devise", kind: "branch", file_group: "  Accounts ") }
+    assert_equal "accounts", key("devise").payload.file_group
+    parsed = CatalogYaml.new(originals.transform_values { |v| YAML.dump(v) })
+    files = CatalogExport.new(@project).files(existing: parsed.documents)
+    assert_equal({"en"=>{"enabled"=>true}}, YAML.safe_load(files.fetch("devise.en.yaml")))
+    assert_equal "Sign in", YAML.safe_load(files.fetch("accounts.en")).dig("en", "devise", "login")
+    assert_equal "devise", CatalogState.new(@project, at: position).file_group(CatalogState.new(@project, at: position).items.fetch(root.id))
+    @writer.restore(position, expected: @project.reload.revision)
+    assert_equal "devise", key("devise").payload.file_group
+    files = CatalogExport.new(@project).files(existing: parsed.documents)
+    assert files.key?("devise.en.yaml")
+    assert_not files.key?("devise.en")
+  end
+
+  test "file group parser rejects ambiguous roots and unsafe filenames without reserving default" do
+    parsed = CatalogYaml.new("default.en"=>"en:\n  default: Fine\n")
+    assert_equal "default", parsed.root_groups.fetch("default")
+    %w[../en Devise.en devise..en /en].each do |file|
+      assert_raises(ArgumentError) { CatalogYaml.new(file=>"en: {}\n") }
+    end
+    assert_raises(ArgumentError) { CatalogYaml.new("en"=>"en:\n  hello: Hi\n", "other.en"=>"en:\n  hello: Hello\n") }
+    assert_raises(ArgumentError) { CatalogYaml.new("en"=>"en: {}\n", "en.yaml"=>"en: {}\n") }
+  end
+
+  test "pending group changes survive synchronization and are accepted on matching merge" do
+    sync("en"=>{"en"=>{"account"=>{"name"=>"Name"}}})
+    @project.update!(repository: "org/repo")
+    root = key("account")
+    edit { |w| w.change_key(root.id, name: "account", kind: "branch", file_group: "accounts") }
+    sync({"en"=>{"en"=>{"account"=>{"name"=>"Name"}}}}, "unchanged")
+    assert_equal "accounts", key("account").payload.file_group
+    assert_equal "", CatalogState.new(@project).items.fetch(root.id).payload.file_group
+    assert_not @project.catalog_drafts.sole.conflict?
+    sync({"accounts.en"=>{"en"=>{"account"=>{"name"=>"Name"}}}}, "merged")
+    assert_empty @project.catalog_drafts
+    assert_equal "accounts", CatalogState.new(@project).items.fetch(root.id).payload.file_group
+  end
+
+  test "snapshot accepts named yml and yaml files and publication retains their extensions" do
+    @project.update!(repository: "org/repo", installation_id: 1, git_branch: "main")
+    entries = %w[en.yml devise.en.yaml].map { |file| {"path"=>"config/locales/#{file}", "sha"=>file, "size"=>7, "type"=>"blob", "mode"=>"100644"} }
+    calls = []
+    responder = lambda do |method, path, data = nil|
+      calls << [method, path, data]
+      case path
+      when /commits\/main$/ then @commit
+      when /trees\/tree\?recursive=1$/ then {"tree"=>entries}
+      when /git\/blobs\// then {"content"=>Base64.strict_encode64("en: {}\n")}
+      when /git\/trees$/ then {"sha"=>"new-tree"}
+      when /git\/commits$/ then {"sha"=>"new-commit"}
+      when /git\/refs$/ then {}
+      when /pulls$/ then {"number"=>1}
+      else raise "Unexpected API request #{path}"
+      end
+    end
+    CatalogGithub.new(@project).stub(:request, responder) do |api|
+      _, files = api.snapshot
+      assert_equal %w[en devise.en.yaml], files.keys
+      api.publish!(@commit, files.transform_values { "en:\n  name: Name\n" }, files)
+    end
+    paths = calls.find { |_, path, _| path.end_with?("/git/trees") }.last.fetch(:tree).map { |entry| entry[:path] }
+    assert_equal %w[config/locales/en.yml config/locales/devise.en.yaml], paths
+  end
+
   test "identical independently created keys resolve drafts without duplicates" do
     @project.update!(repository: "org/repo")
     edit { |w| w.add_key("name") }

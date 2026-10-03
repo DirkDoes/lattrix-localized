@@ -4,6 +4,7 @@
     <se-input label="Name" name="name" value="<%= key.payload.name %>"></se-input>
     <se-select label="Kind" name="kind" value="<%= key.payload.kind %>" options="<%= catalog_kind_options.select { |option| key.payload.kind == 'scalar' ? option[:id] == 'scalar' : option[:id] != 'scalar' }.to_json %>"></se-select>
     <se-input label="Description" name="description" value="<%= key.payload.description %>"></se-input>
+    <% if key.parent_id.nil? %><se-input label="File group" name="file_group" value="<%= key.payload.file_group %>" placeholder="Default" hint="Blank exports to en.yml; devise exports this root and its descendants to devise.en.yml, for each language."></se-input><% end %>
     <div class="app-row-actions"><se-button variant="secondary" icon="arrow-right" text="Move" data-open-modal="catalog-move-<%= key.id %>"></se-button><se-button variant="danger" icon="trash" text="Remove" data-open-modal="catalog-delete-<%= key.id %>"></se-button></div>
   <% end %><%= render "shared/modal_footer", confirm: "Save" %>
 </se-modal>
