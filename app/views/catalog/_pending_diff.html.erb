@@ -1,9 +1,16 @@
 <% if @error %><se-empty-state title="Could not load changes" subtitle="<%= @error %>"></se-empty-state>
 <% else %>
   <% if @changes.empty? %><se-empty-state title="No translation changes" subtitle="Descriptions and review status are local metadata and are not sent to GitHub."></se-empty-state><% end %>
-  <% @changes.each do |change| %>
-    <se-diff title="<%= change[:path] %> · <%= CatalogLocale.name(CatalogYaml.identity(change[:file]).last) %> · <%= change[:file] %>" before-label="GitHub base" after-label="Proposed" before="<%= change[:before] %>" after="<%= change[:after] %>" language="text"></se-diff>
-  <% end %>
+  <% if @changes.any? %><se-collection type="table" columns="minmax(0, 1fr) minmax(0, 2fr)" class="catalog-pending-diff">
+    <se-list-header><span>Key</span><span>Translation changes</span></se-list-header>
+    <% @changes.each do |change| %><se-list-row>
+      <div class="catalog-pending-key"><se-code><%= change[:path] %></se-code><se-text muted><%= change[:file] %></se-text></div>
+      <div class="catalog-pending-value">
+        <se-text muted><%= CatalogLocale.name(CatalogYaml.identity(change[:file]).last) %></se-text>
+        <se-diff-value variant="stacked" <%= tag.attributes(before: change[:before], after: change[:after]) %>></se-diff-value>
+      </div>
+    </se-list-row><% end %>
+  </se-collection><% end %>
   <% if @total > 50 %><div class="app-row-actions">
     <se-text muted>Page <%= @page %> of <%= (@total / 50.0).ceil %> · <%= @total %> changes</se-text>
     <% if @page > 1 %><se-button variant="secondary" text="Previous changes" data-pending-diff="<%= pending_diff_project_path(@project, pull: params[:pull], page: @page - 1) %>"></se-button><% end %>

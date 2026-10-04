@@ -214,7 +214,8 @@ button.catalog-status-icon { cursor: pointer; }
 .app-shell se-sidebar[collapsed] se-layout-brand .se-layout-brand__asset--compact-light se-icon { width: 2.75rem; height: 2.75rem; }
 .catalog-value > se-button { margin-inline-start: auto; flex: none; }
 .catalog-translation { white-space: pre-wrap; overflow-wrap: anywhere; }
-.catalog-page se-diff { display: block; margin-block: .75rem; }
+.catalog-pending-key, .catalog-pending-value { display: grid; gap: .375rem; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.catalog-pending-value se-diff-value { white-space: pre-wrap; }
 
 .history-actor, .history-change, .history-description { min-width: 0; }
 .history-actor { display: flex; align-items: center; gap: .75rem; }

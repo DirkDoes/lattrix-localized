@@ -66,8 +66,10 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
       assert_select 'se-button[data-pending-diff*="pull=13"]', count: 0
       get pending_diff_project_path(@project, pull: 12)
       assert_response :success
-      assert_select 'se-diff[before="Before"][after="After"]'
-      assert_select 'se-diff[title="label · English · en.yml"][language="text"]'
+      assert_select '.catalog-pending-key se-code', text: 'label'
+      assert_select '.catalog-pending-value se-text', text: 'English'
+      assert_select 'se-diff-value[before="Before"][after="After"][variant="stacked"]'
+      assert_select 'se-diff', count: 0
       get pending_diff_project_path(@project, pull: 13)
       assert_select 'se-diff', count: 0
       assert_includes response.body, 'Invalid YAML'
@@ -75,6 +77,20 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert_equal %w[ancestor head ancestor broken], refs
     assert_equal revision, @project.reload.revision
     assert_empty @project.catalog_nodes
+  end
+  test "pending value additions and removals omit the missing side but preserve empty values" do
+    @project.update!(repository: 'example/test')
+    cache = CatalogPullRequestCache.for(@project)
+    cache.update!(connection: cache.connection_key, fetched_at: Time.current, pulls: [{number: 12, changes: [
+      {path: 'added', file: 'nl.yml', before: nil, after: 'Nieuw'},
+      {path: 'removed', file: 'nl.yml', before: 'Oud', after: nil},
+      {path: 'empty', file: 'nl.yml', before: '', after: 'Ingevuld'}
+    ]}])
+    get pending_diff_project_path(@project, pull: 12)
+    assert_response :success
+    assert_select 'se-diff-value[after="Nieuw"]:not([before])'
+    assert_select 'se-diff-value[before="Oud"]:not([after])'
+    assert_select 'se-diff-value[before=""][after="Ingevuld"]'
   end
   test "completion settings save, clear, remain scoped and require project management" do
     patch project_path(@project), params: {project: {completion_terms: [{text: 'Lattrix', description: 'Product'}]}}
