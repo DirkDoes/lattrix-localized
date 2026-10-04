@@ -16,10 +16,11 @@ vm.runInNewContext(source.slice(source.indexOf('application.register("catalog-sy
 const sync = new Sync();
 sync.element = {querySelector: () => badge};
 sync.messageTarget = {};
+sync.messageTargets = [sync.messageTarget, {}];
 sync.urlValue = '/sync_status';
 await sync.poll();
 assert.equal(sync.messageTarget.textContent, 'Synchronizing');
-assert.equal(badge.replacement.attributes.text, 'Syncing');
+assert.equal(sync.messageTargets[1].textContent, 'Synchronizing');
 assert.equal(typeof timer, 'function');
 next = new Error('Network offline');
 await sync.poll();

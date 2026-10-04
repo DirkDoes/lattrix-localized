@@ -12,7 +12,7 @@
     <%= javascript_include_tag "form_submission", defer: true, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags "auth_forms" %>
     <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "simple-elements", defer: true, "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "simple-elements", "icons-all", defer: true, "data-turbo-track": "reload" %>
   </head>
   <body><%= render "shared/toasts" %><%= yield %></body>
 </html>

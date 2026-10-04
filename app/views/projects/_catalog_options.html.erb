@@ -1,0 +1,46 @@
+<se-card>
+  <%= form_with model: @project, class: 'app-form', data: {catalog_options: true} do %>
+    <se-title level="section">Plurality support</se-title>
+    <se-segmented-control name="project[pluralization_mode]" aria-label="Plurality support" value="<%= @project.pluralization_mode %>" options='[{"id":"off","label":"Off"},{"id":"simple","label":"Simple"},{"id":"cldr","label":"Unicode CLDR"}]'></se-segmented-control>
+    <se-text muted>Off treats plural groups as ordinary branches. Simple requires one and other in every language. Unicode CLDR uses language-specific forms. Existing translations are retained when changing modes.</se-text>
+    <% if @project.errors[:pluralization_mode].any? %><se-text role="alert"><%= @project.errors[:pluralization_mode].to_sentence %></se-text><% end %>
+    <se-title level="section">Pull request validation</se-title>
+    <%= hidden_field_tag 'project[pr_validation_enabled]', '0' %>
+    <se-checkbox variant="switch" label="Validate pull requests" name="project[pr_validation_enabled]" value="1" <%= 'checked' if @project.pr_validation_enabled? %> data-pr-validation></se-checkbox>
+    <div data-validation-options <%= 'hidden' unless @project.pr_validation_enabled? %>>
+      <se-collection type="table" columns="4.5rem minmax(0, 1fr)" mobile-columns="4.5rem minmax(0, 1fr)">
+        <% Project::PR_CHECKS.each do |name, (label, description)| %>
+          <se-list-row data-validation-row <%= 'data-plural-check' if %w[plural_completeness count_placeholders].include?(name) %> <%= 'hidden' if !@project.pluralization? && %w[plural_completeness count_placeholders].include?(name) %>>
+            <span><%= hidden_field_tag "project[pr_validation_checks][#{name}]", '0' %><se-checkbox variant="switch" aria-label="<%= label %>" name="project[pr_validation_checks][<%= name %>]" value="1" <%= 'checked' if @project.pr_check?(name) %>></se-checkbox></span>
+            <div><se-text><%= label %></se-text><% if name == 'plural_completeness' %><se-text muted data-plural-description="simple" <%= 'hidden' unless @project.pluralization_mode == 'simple' %>>A translated group must contain both one and other; leaving both untranslated is allowed.</se-text><se-text muted data-plural-description="cldr" <%= 'hidden' unless @project.pluralization_mode == 'cldr' %>><%= description %> Leaving the entire group untranslated is allowed.</se-text><% else %><se-text muted><%= description %></se-text><% end %></div>
+          </se-list-row>
+        <% end %>
+        <% {
+          'YAML parsing and duplicate keys' => 'Files must parse safely without aliases, object tags, duplicate keys or excessive nesting.',
+          'Language and file identity' => 'Known locales, one matching locale wrapper, valid file groups, and one file per locale/group. Each root belongs to one file group.',
+          'Key and value structure' => 'Valid key segments (up to 200 characters), no values on branches, and only scalar category children inside plural groups.',
+          'Translation size' => 'Each translation may contain at most 100,000 characters. Non-string YAML values are ignored.',
+          'Resource limits' => 'The project file-count, per-file size and total-size limits below apply. GitHub must return a complete repository tree and regular locale files.'
+        }.each do |label, description| %>
+          <se-list-row data-validation-row><se-tooltip><se-checkbox data-se-region="trigger" variant="switch" checked disabled aria-label="<%= label %>"></se-checkbox>Required for safe file processing; cannot be disabled.</se-tooltip><div><se-text><%= label %> <se-badge text="Required" tone="gray"></se-badge></se-text><se-text muted><%= description %></se-text></div></se-list-row>
+        <% end %>
+      </se-collection>
+      <se-text muted>These switches affect PR checks, not editor validation. YAML syntax, duplicate keys, locale/file-group identity, safe key structure, text-size limits and resource limits are always checked while processing files.</se-text>
+    </div>
+    <div class="app-form-actions"><se-button type="submit" variant="brand" text="Save validation settings"></se-button></div>
+  <% end %>
+</se-card>
+<% if policy(@project).change_locale_limits? %>
+  <se-card>
+    <%= form_with model: @project, class: 'app-form' do %>
+      <se-title level="section">Translation file limits</se-title>
+      <div class="catalog-limit-fields">
+        <% {max_locale_files: 'Maximum translation files', max_locale_file_mb: 'Maximum file size (MB)', max_locale_total_mb: 'Maximum total size (MB)'}.each do |field, label| %>
+          <se-input type="number" name="project[<%= field %>]" label="<%= label %>" value="<%= @project.public_send(field) %>" min="1" step="1" <%= "max=#{Project::LOCALE_LIMITS.fetch(field)}" unless current_user.owner? %> error="<%= @project.errors[field].to_sentence %>"></se-input>
+        <% end %>
+      </div>
+      <se-text muted><%= current_user.owner? ? 'As an application owner, you may exceed the normal project limits. Larger catalogs can require more server resources.' : 'Project owners can allow up to 500 files, 5 MB per file and 30 MB total. Contact an application owner for higher limits.' %></se-text>
+      <div class="app-form-actions"><se-button type="submit" variant="brand" text="Save limits"></se-button></div>
+    <% end %>
+  </se-card>
+<% end %>

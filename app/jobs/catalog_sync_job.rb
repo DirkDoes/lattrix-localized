@@ -41,7 +41,7 @@ class CatalogSyncJob < ApplicationJob
         state = CatalogState.new(project, pending: true).publication
         accepted = CatalogState.new(project)
         if project.languages.active.where(pending_repository: true).exists? || state.items.any? { |id, item| accepted.items[id]&.signature != item.signature }
-          parsed = CatalogYaml.new(files)
+          parsed = CatalogYaml.new(files, project)
           published = api.publish!(commit, CatalogExport.new(project, state: state).files(existing: parsed.documents, originals: files), files)
           message = published ? "Synchronization complete. Pull request ##{project.pull_request_number} is ready." : "Synchronization complete. Exported files are unchanged; no pull request was generated."
         else

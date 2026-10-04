@@ -1,6 +1,5 @@
 require "yaml"
 class CatalogYaml
-  MAX_BYTES = 5.megabytes
   attr_reader :documents, :values, :root_groups
   def self.identity(filename)
     stem = filename.sub(/\.ya?ml\z/, "")
@@ -12,14 +11,16 @@ class CatalogYaml
 
   def self.filename(file) = file.match?(/\.ya?ml\z/) ? file : "#{file}.yml"
 
-  def initialize(files)
+  def initialize(files, project = nil)
     @documents, @values, @root_groups = {}, {}, {}
     identities = Set.new
-    raise ArgumentError, "Locale files exceed 20 MB combined" if files.values.sum(&:bytesize) > 20.megabytes
+    max_files, max_file, max_total = project ? [project.max_locale_files, project.max_locale_file_mb, project.max_locale_total_mb] : [100, 3, 15]
+    raise ArgumentError, "Locale files exceed the project limit of #{max_files} files" if files.size > max_files
+    raise ArgumentError, "Locale files exceed #{max_total} MB combined" if files.values.sum(&:bytesize) > max_total.megabytes
     files.each do |file, content|
       group, locale = self.class.identity(file)
       raise ArgumentError, "Duplicate locale file for #{file}" unless identities.add?([group, locale])
-      raise ArgumentError, "Locale file exceeds 5 MB" if content.bytesize > MAX_BYTES
+      raise ArgumentError, "#{file}: locale file exceeds #{max_file} MB" if content.bytesize > max_file.megabytes
       stack = [[Psych.parse_stream(content), 0]]
       until stack.empty?
         node, depth = stack.pop

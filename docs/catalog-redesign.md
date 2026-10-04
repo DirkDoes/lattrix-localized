@@ -46,7 +46,14 @@ categories come from Unicode CLDR JSON **48.0.0** (`availableLocales.json`,
 `config/catalog_locales.json` ships with the app; license: `UNICODE-LICENSE.txt`.
 Update this data as a reviewed dependency upgrade, not a runtime network lookup.
 
-The source locale defines structure. Plurals have locale-specific required
+The source locale defines structure. Projects choose Off, Simple, or Unicode CLDR
+pluralization. Existing projects migrate to CLDR; new projects default to Simple.
+Simple requires one/other in every language. Off interprets stored plural nodes
+as ordinary branches without deleting their translations; count has no special
+validation and is suggested on keys named other. Mode changes retain extra forms
+and refresh required category nodes. Switching back restores the interpretation
+of stored plural nodes; branches created while Off remain ordinary branches.
+In CLDR mode, plurals have locale-specific required
 forms; an entirely untranslated locale is omitted, a partially completed plural
 is held back as a group. `%{count}` is magenta, required in other/few/many,
 optional in zero/one/two, and invalid for scalar translations. Ordinary
@@ -129,7 +136,7 @@ Aliases, duplicate keys, excessive depth/size and unsupported locale IDs are
 rejected. Deleting all files for a locale archives its values; deleting source keys
 removes their target subtree. Connected projects can add languages in Settings:
 they remain active as pending repository additions until their locale files appear
-on the authoritative branch. Generate PR includes these files even before any
+on the authoritative branch. Sync includes these files even before any
 translations have been entered (empty locale mappings, never copied source text).
 Once merged, removing the locale files in GitHub archives the language as usual.
 Archiving/restoring existing connected languages remains managed in GitHub.
@@ -145,7 +152,7 @@ predating the connection are not automatically backfilled.
 a locale wrapper; CSV/Excel have key and locale columns without that wrapper.
 Missing values are always omitted (blank spreadsheet cells). JSON, manual
 import, configurable delimiters/placeholder syntax, branch values and the
-sheet-level plural toggle are out of scope.
+the former sheet layer are out of scope.
 
 Network integration is covered with simulated API responses locally. A real
 App installation is required to verify end-to-end PR/check delivery. Sync holds
@@ -154,6 +161,28 @@ large repositories or network latency make that a practical bottleneck.
 
 ## Synchronization feedback and catalog actions
 
-Manual Sync only pulls/reconciles GitHub. Generate PR first synchronizes, then publishes eligible pending changes; the daily publication job retains the same behavior. Both use the existing background job. Project status records queued, running, succeeded or failed, including a human-readable outcome and completion time. No-op syncs and publications explicitly say that nothing changed. During synchronization, the last accepted catalog remains visible but editing/export is disabled. The page polls while busy and replaces only the app-content frame when the job finishes. A failed repository sync keeps the prior accepted catalog and reports the error; retry after repairing the cause. A 15-minute execution timeout and a 30-minute stale-queue limit prevent an abandoned worker from leaving the UI permanently busy.
+Manual Sync first reconciles GitHub, then publishes eligible local drafts or newly added languages. No local publishable changes means no PR; daily publication uses the same flow. Push webhooks only pull. Status is shown as a header badge (Syncing, Synced, Sync Failed, or Not synced), with details in a tooltip. The branch badge sits beside the project title and links to GitHub. During synchronization, editing/export is disabled; polling replaces the app-content frame when finished. A 15-minute execution timeout and a 30-minute stale-queue limit prevent abandoned workers from leaving the UI permanently busy.
 
-The header uses a direct split button: Export, disabled Import, and (for connected projects with management permissions) Sync and Generate PR. Sync is the connected administrator's default; Export is the default otherwise. Branch/plural key menus offer Add child key, prefilling the existing add-key dialog with the full parent path.
+The header uses a direct split button: Export, disabled Import, and (for connected projects with management permissions) Sync. Sync is the connected administrator's default; Export is the default otherwise. Branch/plural key menus offer Add child key, prefilling the existing add-key dialog with the full parent path.
+
+## File limits and PR validation settings
+
+Project owners can set file-count/per-file/combined limits, defaulting to
+100 files / 3 MiB / 15 MiB. Normal ceilings are 500 / 5 MiB / 30 MiB.
+Only application owners can save higher limits. Existing elevated limits survive
+unrelated updates; a project owner cannot increase an elevated limit beyond the
+normal ceiling. Fetching and parsing both enforce the saved project limits.
+
+PR validation defaults on. Its master switch preserves individual choices.
+Optional checks are source-key correspondence, scalar placeholder matching,
+plural completeness, and count usage. Plural/count controls hide in Off mode;
+plural completeness descriptions adapt to Simple/CLDR. The editor and sync still
+enforce catalog validity independently of the PR switches. With source structure
+disabled, target-only keys are ignored; a missing source skips source-dependent
+validation. Disabling all PR validation reports a neutral check without fetching
+locale files. Required parsing/safety checks are listed but cannot be disabled:
+YAML syntax/aliases/duplicate keys/depth, file/locale/group identity, representable
+key/value structure, translation size, and project resource limits.
+
+Checks are attached to a pinned PR head SHA and report in-progress before
+validation, then success/failure. Validation runs in a rolled-back transaction.

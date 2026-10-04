@@ -252,3 +252,12 @@ button.catalog-status-icon { cursor: pointer; }
 .catalog-github-connect { display: contents; }
 .catalog-github-connect > se-input { grid-column: 1 / -1; }
 .catalog-github-disconnect, .catalog-github-disconnect > se-button { width: 100%; }
+.project-title-group, .project-sync-badge { display: flex; align-items: center; gap: .65rem; }
+.project-title-group { flex-wrap: wrap; min-width: 0; }
+.project-title-group a { text-decoration: none; }
+.project-sync-badge { white-space: nowrap; }
+.catalog-limit-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+[data-catalog-options] [hidden] { display: none !important; }
+[data-validation-row] > div { white-space: normal; overflow-wrap: anywhere; }
+[data-validation-row] se-text { white-space: normal; overflow: visible; text-overflow: clip; }
+@media (max-width: 700px) { .catalog-limit-fields { grid-template-columns: 1fr; } }

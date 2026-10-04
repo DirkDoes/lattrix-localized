@@ -51,7 +51,20 @@ class ProjectsController < ApplicationController
     saved = @project.with_lock do
       authorize @project, :update?
       @original_slug = @project.slug
-      attributes = params.require(:project).permit(:name, :visibility, :slug, completion_terms: [:text, :description])
+      attributes = params.require(:project).permit(:name, :visibility, :slug, :pluralization_mode, :pr_validation_enabled, *Project::LOCALE_LIMITS.keys, pr_validation_checks: Project::PR_CHECKS.keys, completion_terms: [:text, :description])
+      authorize @project, :change_locale_limits? if (attributes.keys & Project::LOCALE_LIMITS.keys.map(&:to_s)).any?
+      @project.settings_actor = current_user
+      if attributes[:pr_validation_checks]
+        attributes[:pr_validation_checks] = @project.pr_validation_checks.merge(attributes[:pr_validation_checks].to_h.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) })
+      end
+      mode_changed = attributes[:pluralization_mode] && attributes[:pluralization_mode] != @project.pluralization_mode
+      if mode_changed
+        unless @project.writable?
+          @project.errors.add(:pluralization_mode, "finish or repair synchronization before changing pluralization")
+          next false
+        end
+        @project.revision += 1
+      end
       slug_changes = attributes.key?(:slug) && attributes[:slug].to_s.strip.downcase != @project.slug
       authorize @project, :change_slug? if slug_changes
       visibility_changes = attributes.key?(:visibility) && attributes[:visibility] != @project.visibility
@@ -63,7 +76,11 @@ class ProjectsController < ApplicationController
         @pending_attributes = attributes
         false
       else
-        @project.save
+        success = @project.save
+        if success && mode_changed
+          CatalogWriter.new(@project, actor: current_user).edit(expected: @project.revision, summary: "Updated plural forms") { |writer| writer.refresh_categories if @project.pluralization? }
+        end
+        success
       end
     end
     unless saved

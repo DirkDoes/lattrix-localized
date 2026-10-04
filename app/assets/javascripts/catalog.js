@@ -21,11 +21,10 @@ document.addEventListener("action", event => {
   const action = event.detail.id || event.target.dataset.defaultAction;
   if (event.detail.disabled || event.target.hasAttribute("disabled")) return;
   if (action === "export") document.getElementById("catalog-export")?.open();
-  if (action === "sync" || action === "publish") {
+  if (action === "sync") {
     if (!document.dispatchEvent(new CustomEvent('catalog:before-sync', {cancelable: true}))) return;
     const form = document.getElementById("catalog-sync-form");
     if (!form || form.hasAttribute("aria-busy")) return;
-    form.elements.publish.value = action === "publish" ? "1" : "0";
     form.requestSubmit();
   }
 });

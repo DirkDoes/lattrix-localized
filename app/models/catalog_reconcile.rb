@@ -14,12 +14,15 @@ class CatalogReconcile
     project.reload
   end
 
-  def initialize(project, files, sha:, author: nil)
-    @project, @yaml, @sha, @author = project, CatalogYaml.new(files), sha, author
+  def initialize(project, files, sha:, author: nil, pr_check: false)
+    @project, @yaml, @sha, @author, @pr_check = project, CatalogYaml.new(files, project), sha, author, pr_check
   end
   def apply!
     @project.with_lock do
-      raise ArgumentError, "The source locale file is missing" unless @yaml.values.key?(@project.source_locale)
+      unless @yaml.values.key?(@project.source_locale)
+        return if @pr_check && !@project.pr_check?(:source_keys)
+        raise ArgumentError, "The source locale file is missing"
+      end
       current = CatalogState.new(@project)
       @project.languages.each do |language|
         if @yaml.values.key?(language.identifier)
@@ -29,18 +32,19 @@ class CatalogReconcile
         end
       end
       @yaml.values.each_key { |locale| @project.languages.find_or_create_by!(identifier: locale) }
-      desired = CatalogState.new(@project)
+      desired = CatalogState.new(@project, pr_check: @pr_check)
       by_path = current.keys.index_by { |key| current.path(key) }
       pending_state = CatalogState.new(@project, pending: true)
       pending_state.keys.each { |key| by_path[pending_state.path(key)] ||= key unless current.active?(current.items[key.id]) }
       source = @yaml.values.fetch(@project.source_locale)
       paths = (source.keys + source.keys.flat_map { |path| parts = path.split("."); (1...parts.size).map { |size| parts.first(size).join(".") } }).uniq.sort_by { |path| [path.count("."), path] }
       plural_paths = paths.select do |path|
+        next false unless @project.pluralization?
         children = source.keys.filter_map { |candidate| candidate.delete_prefix("#{path}.") if candidate.start_with?("#{path}.") }
         children.include?("other") && children.all? { |name| CatalogKey::CATEGORIES.include?(name) }
       end.to_set
       plural_paths.each do |path|
-        @project.languages.active.flat_map { |l| CatalogLocale.categories(l.identifier) }.uniq.each { |name| paths << "#{path}.#{name}" }
+        @project.languages.active.flat_map { |l| @project.plural_categories(l.identifier) }.uniq.each { |name| paths << "#{path}.#{name}" }
       end
       desired.items.each_value { |item| item.deleted = true }
       paths.uniq.sort_by { |path| [path.count("."), path] }.each do |path|
@@ -58,6 +62,7 @@ class CatalogReconcile
       @yaml.values.each do |locale, values|
         values.each do |path, value|
           key = by_path[path]
+          next if @pr_check && !@project.pr_check?(:source_keys) && !(key && !key.deleted && key.payload.kind == "scalar" && paths.include?(path))
           raise ArgumentError, "#{locale}: #{path} is not a source scalar key" unless key && !key.deleted && key.payload.kind == "scalar" && paths.include?(path)
           old = current.translation(key.id, locale) || pending_state.translation(key.id, locale)
           payload = old&.payload&.value == value ? old.payload : CatalogText.create!(locale: locale, value: value)
@@ -67,8 +72,9 @@ class CatalogReconcile
       end
       # Archiving a locale keeps its accepted values for later reactivation.
       current.texts.each { |item| desired.items[item.id] = item if !@yaml.values.key?(item.payload.locale) && desired.active?(desired.items[item.parent_id]) }
-      errors = desired.structure_errors + desired.invalid_groups.values.flatten
+      errors = desired.structure_errors + desired.invalid_groups.flat_map { |(id, locale), messages| messages.map { |message| "#{locale}: #{desired.path(desired.items.fetch(id))}: #{message}" } }
       raise ArgumentError, errors.uniq.join("; ") if errors.any?
+      return if @pr_check
       # Compare semantic values, not immutable payload IDs, during three-way reconciliation.
       @project.catalog_drafts.includes(:payload, catalog_node: :payload).each do |draft|
         incoming = desired.items[draft.catalog_node_id]
@@ -88,8 +94,10 @@ class CatalogReconcile
       @project.catalog_git_revisions.find_or_initialize_by(commit_sha: @sha).update!(status: "accepted", error: nil)
     end
   rescue ArgumentError, ActiveRecord::RecordInvalid => error
-    @project.update!(sync_error: error.message)
-    @project.catalog_git_revisions.find_or_initialize_by(commit_sha: @sha).update!(status: "failed", error: error.message)
+    unless @pr_check
+      @project.reload.update!(sync_error: error.message)
+      @project.catalog_git_revisions.find_or_initialize_by(commit_sha: @sha).update!(status: "failed", error: error.message)
+    end
     raise
   end
 end

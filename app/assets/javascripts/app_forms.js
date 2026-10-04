@@ -4,6 +4,7 @@ import "@hotwired/turbo-rails";
 import { registerFormatPreview } from "format_preview";
 import { registerCatalogCell } from "catalog_cell";
 import "catalog_completions";
+import "catalog_options";
 window.Turbo.session.drive = false;
 const application = Application.start();
 registerFormatPreview(application, Controller);
@@ -33,21 +34,14 @@ application.register("catalog-sync", class extends Controller {
       if (!response.ok) throw new Error();
       const result = await response.json();
       if (this.stopped) return;
-      this.messageTarget.textContent = result.message;
-      const badge = this.element.querySelector('se-badge');
-      if (result.busy && badge) {
-        const replacement = document.createElement('se-badge');
-        replacement.setAttribute('tone', 'info');
-        replacement.setAttribute('text', result.status === 'running' ? 'Syncing' : 'Queued');
-        badge.replaceWith(replacement);
-      }
+      this.messageTargets.forEach(target => target.textContent = result.message);
       if (!result.busy) {
         window.Turbo.visit(window.location.href, {frame: "app-content", action: "replace"});
         return;
       }
     } catch (error) {
       if (this.stopped) return;
-      this.messageTarget.textContent = "Cannot check synchronization right now. Retrying automatically…";
+      this.messageTargets.forEach(target => target.textContent = "Cannot check synchronization right now. Retrying automatically…");
     }
     this.timer = setTimeout(() => this.poll(), 3000);
   }

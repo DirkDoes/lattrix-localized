@@ -1,6 +1,6 @@
-<% if key.payload.kind == 'plural' || @state.translatable?(key, locale) %>
+<% if @state.plural?(key) || @state.translatable?(key, locale) %>
   <% value = @state.translation(key.id, locale); draft = value && @drafts[value.id]; review = value && @reviews[value.id] %>
-  <% errors = key.payload.kind == 'plural' ? @state.plural_group_errors(key, locale) : @state.text_errors(key, locale) %>
+  <% errors = @state.plural?(key) ? @state.plural_group_errors(key, locale) : @state.text_errors(key, locale) %>
   <% errors << 'Resolve the GitHub conflict before editing this translation.' if draft&.conflict? %>
   <% warnings = @state.warnings(key, locale) %>
   <% needs_review = value && locale != @project.source_locale && (!review || review.source_digest != @state.source_digest(key)) %>

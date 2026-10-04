@@ -3,7 +3,7 @@ require "minitest/mock"
 
 class CatalogGithubTest < ActiveSupport::TestCase
   setup do
-    @project = Project.create!(name: "Git catalog")
+    @project = Project.create!(name: "Git catalog", pluralization_mode: "cldr")
     @writer = CatalogWriter.new(@project)
     @commit = {"sha"=>"abc", "commit"=>{"tree"=>{"sha"=>"tree"}, "author"=>{"name"=>"Developer"}}}
   end
@@ -156,6 +156,11 @@ class CatalogGithubTest < ActiveSupport::TestCase
     end
     paths = calls.find { |_, path, _| path.end_with?("/git/trees") }.last.fetch(:tree).map { |entry| entry[:path] }
     assert_equal %w[config/locales/en.yml config/locales/devise.en.yaml], paths
+    pull_request = calls.find { |method, path, _| method == :post && path.end_with?("/pulls") }.last
+    assert_equal "Update translations", pull_request.fetch(:title)
+    assert_match(/\Alattrix\/update-translations_[0-9a-f]{12}\z/, pull_request.fetch(:head))
+    ref = calls.find { |_, path, _| path.end_with?("/git/refs") }.last
+    assert_equal "refs/heads/#{pull_request.fetch(:head)}", ref.fetch(:ref)
   end
 
   test "identical independently created keys resolve drafts without duplicates" do

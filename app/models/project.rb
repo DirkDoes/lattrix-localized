@@ -1,4 +1,30 @@
 class Project < ApplicationRecord
+  LOCALE_LIMITS = {max_locale_files: 500, max_locale_file_mb: 5, max_locale_total_mb: 30}.freeze
+  PR_CHECKS = {
+    "source_keys" => ["Source-language structure", "Target translations must correspond to a source key. The source language must be present."],
+    "scalar_placeholders" => ["Scalar placeholders", "Ordinary translations must use exactly the same placeholders as their source."],
+    "plural_completeness" => ["Plural completeness", "Every translated plural group must contain all forms required by its language."],
+    "count_placeholders" => ["Count placeholders", "Require %{count} in other/few/many; allow it in zero/one/two, and reject it outside plurals."]
+  }.freeze
+  attr_accessor :settings_actor
+  validates :pluralization_mode, inclusion: {in: %w[off simple cldr]}
+  validates(*LOCALE_LIMITS.keys, numericality: {only_integer: true, greater_than: 0})
+  validate :validate_locale_limits
+  validate :validate_pr_checks
+  def pluralization? = pluralization_mode != "off"
+  def plural_categories(locale) = pluralization_mode == "simple" ? %w[one other] : pluralization? ? CatalogLocale.categories(locale) : []
+  def pr_check?(key) = pr_validation_checks.fetch(key.to_s, true)
+  def validate_locale_limits
+    LOCALE_LIMITS.each do |field, ceiling|
+      next if settings_actor&.owner? || (!new_record? && !will_save_change_to_attribute?(field))
+      errors.add(field, "must be at most #{ceiling}; contact an application owner for a higher limit") if public_send(field).to_i > ceiling
+    end
+  end
+  def validate_pr_checks
+    unless pr_validation_checks.is_a?(Hash) && (pr_validation_checks.keys - PR_CHECKS.keys).empty? && pr_validation_checks.values.all? { |value| value == true || value == false }
+      errors.add(:pr_validation_checks, "contains unknown checks or invalid values")
+    end
+  end
   before_validation :normalize_completion_terms
   validate :validate_completion_terms
 
@@ -63,7 +89,7 @@ class Project < ApplicationRecord
         state.keys.select { |key| key.payload.kind == "plural" }.each do |key|
           forms = state.children(key.id).select(&:key?)
           next unless forms.any? { |form| state.children(form.id).any?(&:text?) }
-          missing = CatalogLocale.categories(locale).reject { |name| forms.any? { |form| form.payload.name == name && state.translation(form.id, locale) } }
+          missing = plural_categories(locale).reject { |name| forms.any? { |form| form.payload.name == name && state.translation(form.id, locale) } }
           errors << "#{state.path(key)} needs source plural forms: #{missing.join(', ')}" if missing.any?
         end
         raise ArgumentError, errors.uniq.join("; ") if errors.any?

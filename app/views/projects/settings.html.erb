@@ -49,6 +49,7 @@
       <%= render "shared/modal_footer", confirm: "Confirm and save" %>
     </se-modal>
   <% end %>
+  <%= render "projects/catalog_options" %>
   <%= render "projects/completion_terms" %>
   <%= render "projects/languages" %>
   <% if policy(@project).destroy? %>

@@ -4,7 +4,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
     @user.update!(email_verified_at: Time.current, role: :member)
-    @project = Project.create!(name: "Catalog flow", visibility: "public")
+    @project = Project.create!(name: "Catalog flow", visibility: "public", pluralization_mode: "cldr")
     @membership = @project.project_memberships.create!(user: @user, role: "admin")
     @nl = @project.languages.create!(identifier: "nl")
     sign_in @user
@@ -76,12 +76,12 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     get translations_project_path(@project)
     assert_select 'se-split-button[data-default-action="sync"]', count: 2
     actions = JSON.parse(css_select('se-split-button').first['options'])
-    assert_equal %w[export import sync publish], actions.map { |a| a['id'] }
+    assert_equal %w[export import sync], actions.map { |a| a['id'] }
   end
 
   test "sync queues a read only catalog and exposes progress without duplicate submissions" do
     @project.update!(repository: 'org/repo', installation_id: 1)
-    assert_enqueued_with(job: CatalogSyncJob, args: [@project.id, {publish: false, initial: true}]) do
+    assert_enqueued_with(job: CatalogSyncJob, args: [@project.id, {publish: true, initial: true}]) do
       post sync_project_path(@project), as: :json
     end
     assert_response :accepted
@@ -92,7 +92,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert_equal 'queued', response.parsed_body['status']
     assert response.parsed_body['busy']
     get translations_project_path(@project)
-    assert_select '[data-controller="catalog-sync"]'
+    assert_select '[data-controller~="catalog-sync"]'
     assert_select 'se-split-button[disabled]', count: 2
     @project.update!(sync_status: 'succeeded', sync_message: 'Already up to date.', sync_finished_at: Time.current)
     get sync_status_project_path(@project), as: :json
@@ -189,7 +189,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     change(operation: 'translate', inline: '1', node_id: other.id, locale: 'en', value: 'Notifications')
     statuses = response.parsed_body.fetch('statuses').index_by { |status| status['id'] }
     assert_not_includes statuses.fetch("#{parent.id}-en")['html'], 'catalog-status-icon'
-    assert_includes statuses.fetch("#{other.id}-en")['html'], 'This plural form requires %{count}'
+    assert_includes statuses.fetch("#{other.id}-en")['html'], 'other requires %{count}'
     get translations_project_path(@project), params: {locale: 'nl'}
     assert_select "[data-catalog-status='#{parent.id}-en'] .catalog-status-icon", count: 0
     assert_select "[data-catalog-status='#{other.id}-en'] .catalog-status-icon--error", count: 1

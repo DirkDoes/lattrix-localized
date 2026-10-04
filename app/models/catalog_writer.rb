@@ -41,11 +41,12 @@ class CatalogWriter
   end
 
   def add_key(path, kind: "scalar", description: "", file_group: "")
+    raise ArgumentError, "Pluralization is disabled for this project" if kind == "plural" && !project.pluralization?
     parts = path.to_s.split(".", -1)
     raise ArgumentError, "Enter a dotted path without empty segments" if parts.empty? || parts.any?(&:blank?)
     parent = nil
     parts.each_with_index do |segment, index|
-      if parent&.payload&.kind == "plural" && CatalogKey::CATEGORIES.include?(segment)
+      if parent && @state.plural?(parent) && CatalogKey::CATEGORIES.include?(segment)
         raise ArgumentError, "Plural forms are managed automatically for the project's languages"
       end
       found = @state.keys.find { |k| k.parent_id == parent&.id && k.payload.name == segment }
@@ -62,11 +63,12 @@ class CatalogWriter
   end
 
   def change_key(id, name: nil, path: nil, kind:, description: "", file_group: nil)
+    raise ArgumentError, "Pluralization is disabled for this project" if kind == "plural" && !project.pluralization?
     item = @state.items.fetch(id.to_i)
     raise ArgumentError, "Key not found" unless item.key? && @state.active?(item)
     name = item.payload.name if path
     raise ArgumentError, "Move this scalar into a child first" if item.payload.kind == "scalar" && kind != "scalar"
-    if item.payload.kind == "plural" && kind == "branch"
+    if @state.plural?(item) && kind == "branch"
       @state.children(item.id).select(&:key?).each { |child| remove(child.id) if @state.children(child.id).none?(&:text?) }
     end
     raise ArgumentError, "File groups can only be assigned to root keys" if item.parent_id && file_group.present?
@@ -77,7 +79,7 @@ class CatalogWriter
   end
 
   def ensure_categories(item)
-    project.languages.active.flat_map { |l| CatalogLocale.categories(l.identifier) }.uniq.each do |name|
+    project.languages.active.flat_map { |l| project.plural_categories(l.identifier) }.uniq.each do |name|
       next if @state.children(item.id).any? { |child| child.key? && child.payload.name == name }
       create_item(CatalogKey.create!(name: name, kind: "scalar"), item.id)
     end
@@ -132,7 +134,7 @@ class CatalogWriter
       parent = parts.empty? ? nil : @state.keys.find { |k| @state.path(k) == parts.join(".") }
       parent ||= add_key(parts.join('.'), kind: "branch") if parts.any?
       raise ArgumentError, "Destination must be a branch" if parent && parent.payload.kind == "scalar"
-      raise ArgumentError, "Plural forms are managed automatically for the project's languages" if parent&.payload&.kind == "plural" && CatalogKey::CATEGORIES.include?(name)
+      raise ArgumentError, "Plural forms are managed automatically for the project's languages" if parent && @state.plural?(parent) && CatalogKey::CATEGORIES.include?(name)
       cursor = parent
       while cursor
         raise ArgumentError, "Cannot move a key inside itself" if cursor.id == item.id

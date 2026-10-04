@@ -29,8 +29,8 @@ class CatalogController < ApplicationController
     @all_keys.select! { |key| @file_groups.include?(@state.file_group(key).presence || ":default") } if @file_groups.any?
     @all_keys.select! do |key|
       parent = @state.plural_parent(key)
-      next false if parent && ![@project.source_locale, @locale].flat_map { |locale| CatalogLocale.categories(locale) }.include?(key.payload.name)
-      next false if @kind == "plural" && !parent && key.payload.kind != "plural"
+      next false if parent && ![@project.source_locale, @locale].flat_map { |locale| @project.plural_categories(locale) }.include?(key.payload.name)
+      next false if @kind == "plural" && !parent && !@state.plural?(key)
       next false if @kind == "scalar" && (parent || key.payload.kind != "scalar")
       value = @state.translation(key.id, @locale)
       review = value && @reviews[value.id]
@@ -221,7 +221,7 @@ class CatalogController < ApplicationController
     raise ArgumentError, "Connect a repository first" unless @project.linked?
     unless @project.sync_busy?
       @project.with_lock do
-        CatalogSyncJob.perform_later(@project.id, publish: params[:publish] == "1", initial: @project.git_sha.nil?) unless @project.sync_busy?
+        CatalogSyncJob.perform_later(@project.id, publish: true, initial: @project.git_sha.nil?) unless @project.sync_busy?
       end
     end
     render json: {location: translations_project_path(@project)}, status: :accepted

@@ -44,10 +44,10 @@ class CatalogGithub
     raise Error, "Repository tree is too large for a complete snapshot" if tree["truncated"]
     prefix = "#{project.locale_directory}/"
     entries = tree.fetch("tree").select { |entry| entry["path"].start_with?(prefix) && entry["path"].delete_prefix(prefix).match?(/\A[^\/]+\.ya?ml\z/) }
-    raise Error, "Too many locale files" if entries.size > 500
-    raise Error, "Locale files exceed 20 MB combined" if entries.sum { |entry| entry.fetch("size", 0) } > 20.megabytes
+    raise Error, "Locale files exceed the project limit of #{project.max_locale_files} files" if entries.size > project.max_locale_files
+    raise Error, "Locale files exceed the project limit of #{project.max_locale_total_mb} MB combined" if entries.sum { |entry| entry.fetch("size", 0) } > project.max_locale_total_mb.megabytes
     files = entries.to_h do |entry|
-      raise Error, "Locale files must be regular files under 5 MB" unless entry["type"] == "blob" && entry["mode"] == "100644" && entry.fetch("size", 0) <= CatalogYaml::MAX_BYTES
+      raise Error, "Locale files must be regular files no larger than #{project.max_locale_file_mb} MB" unless entry["type"] == "blob" && entry["mode"] == "100644" && entry.fetch("size", 0) <= project.max_locale_file_mb.megabytes
       blob = request(:get, "#{repo_path}/git/blobs/#{entry.fetch('sha')}")
       [File.basename(entry.fetch("path"), ".yml"), Base64.decode64(blob.fetch("content"))]
     end
@@ -65,7 +65,7 @@ class CatalogGithub
     if pr && pr["state"] == "open" && pr.dig("head", "repo", "full_name") == project.repository && pr.dig("head", "ref").start_with?("lattrix/")
       request(:patch, "#{repo_path}/git/refs/heads/#{escape(pr.fetch('head').fetch('ref'))}", {sha: new_commit.fetch("sha"), force: true})
     else
-      branch = "lattrix/#{project.id}-#{SecureRandom.hex(6)}"
+      branch = "lattrix/update-translations_#{SecureRandom.hex(6)}"
       request(:post, "#{repo_path}/git/refs", {ref: "refs/heads/#{branch}", sha: new_commit.fetch("sha")})
       pr = request(:post, "#{repo_path}/pulls", {title: "Update translations", head: branch, base: project.git_branch, body: "Valid pending translations from Lattrix. Conflicted and incomplete drafts are excluded."})
     end

@@ -20,6 +20,7 @@ class ProjectPolicy < ApplicationPolicy
     access? && (user.owner? || membership&.role == "owner")
   end
   def change_slug? = change_visibility?
+  def change_locale_limits? = change_visibility?
   def destroy? = change_visibility?
   def manage_owners? = change_visibility?
   def view_member_emails? = update?

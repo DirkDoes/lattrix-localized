@@ -12,6 +12,10 @@ The role of this file is to describe common mistakes and confusion points that a
 
 ## Agent Notes (Surprises Encountered)
 
+- Simple Elements v0.16.3 keeps the legacy upload -> UploadCloud alias even after icons-all registration. Import uses the Lucide Upload SVG asset via the public icon API to display the intended arrow/tray icon.
+
+- Plural semantics are project-specific: use project.plural_categories and state.plural?, not CatalogLocale.categories or raw kind checks, for behavior. Stored plural nodes are ordinary branches while mode is Off; payloads and extra translations are retained. PR-check switches do not disable editor validation.
+
 - SE v0.16.2 completion insertion replaces only a trailing ASCII word. catalog_completions.js uses the public completion event and a saved native-input range to replace full wildcard tokens and Unicode/multiword terms without duplicated prefixes.
 - SE v0.16.3 fixes completion reconnection after modal/table composition moves inputs, and cleans up old listeners. The v0.16.2 field-recreation workaround has been removed; keep the separate wildcard insertion-range handling.
 

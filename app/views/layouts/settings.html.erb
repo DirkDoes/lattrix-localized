@@ -11,7 +11,7 @@
     <%= javascript_include_tag "theme", "data-turbo-track": "reload" %>
     <title><%= content_for(:title) || "Lattrix Localized" %></title><meta name="viewport" content="width=device-width,initial-scale=1"><%= csrf_meta_tags %><%= csp_meta_tag %><link rel="icon" href="/icons/lattrix/lattrix-icon-small-light.svg" type="image/svg+xml">
     <link rel="icon" href="/icons/lattrix/lattrix-icon-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="/icon.png?v=lt">
-    <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %><%= javascript_include_tag "navigation_state", "simple-elements", defer: true, "data-turbo-track": "reload" %><%= javascript_include_tag "ui", defer: true, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "styles", "application", "data-turbo-track": "reload" %><%= javascript_include_tag "navigation_state", "simple-elements", "icons-all", defer: true, "data-turbo-track": "reload" %><%= javascript_include_tag "ui", defer: true, "data-turbo-track": "reload" %>
     <%= javascript_include_tag "form_submission", defer: true, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags "app_forms" %>
     <%= javascript_include_tag "catalog", defer: true, "data-turbo-track": "reload" %>

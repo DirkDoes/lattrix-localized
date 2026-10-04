@@ -843,6 +843,16 @@ CREATE TABLE public.projects (
     sync_finished_at timestamp(6) without time zone,
     sync_message text,
     completion_terms jsonb DEFAULT '[]'::jsonb NOT NULL,
+    max_locale_files integer DEFAULT 100 NOT NULL,
+    max_locale_file_mb integer DEFAULT 3 NOT NULL,
+    max_locale_total_mb integer DEFAULT 15 NOT NULL,
+    pluralization_mode character varying DEFAULT 'simple'::character varying NOT NULL,
+    pr_validation_enabled boolean DEFAULT true NOT NULL,
+    pr_validation_checks jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT projects_max_locale_file_mb_positive CHECK ((max_locale_file_mb > 0)),
+    CONSTRAINT projects_max_locale_files_positive CHECK ((max_locale_files > 0)),
+    CONSTRAINT projects_max_locale_total_mb_positive CHECK ((max_locale_total_mb > 0)),
+    CONSTRAINT projects_pluralization_mode CHECK (((pluralization_mode)::text = ANY ((ARRAY['off'::character varying, 'simple'::character varying, 'cldr'::character varying])::text[]))),
     CONSTRAINT projects_slug_format CHECK ((((slug)::text ~ '^[a-z0-9]+([-_][a-z0-9]+)*$'::text) AND (length((slug)::text) <= 100) AND ((slug)::text <> ALL ((ARRAY['new'::character varying, 'edit'::character varying])::text[])))),
     CONSTRAINT projects_visibility CHECK (((visibility)::text = ANY ((ARRAY['public'::character varying, 'private'::character varying])::text[])))
 );
@@ -2579,6 +2589,7 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261004001000'),
 ('20261003003000'),
 ('20261003002000'),
 ('20261003001000'),

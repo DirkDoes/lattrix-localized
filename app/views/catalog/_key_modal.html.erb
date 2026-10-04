@@ -2,7 +2,7 @@
   <%= catalog_form catalog_change_project_path(@project), class: "app-form" do %>
     <%= hidden_field_tag :operation, 'update' %><%= hidden_field_tag :revision, @project.revision %><%= hidden_field_tag :node_id, key.id %>
     <se-input label="Key" name="path" data-complete="path" value="<%= @state.path(key) %>" hint="Full dotted path. Change the parent segments to move this key and its translations."></se-input>
-    <se-select label="Kind" name="kind" value="<%= key.payload.kind %>" options="<%= catalog_kind_options.select { |option| key.payload.kind == 'scalar' ? option[:id] == 'scalar' : option[:id] != 'scalar' }.to_json %>"></se-select>
+    <se-select label="Kind" name="kind" value="<%= key.payload.kind == 'plural' && !@project.pluralization? ? 'branch' : key.payload.kind %>" options="<%= catalog_kind_options.select { |option| key.payload.kind == 'scalar' ? option[:id] == 'scalar' : option[:id] != 'scalar' }.to_json %>"></se-select>
     <se-input label="Description" name="description" value="<%= key.payload.description %>"></se-input>
     <% if key.parent_id.nil? %><se-input label="File group (optional)" data-complete="group" name="file_group" value="<%= key.payload.file_group %>" placeholder="Default" hint="Blank exports to en.yml; devise exports this root and its descendants to devise.en.yml, for each language."></se-input><% end %>
   <% end %><%= render "shared/modal_footer", confirm: "Save" %>

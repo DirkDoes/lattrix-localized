@@ -7,8 +7,9 @@ class CatalogState
   end
   attr_reader :project, :items, :locales
 
-  def initialize(project, pending: false, at: nil, items: nil, locales: nil)
+  def initialize(project, pending: false, at: nil, items: nil, locales: nil, pr_check: false)
     @project = project
+    @pr_check = pr_check
     @locales = locales || project.languages.active.pluck(:identifier)
     @items = items || project.catalog_nodes.includes(:payload).to_h { |n| [n.id, Item.new(id: n.id, parent_id: n.parent_id, payload: n.payload, deleted: n.deleted)] }
     if at
@@ -56,10 +57,12 @@ class CatalogState
   end
   def plural_parent(key)
     parent = items[key.parent_id]
-    parent if parent&.key? && parent.payload.kind == "plural"
+    parent if parent&.key? && plural?(parent)
   end
+  def plural?(key) = project.pluralization? && key.payload.kind == "plural"
+  def check?(name) = !@pr_check || project.pr_check?(name)
   def translatable?(key, locale)
-    key.payload.kind == "scalar" && (!plural_parent(key) || CatalogLocale.categories(locale).include?(key.payload.name))
+    key.payload.kind == "scalar" && (!plural_parent(key) || project.plural_categories(locale).include?(key.payload.name))
   end
   def source(key)
     translation(key.id, project.source_locale) || (plural_parent(key) && children(key.parent_id).find { |i| i.key? && i.payload.name == "other" }.then { |other| translation(other.id, project.source_locale) if other })
@@ -68,16 +71,23 @@ class CatalogState
   def placeholders(text) = text.scan(/(?<!%)%\{([^}]+)\}/).flatten.to_set
 
   def text_errors(key, locale)
+    return [] if plural_parent(key) && !project.plural_categories(locale).include?(key.payload.name)
     value = translation(key.id, locale)
     return [] unless value
     tokens = placeholders(value.payload.value)
-    return ["Translate the source language first"] if locale != project.source_locale && !source(key)
+    return ["Translate the source language first"] if check?(:source_keys) && locale != project.source_locale && !source(key)
     if plural_parent(key)
-      %w[other few many].include?(key.payload.name) && !tokens.include?("count") ? ["This plural form requires %{count}"] : []
+      check?(:count_placeholders) && %w[other few many].include?(key.payload.name) && !tokens.include?("count") ? ["#{key.payload.name} requires %{count}"] : []
     else
-      errors = tokens.include?("count") ? ["%{count} is only allowed in plural translations"] : []
+      errors = project.pluralization? && check?(:count_placeholders) && tokens.include?("count") ? ["%{count} is only allowed in plural translations"] : []
       expected = placeholders(source(key)&.payload&.value.to_s)
-      errors << "Placeholders must match the source: #{expected.to_a.join(', ')}" if locale != project.source_locale && expected != tokens
+      unless project.pluralization?
+        expected = expected - ["count"]
+        tokens = tokens - ["count"]
+      end
+      if check?(:scalar_placeholders) && locale != project.source_locale && expected != tokens
+        errors << "Placeholders must match the source. Missing: #{(expected - tokens).map { |name| "%{#{name}}" }.join(', ').presence || 'none'}. Extra: #{(tokens - expected).map { |name| "%{#{name}}" }.join(', ').presence || 'none'}."
+      end
       errors
     end
   end
@@ -96,7 +106,7 @@ class CatalogState
       descendants = children(key.id)
       errors << "#{path(key)}: scalar cannot contain keys" if key.payload.kind == "scalar" && descendants.any?(&:key?)
       errors << "#{path(key)}: branches cannot contain translations" if key.payload.kind != "scalar" && descendants.any?(&:text?)
-      if key.payload.kind == "plural"
+      if plural?(key)
         errors << "#{path(key)}: invalid plural child" if descendants.any? { |i| !i.key? || i.payload.kind != "scalar" || !CatalogKey::CATEGORIES.include?(i.payload.name) }
       end
     end
@@ -105,16 +115,17 @@ class CatalogState
   end
 
   def plural_group_errors(key, locale)
+    return [] unless plural?(key) && check?(:plural_completeness)
     forms = children(key.id).select(&:key?).index_by { |item| item.payload.name }
     return [] unless forms.values.any? { |form| translation(form.id, locale) }
-    missing = CatalogLocale.categories(locale).reject { |name| forms[name] && translation(forms[name].id, locale) }
+    missing = project.plural_categories(locale).reject { |name| forms[name] && translation(forms[name].id, locale) }
     missing.any? ? ["Missing plural forms: #{missing.join(', ')}"] : []
   end
 
   def invalid_groups
     errors = {}
     keys.each do |key|
-      if key.payload.kind == "plural"
+      if plural?(key)
         forms = children(key.id).select(&:key?).index_by { |i| i.payload.name }
         locales.each do |locale|
           next unless forms.values.any? { |form| translation(form.id, locale) }

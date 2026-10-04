@@ -12,11 +12,11 @@ module CatalogHelper
   def catalog_form(url, **options, &block)
     form_with(url: url, data: {catalog_form: true, turbo: false}, **options, &block)
   end
-  def catalog_kind_options = CatalogKey::KINDS.map { |kind| {id: kind, label: kind.capitalize} }
+  def catalog_kind_options = CatalogKey::KINDS.reject { |kind| kind == 'plural' && !@project.pluralization? }.map { |kind| {id: kind, label: kind.capitalize} }
   def catalog_actions
-    options = [{id: 'export', label: 'Export', icon: 'download', disabled: !@project.writable?}, {id: 'import', label: 'Import (coming soon)', icon: 'upload', disabled: true}]
+    options = [{id: 'export', label: 'Export', icon: 'download', disabled: !@project.writable?}, {id: 'import', label: 'Import (coming soon)', icon: {light: '/icons/upload.svg', preserveLightColors: false}, disabled: true}]
     if @project.linked? && policy(@project).update?
-      options += [{id: 'sync', label: 'Sync', icon: 'refresh-cw', disabled: @project.sync_busy?}, {id: 'publish', label: 'Generate PR', icon: 'code', disabled: @project.sync_busy?}]
+      options << {id: 'sync', label: 'Sync', icon: 'folder-sync', disabled: @project.sync_busy?}
     end
     options
   end
