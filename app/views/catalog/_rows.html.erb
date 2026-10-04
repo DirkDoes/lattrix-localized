@@ -1,14 +1,14 @@
   <% @keys.each do |key| %>
     <% parent_plural = @state.plural_parent(key); next if parent_plural && !([@project.source_locale, @locale].flat_map { |locale| @project.plural_categories(locale) }.include?(key.payload.name)) %>
-    <se-list-row class="<%= 'catalog-scalar-row' if key.payload.kind == 'scalar' %>" guides level="<%= @flat_results ? 0 : @state.path(key).count('.') %>" <%= 'collapsible'.html_safe if key.payload.kind != 'scalar' && !@flat_results %> <%= 'variant="secondary"'.html_safe if key.payload.kind != 'scalar' %>>
+    <se-list-row data-catalog-key="<%= key.id %>" class="<%= 'catalog-scalar-row' if key.payload.kind == 'scalar' %>" guides level="<%= @flat_results ? 0 : @state.path(key).count('.') %>" <%= 'collapsible'.html_safe if key.payload.kind != 'scalar' && !@flat_results %> <%= 'variant="secondary"'.html_safe if key.payload.kind != 'scalar' %>>
       <div class="catalog-key"><se-code><%= @flat_results ? @state.path(key) : key.payload.name %></se-code><% if @state.plural?(key) %><se-tooltip><se-badge data-se-region="trigger" tabindex="0" tone="important" text="Plural"></se-badge><%= @project.pluralization_mode == 'simple' ? 'Uses one and other for every language.' : 'Uses Unicode CLDR cardinal plural rules. Each language has its own required plural forms.' %></se-tooltip><% end %>
     <% if key.parent_id.nil? && key.payload.file_group.present? %><se-tooltip><se-badge data-se-region="trigger" tabindex="0" tone="info" text="<%= key.payload.file_group %>"></se-badge>File group: this key and its descendants export to <%= key.payload.file_group %>.&lt;language&gt;.yml.</se-tooltip><% end %>
-    <% if @drafts[key.id] %><se-badge tone="<%= @drafts[key.id].conflict? ? 'error' : 'warning' %>" text="<%= @drafts[key.id].conflict? ? 'Conflict' : 'Pending' %>"></se-badge><% end %>
+    <% if @drafts[key.id]&.conflict? %><se-badge tone="error" text="Conflict"></se-badge><% end %>
     <% if policy(@project).update? && @project.writable? %><se-menu variant="mini" icon-only label="Key actions" data-catalog-history-menu options="<%= ([{id: 'edit', label: 'Edit key', icon: 'pencil', modal: "catalog-key-#{key.id}"}] + (key.payload.kind != 'scalar' ? [{id: 'add-child', label: 'Add child key', icon: 'plus', modal: 'catalog-add-key', path: "#{@state.path(key)}."}] : []) + [{id: 'remove', label: 'Remove key', icon: 'trash', modal: "catalog-delete-#{key.id}"}]).to_json %>"></se-menu><% end %>
       </div>
       <% [@project.source_locale, @locale].each_with_index do |locale, index| %>
     <% value = @state.translation(key.id, locale) %>
-    <div class="catalog-value">
+    <div class="catalog-value" <%= 'data-catalog-target'.html_safe if index == 1 %>>
       <% if parent_plural && !@state.translatable?(key, locale) %>
         <span aria-label="<%= "This plural form is not used by #{CatalogLocale.name(locale)}" %>">—</span>
       <% elsif @state.translatable?(key, locale) && policy(@project).edit_locale?(locale) && @project.writable? %>

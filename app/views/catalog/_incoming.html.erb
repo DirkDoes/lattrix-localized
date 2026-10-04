@@ -1,0 +1,15 @@
+<turbo-frame id="incoming-pulls">
+  <% if @error %><se-empty-state title="Could not load pull requests" subtitle="<%= @error %>"></se-empty-state>
+  <% else %>
+    <% if @pulls.empty? %><se-empty-state title="No translation pull requests on this page" subtitle="Only open pull requests targeting the configured branch are shown."></se-empty-state><% end %>
+    <% if @pulls.any? %><se-collection type="table" columns="minmax(0,1fr) auto auto">
+      <se-list-header><span>Incoming changes</span><span>GitHub</span><span>Diff</span></se-list-header>
+      <% @pulls.each do |pull| %><se-list-row>
+        <div><se-text><%= pull['title'] %></se-text><se-text muted>#<%= pull['number'] %> · <%= pull.dig('user', 'login') %></se-text></div>
+        <se-button variant="link" text="Open PR" icon="external-link" href="https://github.com/<%= @project.repository %>/pull/<%= pull['number'] %>" target="_blank" rel="noopener noreferrer"></se-button>
+        <se-button variant="secondary" text="View changes" data-pending-diff="<%= pending_diff_project_path(@project, pull: pull['number']) %>"></se-button>
+      </se-list-row><% end %>
+    </se-collection><% end %>
+    <div class="app-row-actions"><% if @page > 1 %><se-button variant="secondary" text="Previous" href="<%= incoming_project_path(@project, page: @page - 1) %>"></se-button><% end %><% if @more %><se-button variant="secondary" text="Next pull requests" href="<%= incoming_project_path(@project, page: @page + 1) %>"></se-button><% end %></div>
+  <% end %>
+</turbo-frame>

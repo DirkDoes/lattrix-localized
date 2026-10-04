@@ -6,7 +6,7 @@ class CatalogController < ApplicationController
 
   def translations
     authorize @project, :show?
-    @state = CatalogState.new(@project, pending: current_user && policy(@project).pending?)
+    @state = CatalogState.new(@project, pending: current_user && policy(@project).members?)
     @languages = @project.languages.active.order(:name).to_a
     @locale = params[:locale].presence_in(@languages.map(&:identifier)) || (@languages.map(&:identifier) - [@project.source_locale]).first || @project.source_locale
     @query = params[:q].to_s.first(200)
@@ -52,30 +52,55 @@ class CatalogController < ApplicationController
     end
     @page = [params[:page].to_i, 1].max
     @keys = @all_keys.slice((@page - 1) * 40, 40) || []
-  end
-
-  def restore_draft
-    authorize @project, :pending?
-    revision = @project.catalog_draft_edits.find(params[:draft_edit_id])
-    payload = revision.previous_payload_type.constantize.find(revision.previous_payload_id)
-    if payload.is_a?(CatalogText)
-      raise Pundit::NotAuthorizedError unless policy(@project).edit_locale?(payload.locale)
-    else
-      authorize @project, :update?
+    if request.format.json?
+      # Keep the loaded range, including newly applicable plural forms.
+      through = @all_keys.index { |key| key.id.to_s == params[:through].to_s }
+      @page = [[@page, (through.to_i / 40) + 1].max, [(@all_keys.size / 40.0).ceil, 1].max].min
+      @keys = @all_keys.first(@page * 40)
+      render json: {locale: @locale, revision: @project.revision,
+        rows: render_to_string(partial: "rows", formats: [:html]),
+        modals: render_to_string(partial: "row_modals", formats: [:html]),
+        more: render_to_string(partial: "more", formats: [:html])}
     end
-    CatalogWriter.new(@project, actor: current_user).restore_draft(revision, expected: params[:revision])
-    render json: {location: pending_project_path(@project)}
-  rescue ArgumentError, ActiveRecord::StaleObjectError, ActiveRecord::RecordInvalid => error
-    render json: {error: error.message}, status: :unprocessable_entity
   end
 
   def pending
     authorize @project, :pending?
-    @state = CatalogState.new(@project, pending: true)
-    @accepted = CatalogState.new(@project)
+    @outgoing = CatalogPending.outgoing(@project)
+  end
+
+  def incoming
+    authorize @project, :pending?
     @page = [params[:page].to_i, 1].max
-    @drafts = @project.catalog_drafts.includes(:actor, :payload, catalog_node: :payload).order(:id).offset((@page - 1) * 40).limit(40)
-    @invalid = @state.invalid_groups
+    @pulls, @more = CatalogGithub.new(@project).incoming(@page)
+    render partial: "incoming"
+  rescue CatalogGithub::Error => error
+    @error = error.message
+    render partial: "incoming"
+  end
+
+  def pending_diff
+    authorize @project, :pending?
+    if params[:pull].present?
+      github = CatalogGithub.new(@project)
+      pull = github.request(:get, "#{github.repo_path}/pulls/#{Integer(params[:pull], 10)}")
+      raise ArgumentError, "This pull request does not target the project's branch" unless pull.dig("base", "ref") == @project.git_branch && pull["state"] == "open"
+      comparison = github.request(:get, "#{github.repo_path}/compare/#{github.escape(pull.fetch('base').fetch('sha'))}...#{github.escape(pull.fetch('head').fetch('sha'))}")
+      _, before = github.snapshot(comparison.fetch("merge_base_commit").fetch("sha"))
+      _, after = github.snapshot(pull.fetch("head").fetch("sha"))
+      @changes = CatalogPending.diff(CatalogPending.files(before, @project), CatalogPending.files(after, @project))
+      @conflicts = []
+    else
+      @changes = CatalogPending.outgoing(@project)
+      @conflicts = @project.catalog_drafts.where(conflict: true).includes(:payload)
+    end
+    @total = @changes.size
+    @page = [[params[:page].to_i, 1].max, [(@total / 50.0).ceil, 1].max].min
+    @changes = @changes.slice((@page - 1) * 50, 50) || []
+    render partial: "pending_diff"
+  rescue CatalogGithub::Error, ArgumentError => error
+    @error = error.message
+    render partial: "pending_diff"
   end
 
   def history

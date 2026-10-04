@@ -12,6 +12,26 @@ class CatalogGithubTest < ActiveSupport::TestCase
   def key(path) = state.keys.find { |item| state.path(item) == path }
   def sync(files, sha = "abc") = CatalogReconcile.new(@project, files.transform_values { |v| YAML.dump(v) }, sha: sha).apply!
 
+  test "incoming PRs exclude our outgoing PR and inspect renamed locale files" do
+    @project.update!(repository: 'org/repo', git_branch: 'release', pull_request_number: 1)
+    api = CatalogGithub.new(@project)
+    calls = []
+    api.define_singleton_method(:request) do |_method, path|
+      calls << path
+      case path
+      when /pulls\?/ then [{'number'=>1}, {'number'=>2}, {'number'=>3}]
+      when /pulls\/2\/files/ then [{'filename'=>'README.md'}]
+      when /pulls\/3\/files/ then [{'filename'=>'archive/en.yml', 'previous_filename'=>'config/locales/en.yml'}]
+      else raise path
+      end
+    end
+    pulls, more = api.incoming(1)
+    assert_equal [3], pulls.map { |pull| pull['number'] }
+    assert_not more
+    assert_includes calls.first, 'base=release'
+    assert_not calls.any? { |path| path.include?('/pulls/1/files') }
+  end
+
   test "new language survives sync is published empty and becomes repository managed on merge" do
     files = {'en'=>"# Main translations\nen:\n  hello: Hello\n", 'devise.en'=>"# Account translations\nen:\n  account:\n    login: Sign in # Login label\n"}
     CatalogReconcile.new(@project, files, sha: 'base').apply!

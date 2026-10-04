@@ -163,6 +163,9 @@ se-list-header .app-row-actions > se-select { flex: 1; min-width: 0; }
 [data-theme="dark"] .translation-wildcard { color: #facc15; }
 [data-theme="dark"] .catalog-count { color: #f0abfc; }
 .catalog-page { display: grid; gap: 1rem; }
+.public-login { position: fixed; top: 1rem; right: 1rem; z-index: 20; }
+.app-shell:has(> .public-login) .project-header .app-heading { padding-right: 6rem; }
+#catalog-rows[aria-busy] { cursor: progress; overflow-anchor: none; }
 se-button[aria-disabled="true"] { opacity: .55; }
 .catalog-filters { display: flex; align-items: end; gap: .75rem; flex-wrap: wrap; }
 .catalog-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }

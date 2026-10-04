@@ -26,7 +26,7 @@ class ProjectPolicy < ApplicationPolicy
   def view_member_emails? = update?
   def settings? = update?
   def history? = members?
-  def pending? = members?
+  def pending? = members? && record.linked?
   def edit_locale?(locale)
     return false unless access? && record.languages.active.exists?(identifier: locale)
     update? || (membership&.role == "translator" && membership.languages.exists?(identifier: locale))

@@ -25,6 +25,9 @@ valuable catalog data without a separate migration/backup plan.
   be moved to a child before its former position can become a branch/plural.
 - `catalog_drafts` stores the proposed pointer and its accepted base pointer.
   `catalog_draft_edits` preserves previous proposals, including conflict choices.
+  These audit records are not a second user-facing history: the earlier-draft
+  reapply interface has been removed. Pending changes still represents current
+  proposals; accepted events remain on History.
 - `catalog_change_sets` groups accepted changes. `catalog_events` stores only
   inverse operations (old payload/parent pointers, creation/removal). Actors
   become null when their accounts are deleted.
@@ -32,9 +35,17 @@ valuable catalog data without a separate migration/backup plan.
   handles validation/publication. `CatalogWriter` serializes writes per project
   and checks an optimistic revision before editing. Failed requests preserve
   the form; successful requests close it.
-- Standalone valid edits are accepted immediately. Invalid/incomplete values
-  remain drafts; accepted values remain exportable. Connected projects propose
+- Standalone edits are persisted immediately, including invalid/incomplete values;
+  validation still excludes invalid groups from exports, but never means unsaved.
+  Connected projects propose
   valid edits to GitHub, and accept them only when the authoritative branch does.
+- Pending changes is GitHub-only: one outgoing batch plus paginated incoming open
+  translation PRs targeting the configured branch. Diff dialogs compare string
+  values and file groups, not descriptions, review flags, comments or formatting.
+  Incoming diffs use the PR merge base and head without modifying local state.
+  Descriptions are accepted locally with history even while a key has a pending
+  rename. Translation rows do not display Pending badges; conflicts and validation
+  remain separate. The branch badge stays unchanged.
 - Restore computes the net difference to the selected inclusive change set;
   it is a normal edit, including draft validation and GitHub publication rules.
 

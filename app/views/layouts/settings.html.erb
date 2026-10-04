@@ -18,7 +18,8 @@
   </head>
   <body>
     <div class="app-shell">
-      <se-topbar layout-mode="<%= show_sidebar ? 'mobile-only' : 'always' %>">
+      <% if show_sidebar %>
+      <se-topbar layout-mode="mobile-only">
         <section data-start>
           <% if show_sidebar %><se-sidebar-toggle for="app-sidebar" layout-mode="mobile-only"></se-sidebar-toggle><% end %>
           <%= render "shared/layout_brand" %>
@@ -30,6 +31,9 @@
           <% else %><se-button text="Log in" href="<%= new_user_session_path %>"></se-button><% end %>
         </section>
       </se-topbar>
+      <% else %>
+        <se-button class="public-login" text="Log in" href="<%= new_user_session_path %>"></se-button>
+      <% end %>
       <div class="app-scope-row">
         <% if show_sidebar %>
         <turbo-frame id="app-navigation" target="app-content">

@@ -9,7 +9,7 @@ window.Turbo.session.drive = false;
 const application = Application.start();
 registerFormatPreview(application, Controller);
 registerCatalogCell(application, Controller);
-document.addEventListener('catalog:before-sync', event => {
+const preventUnsavedNavigation = event => {
   const unsaved = [...document.querySelectorAll('[data-controller~="catalog-cell"]')].some(element => {
     const cell = application.getControllerForElementAndIdentifier(element, 'catalog-cell');
     return cell && (cell.saving || cell.inputTarget.value !== cell.original);
@@ -18,10 +18,12 @@ document.addEventListener('catalog:before-sync', event => {
   event.preventDefault();
   const toast = document.createElement('se-toast');
   toast.setAttribute('tone', 'warning');
-  toast.setAttribute('message', 'Finish saving your translation before synchronizing.');
+  toast.setAttribute('message', event.type === 'catalog:before-sync' ? 'Finish saving your translation before synchronizing.' : 'Finish saving your translation before changing language.');
   toast.setAttribute('open', '');
   document.body.append(toast);
-});
+};
+document.addEventListener('catalog:before-sync', preventUnsavedNavigation);
+document.addEventListener('catalog:before-language', preventUnsavedNavigation);
 application.register("catalog-sync", class extends Controller {
   static values = {url: String};
   static targets = ["message"];
@@ -78,18 +80,28 @@ application.register("catalog-more", class extends Controller {
   connect() {
     this.observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) this.load(); }, {rootMargin: "250px"});
     this.observer.observe(this.element);
+    this.pause = () => { this.observer.disconnect(); this.request?.abort(); this.loading = false; };
+    this.resume = () => { if (this.element.isConnected) this.observer.observe(this.element); };
+    document.addEventListener('catalog:language-start', this.pause);
+    document.addEventListener('catalog:language-end', this.resume);
   }
-  disconnect() { this.observer.disconnect(); this.request?.abort(); }
+  disconnect() {
+    this.observer.disconnect(); this.request?.abort();
+    document.removeEventListener('catalog:language-start', this.pause);
+    document.removeEventListener('catalog:language-end', this.resume);
+  }
   async load() {
-    if (this.loading) return;
+    if (this.loading || document.getElementById('catalog-rows')?.hasAttribute('aria-busy')) return;
     this.loading = true;
     this.retryTarget.hidden = true;
     this.statusTarget.hidden = false;
     this.request = new AbortController();
+    const request = this.request;
     try {
-      const response = await fetch(this.urlValue, {headers: {Accept: "text/vnd.turbo-stream.html"}, signal: this.request.signal});
+      const response = await fetch(this.urlValue, {headers: {Accept: "text/vnd.turbo-stream.html"}, signal: request.signal});
       if (!response.ok || !response.headers.get("content-type")?.includes("turbo-stream")) throw new Error("Could not load more translations");
-      window.Turbo.renderStreamMessage(await response.text());
+      const html = await response.text();
+      if (!request.signal.aborted) window.Turbo.renderStreamMessage(html);
     } catch (error) {
       if (error.name !== "AbortError") { this.statusTarget.hidden = true; this.retryTarget.hidden = false; this.loading = false; }
     }

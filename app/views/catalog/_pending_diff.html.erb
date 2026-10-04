@@ -1,0 +1,16 @@
+<% if @error %><se-empty-state title="Could not load changes" subtitle="<%= @error %>"></se-empty-state>
+<% else %>
+  <% if @changes.empty? %><se-empty-state title="No translation changes" subtitle="Descriptions and review status are local metadata and are not sent to GitHub."></se-empty-state><% end %>
+  <% @changes.each do |change| %>
+    <se-diff title="<%= change[:path] %> · <%= change[:file] %>" before-label="GitHub base" after-label="Proposed" before="<%= change[:before] %>" after="<%= change[:after] %>" language="text"></se-diff>
+  <% end %>
+  <% if @total > 50 %><div class="app-row-actions">
+    <se-text muted>Page <%= @page %> of <%= (@total / 50.0).ceil %> · <%= @total %> changes</se-text>
+    <% if @page > 1 %><se-button variant="secondary" text="Previous changes" data-pending-diff="<%= pending_diff_project_path(@project, pull: params[:pull], page: @page - 1) %>"></se-button><% end %>
+    <% if @page * 50 < @total %><se-button variant="secondary" text="Next 50 changes" data-pending-diff="<%= pending_diff_project_path(@project, pull: params[:pull], page: @page + 1) %>"></se-button><% end %>
+  </div><% end %>
+  <% if policy(@project).update? %><% @conflicts.each do |draft| %>
+    <se-card><se-text>Resolve conflict: <%= draft.payload.is_a?(CatalogText) ? draft.payload.locale : draft.payload.name %></se-text>
+    <div class="app-row-actions"><% %w[github lattrix].each do |choice| %><%= catalog_form resolve_project_path(@project) do %><%= hidden_field_tag :draft_id, draft.id %><%= hidden_field_tag :choice, choice %><%= hidden_field_tag :revision, @project.revision %><se-button type="submit" variant="secondary" text="Keep <%= choice == 'github' ? 'GitHub' : 'Lattrix' %>"></se-button><% end %><% end %></div></se-card>
+  <% end %><% end %>
+<% end %>

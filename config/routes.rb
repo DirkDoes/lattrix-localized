@@ -9,6 +9,8 @@ Rails.application.routes.draw do
 
     get :translations, on: :member, to: "catalog#translations"
     get :pending, on: :member, to: "catalog#pending"
+    get :incoming, on: :member, to: "catalog#incoming"
+    get :pending_diff, on: :member, to: "catalog#pending_diff"
     get :history, on: :member, to: "catalog#history"
     get :history_events, on: :member, to: "catalog#history_events"
     get :export, on: :member, to: "catalog#export"
@@ -16,7 +18,6 @@ Rails.application.routes.draw do
     post :review, on: :member, to: "catalog#review"
     post :restore_catalog, on: :member, to: "catalog#restore"
     post :resolve, on: :member, to: "catalog#resolve"
-    post :restore_draft, on: :member, to: "catalog#restore_draft"
     post :sync, on: :member, to: "catalog#sync"
     get :sync_status, on: :member, to: "catalog#sync_status"
     post :connect, on: :member, to: "catalog#connect"

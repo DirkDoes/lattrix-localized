@@ -44,6 +44,8 @@ export function registerCatalogCell(application, Controller) {
           const result = await response.json();
           if (!response.ok) throw new Error(result.error || "Could not save this translation.");
           document.querySelectorAll('[data-catalog-cell-revision-value]').forEach(cell => { cell.dataset.catalogCellRevisionValue = result.revision; });
+          const table = document.getElementById('catalog-rows');
+          if (table) table.dataset.revision = result.revision;
           document.querySelectorAll('input[name="revision"]').forEach(field => { field.value = result.revision; });
           this.original = result.value;
           document.dispatchEvent(new CustomEvent("catalog:translation-saved", {detail: {node: this.nodeValue, locale: this.localeValue, value: result.value}}));

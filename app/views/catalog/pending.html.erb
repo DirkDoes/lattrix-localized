@@ -1,29 +1,14 @@
 <section class="app-page catalog-page"><%= render "projects/navigation" %>
-  <header class="app-heading"><se-title level="section">Pending changes</se-title>
-  </header>
-  <% if @project.pull_request_number %><se-button variant="link" icon="external-link" text="Open pull request #<%= @project.pull_request_number %>" href="https://github.com/<%= @project.repository %>/pull/<%= @project.pull_request_number %>"></se-button><% end %>
-  <% if @drafts.empty? %><se-empty-illustration variant="check" title="All caught up" subtitle="New edits and incomplete translations will appear here."></se-empty-illustration><% end %>
-  <% @drafts.each do |draft| %>
-    <% node = draft.catalog_node; item = @state.items.fetch(node.id); before = node.deleted? ? nil : (node.payload.is_a?(CatalogText) ? node.payload.value : "#{node.payload.name} (#{node.payload.kind})"); after = draft.deleted? ? nil : (draft.payload.is_a?(CatalogText) ? draft.payload.value : "#{draft.payload.name} (#{draft.payload.kind})") %>
-    <se-card><div class="app-heading"><se-code><%= @state.path(item) %></se-code><se-badge tone="<%= draft.conflict? ? 'error' : 'warning' %>" text="<%= draft.conflict? ? 'Merge conflict' : 'Pending' %>"></se-badge></div>
-      <% if draft.payload.is_a?(CatalogText) %><se-badge tone="important" text="<%= CatalogLocale.name(draft.payload.locale) %>"></se-badge><% end %>
-      <se-diff title="Proposed change" before-label="Accepted" after-label="Lattrix" before="<%= before %>" after="<%= after %>" language="text"></se-diff>
-      <% if draft.payload.is_a?(CatalogKey) && node.payload.file_group != draft.payload.file_group %>
-        <div class="history-key-change"><se-text muted>File group</se-text><se-diff-value before="<%= node.payload.file_group.presence || 'Default' %>" after="<%= draft.payload.file_group.presence || 'Default' %>"></se-diff-value></div>
-      <% end %>
-      <% (@invalid[@state.group_for(item)] || []).each do |message| %><se-badge tone="error" text="<%= message %>"></se-badge><% end %>
-      <% if draft.conflict? && policy(@project).update? %><div class="app-row-actions"><% %w[github lattrix].each do |choice| %><%= catalog_form resolve_project_path(@project) do %><%= hidden_field_tag :draft_id, draft.id %><%= hidden_field_tag :choice, choice %><%= hidden_field_tag :revision, @project.revision %><se-button type="submit" variant="secondary" text="Keep <%= choice == 'github' ? 'GitHub' : 'Lattrix' %>"></se-button><% end %><% end %></div><% end %>
-    </se-card>
-  <% end %>
-  <div class="app-row-actions"><% if @page > 1 %><se-button text="Previous" variant="secondary" href="<%= pending_project_path(@project, page: @page-1) %>"></se-button><% end %><% if @drafts.size == 40 %><se-button text="Next 40 changes" variant="secondary" href="<%= pending_project_path(@project, page: @page+1) %>"></se-button><% end %></div>
-  <se-collapsible title="Earlier draft states" collapsed>
-    <% @project.catalog_draft_edits.order(id: :desc).limit(20).each do |revision| %>
-      <% payload = revision.previous_payload_type.constantize.find(revision.previous_payload_id) %>
-      <se-card><div class="app-heading"><div><se-text><%= l(revision.created_at, format: :short) %></se-text><se-code><%= payload.is_a?(CatalogText) ? payload.value : payload.name %></se-code><% if revision.previous_deleted %><se-badge text="Removed" tone="warning"></se-badge><% end %></div>
-        <% if payload.is_a?(CatalogText) ? policy(@project).edit_locale?(payload.locale) : policy(@project).update? %>
-          <%= catalog_form restore_draft_project_path(@project) do %><%= hidden_field_tag :draft_edit_id, revision.id %><%= hidden_field_tag :revision, @project.revision %><se-button type="submit" variant="secondary" text="Reapply"></se-button><% end %>
-        <% end %>
-      </div></se-card>
-    <% end %>
-  </se-collapsible>
+  <se-title level="section">Outgoing changes</se-title>
+  <se-collection type="table" columns="minmax(0,1fr) auto auto">
+    <se-list-header><span>Changes in Lattrix</span><span>Pull request</span><span>Diff</span></se-list-header>
+    <se-list-row>
+      <div><se-text>Outgoing translations</se-text><se-text muted><%= pluralize(@outgoing.size, 'translation change') %> compared with the last synchronized <%= @project.git_branch %></se-text></div>
+      <div><% if @project.pull_request_number %><se-button variant="link" icon="external-link" text="#<%= @project.pull_request_number %>" href="https://github.com/<%= @project.repository %>/pull/<%= @project.pull_request_number %>" target="_blank" rel="noopener noreferrer"></se-button><% else %><se-text muted>Not created yet</se-text><% end %></div>
+      <se-button variant="secondary" text="View changes" data-pending-diff="<%= pending_diff_project_path(@project) %>"></se-button>
+    </se-list-row>
+  </se-collection>
+  <se-title level="section">Incoming pull requests</se-title>
+  <turbo-frame id="incoming-pulls" src="<%= incoming_project_path(@project) %>" loading="lazy"><se-text muted>Loading incoming pull requests…</se-text></turbo-frame>
+  <se-modal id="pending-diff" title="Translation changes" size="large"><div data-pending-content></div></se-modal>
 </section>

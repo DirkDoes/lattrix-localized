@@ -38,6 +38,25 @@ class CatalogGithub
   def repo_path = "/repos/#{project.repository}"
   def escape(value) = ERB::Util.url_encode(value)
   def repository = request(:get, repo_path)
+  def incoming(page)
+    pulls = request(:get, "#{repo_path}/pulls?state=open&base=#{escape(project.git_branch)}&per_page=10&page=#{page}")
+    relevant = pulls.reject { |pull| pull['number'] == project.pull_request_number }.select do |pull|
+      file_page = 1
+      loop do
+        files = request(:get, "#{repo_path}/pulls/#{pull.fetch('number')}/files?per_page=100&page=#{file_page}")
+        break true if files.any? { |file| [file['filename'], file['previous_filename']].compact.any? { |path| locale_path?(path) } }
+        break false if files.size < 100
+        raise Error, "PR ##{pull['number']} exceeds GitHub's changed-file listing limit" if file_page == 30
+        file_page += 1
+      end
+    end
+    [relevant, pulls.size == 10]
+  end
+
+  def locale_path?(path)
+    prefix = "#{project.locale_directory}/"
+    path.start_with?(prefix) && path.delete_prefix(prefix).match?(/\A[^\/]+\.ya?ml\z/)
+  end
   def snapshot(ref = project.git_branch)
     commit = request(:get, "#{repo_path}/commits/#{escape(ref)}")
     tree = request(:get, "#{repo_path}/git/trees/#{commit.fetch('commit').fetch('tree').fetch('sha')}?recursive=1")

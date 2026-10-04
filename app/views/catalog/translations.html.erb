@@ -20,7 +20,7 @@
   <% if @keys.empty? %>
     <se-empty-illustration variant="search" title="<%= @filters_active ? 'No matching keys' : 'Your catalog is empty' %>" subtitle="<%= @filters_active ? 'Try changing your filters or search.' : 'Add keys or connect a repository in Settings.' %>"></se-empty-illustration>
   <% else %>
-    <se-collection id="catalog-rows" type="table" dividers="1" guides columns="minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr)" mobile-columns="minmax(0, 1fr)">
+    <se-collection id="catalog-rows" data-revision="<%= @project.revision %>" type="table" dividers="1" guides columns="minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr)" mobile-columns="minmax(0, 1fr)">
       <se-list-header><span>Key</span><span><%= CatalogLocale.name(@project.source_locale) %></span><span><se-select size="small" searchable aria-label="Target language" data-catalog-locale value="<%= @locale %>" options="<%= @languages.map { |l| {id: l.identifier, label: l.name} }.to_json %>"></se-select></span></se-list-header>
       <%= render "rows" %>
     </se-collection>

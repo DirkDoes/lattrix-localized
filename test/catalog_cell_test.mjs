@@ -8,6 +8,7 @@ test('inline editor queues saves, preserves failures, and handles keyboard contr
   const cells = [], requests = [];
   let fail = false;
   const document = {
+    getElementById: () => null,
     dispatchEvent() {},
     querySelector: () => ({content: 'csrf'}),
     querySelectorAll: selector => selector.includes('revision-value') ? cells.map(c => c.element) : [],

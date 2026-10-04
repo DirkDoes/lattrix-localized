@@ -13,7 +13,23 @@ class CatalogWriter
       yield self
       prune!
       raise ArgumentError, @state.structure_errors.join("; ") if @state.structure_errors.any?
-      accept!(@state.publication, summary: summary, origin: origin) unless project.linked?
+      if project.linked?
+        # Descriptions are local metadata, even when this key also has a pending rename.
+        metadata = CatalogState.new(project)
+        @state.keys.each do |item|
+          accepted = metadata.items[item.id]
+          next unless accepted && accepted.payload.description != item.payload.description
+          accepted.payload = CatalogKey.create!(**accepted.payload.attributes.except("id").symbolize_keys, description: item.payload.description)
+          draft = project.catalog_drafts.find_by(catalog_node_id: item.id)
+          if draft && !draft.conflict?
+            base = CatalogKey.find(draft.base_id)
+            draft.update!(base_id: CatalogKey.create!(**base.attributes.except("id").symbolize_keys, description: item.payload.description).id)
+          end
+        end
+        accept!(metadata, summary: summary, origin: origin)
+      else
+        accept!(@state, summary: summary, origin: origin)
+      end
       project.increment!(:revision)
       project.catalog_drafts.reset
     end
@@ -179,7 +195,10 @@ class CatalogWriter
       record.call(item.deleted ? "node_deleted" : (existed ? "node_reactivated" : "node_created")) if node.deleted != item.deleted
       node.update!(payload: item.payload, parent_id: item.parent_id, deleted: item.deleted)
       draft = project.catalog_drafts.find_by(catalog_node: node)
-      draft.destroy! if draft && !draft.conflict? && [draft.parent_id, draft.payload_type, draft.payload_id, draft.deleted] == [node.parent_id, node.payload_type, node.payload_id, node.deleted]
+      if draft && !draft.conflict?
+        proposed = CatalogState::Item.new(id: node.id, parent_id: draft.parent_id, payload: draft.payload, deleted: draft.deleted)
+        draft.destroy! if proposed.signature == item.signature
+      end
     end
     change
   end
@@ -207,9 +226,4 @@ class CatalogWriter
     end
   end
 
-  def restore_draft(revision, expected:)
-    edit(expected: expected, summary: "Reapplied earlier draft") do
-      stage(CatalogState::Item.new(id: revision.catalog_node_id, parent_id: revision.previous_parent_id, payload: revision.previous_payload_type.constantize.find(revision.previous_payload_id), deleted: revision.previous_deleted))
-    end
-  end
 end

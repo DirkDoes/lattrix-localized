@@ -1,5 +1,6 @@
 require "test_helper"
 class CatalogFlowTest < ActionDispatch::IntegrationTest
+  require 'minitest/mock'
   include Devise::Test::IntegrationHelpers
   setup do
     @user = users(:one)
@@ -11,6 +12,49 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
   end
   def change(**params)
     post catalog_change_project_path(@project), params: {revision: @project.reload.revision, **params}, as: :json
+  end
+  test "pending is connected-only and descriptions do not appear in the outgoing diff" do
+    get translations_project_path(@project)
+    assert_not_includes response.body, 'label&quot;:&quot;Pending changes'
+    get pending_project_path(@project)
+    assert_response :forbidden
+    change(operation: 'add', path: 'name')
+    @project.update!(repository: 'example/test')
+    get pending_project_path(@project)
+    assert_response :success
+    assert_select 'turbo-frame#incoming-pulls'
+    get pending_diff_project_path(@project)
+    assert_response :success
+    assert_includes response.body, 'No translation changes'
+    get translations_project_path(@project)
+    assert_select 'se-badge[text="Pending"]', count: 0
+  end
+  test "incoming diffs compare immutable merge base and head without touching the catalog" do
+    @project.update!(repository: 'example/test', git_branch: 'main')
+    api = Object.new
+    api.define_singleton_method(:repo_path) { '/repos/example/test' }
+    api.define_singleton_method(:escape) { |value| value }
+    api.define_singleton_method(:request) do |_method, path|
+      if path.include?('/compare/')
+        {'merge_base_commit'=>{'sha'=>'ancestor'}}
+      else
+        {'state'=>'open', 'base'=>{'ref'=>'main', 'sha'=>'base'}, 'head'=>{'sha'=>'head'}}
+      end
+    end
+    refs = []
+    api.define_singleton_method(:snapshot) do |ref|
+      refs << ref
+      [{}, {'en'=>"en:\n  label: #{ref == 'ancestor' ? 'Before' : 'After'}\n"}]
+    end
+    revision = @project.revision
+    CatalogGithub.stub(:new, api) do
+      get pending_diff_project_path(@project, pull: 12)
+      assert_response :success
+      assert_select 'se-diff[before="Before"][after="After"]'
+    end
+    assert_equal %w[ancestor head], refs
+    assert_equal revision, @project.reload.revision
+    assert_empty @project.catalog_nodes
   end
   test "completion settings save, clear, remain scoped and require project management" do
     patch project_path(@project), params: {project: {completion_terms: [{text: 'Lattrix', description: 'Product'}]}}
@@ -289,13 +333,41 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
   test "public access exposes accepted translations but no draft history or edit controls" do
+    @project.update!(repository: 'org/repo', installation_id: 1)
     sign_out @user
     get translations_project_path(@project)
     assert_response :success
     assert_select "se-button[data-open-modal=catalog-add-key]", count: 0
+    assert_select 'se-topbar', count: 0
+    assert_select '.public-login[text="Log in"]'
+    assert_select '[data-catalog-actions], .project-sync-badge, #catalog-export', count: 0
     @project.update!(visibility: "private")
     get translations_project_path(@project)
     assert_response :not_found
+  end
+  test "language switch returns the loaded row range and applicable plural forms without page chrome" do
+    @project.languages.create!(identifier: 'ar')
+    CatalogWriter.new(@project, actor: @user).edit(expected: @project.revision) do |edit|
+      45.times { |i| edit.add_key("item_#{i.to_s.rjust(2, '0')}") }
+      edit.add_key('notifications', kind: 'plural')
+    end
+    state = CatalogState.new(@project)
+    last_key = state.keys.find { |key| key.payload.name == 'other' }
+    get translations_project_path(@project), params: {locale: 'ar', through: last_key.id}, as: :json
+    assert_response :success
+    result = response.parsed_body
+    assert_equal 'ar', result['locale']
+    assert_equal @project.reload.revision, result['revision']
+    rows = Nokogiri::HTML.fragment(result['rows'])
+    assert_equal 52, rows.css('[data-catalog-key]').size
+    assert_equal 52, rows.css('[data-catalog-target]').size
+    assert_includes result['rows'], 'This plural form is not used by English'
+    assert_not_includes result['rows'], 'app-shell'
+    get translations_project_path(@project), params: {locale: 'nl', through: last_key.id}, as: :json
+    assert_equal 48, Nokogiri::HTML.fragment(response.parsed_body['rows']).css('[data-catalog-key]').size
+    get pending_project_path(@project)
+    assert_not_includes response.body, 'Earlier draft states'
+    assert_not_includes response.body, 'Reapply'
   end
   test "standard languages and export showcase have no removed settings" do
     post project_languages_path(@project), params: {identifier: "en-GB"}, as: :json

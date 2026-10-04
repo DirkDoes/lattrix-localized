@@ -1,7 +1,7 @@
 <% selected = controller_name == 'catalog' ? action_name : (%w[project_invites project_memberships].include?(controller_name) || action_name == 'members' ? 'members' : 'settings') %>
 <% navigation_options = [
   {id: 'translations', label: 'Translations', icon: 'languages', href: translations_project_path(@project)},
-  (policy(@project).pending? ? {id: 'pending', label: 'Pending changes', icon: 'code', count: @project.catalog_drafts.count, href: pending_project_path(@project)} : nil),
+  (policy(@project).pending? ? {id: 'pending', label: 'Pending changes', icon: 'code', count: CatalogPending.outgoing(@project).size, href: pending_project_path(@project)} : nil),
   (policy(@project).history? ? {id: 'history', label: 'History', icon: 'clock', href: history_project_path(@project)} : nil),
   (policy(@project).members? ? {id: 'members', label: 'Members', icon: 'users', href: members_project_path(@project)} : nil),
   (policy(@project).settings? ? {id: 'settings', label: 'Settings', icon: 'settings', href: settings_project_path(@project)} : nil)
@@ -14,25 +14,25 @@
         <div class="project-title-group"><se-title level="<%= compact ? 'section' : 'page' %>"><%= @project.name %></se-title>
           <% if @project.linked? %><a href="https://github.com/<%= @project.repository %><%= "/tree/#{ERB::Util.url_encode(@project.git_branch)}" if @project.git_branch.present? %>" target="_blank" rel="noopener noreferrer" aria-label="Open GitHub branch"><se-badge tone="brand" icon="git-branch" text="<%= @project.git_branch.presence || 'GitHub' %>"></se-badge></a><% end %>
         </div>
-        <% if @project.linked? %>
+        <% if current_user && @project.linked? %>
           <% failed = feedback[:status] == 'failed' || @project.sync_error.present?; status_text = feedback[:busy] ? 'Syncing' : failed ? 'Sync Failed' : feedback[:status] == 'succeeded' ? 'Synced' : 'Not synced' %>
           <se-tooltip><span data-se-region="trigger" tabindex="0" class="project-sync-badge" role="status"><% if feedback[:busy] %><se-spinner size="small" label="Synchronizing"></se-spinner><% end %><se-badge tone="<%= feedback[:busy] ? 'warning' : failed ? 'error' : feedback[:status] == 'succeeded' ? 'success' : 'gray' %>" text="<%= status_text %>"></se-badge></span><span data-catalog-sync-target="message"><%= feedback[:message].presence || @project.sync_error.presence || 'This repository has not been synchronized yet.' %></span><% if @project.sync_finished_at %><span> Last attempt: <%= l(@project.sync_finished_at, format: :short) %>.</span><% end %></se-tooltip>
         <% end %>
       </header>
       <% default_action = @project.linked? && policy(@project).update? ? 'sync' : 'export' %>
-      <se-nav-tabs class="app-page-navigation" label="Project navigation" value="<%= selected %>" options="<%= navigation_options %>"><span data-actions>
+      <se-nav-tabs class="app-page-navigation" label="Project navigation" value="<%= selected %>" options="<%= navigation_options %>"><% if current_user %><span data-actions>
         <se-split-button direct="true" variant="secondary" text="<%= default_action == 'sync' ? 'Sync' : 'Export' %>" icon="<%= default_action == 'sync' ? 'folder-sync' : 'download' %>" data-catalog-actions data-default-action="<%= default_action %>" options="<%= catalog_actions.to_json %>" <%= 'disabled' if @project.sync_busy? || (default_action == 'export' && !@project.writable?) %>></se-split-button>
-      </span></se-nav-tabs>
+      </span><% end %></se-nav-tabs>
     </div>
   <% end %>
 </div>
 <% if @project.linked? && policy(@project).update? %>
   <%= catalog_form sync_project_path(@project), id: 'catalog-sync-form', hidden: true do %><% end %>
 <% end %>
-<se-modal id="catalog-export" title="Export translations" size="medium">
+<% if current_user %><se-modal id="catalog-export" title="Export translations" size="medium">
   <%= form_with url: export_project_path(@project), method: :get, data: {turbo: false, download: true}, class: "app-form" do %>
     <% if @project.linked? && @project.catalog_tags.exists? %><se-select label="Version" name="tag_id" value="" options="<%= ([{id: '', label: 'Current accepted catalog'}] + @project.catalog_tags.order(created_at: :desc).map { |tag| {id: tag.id.to_s, label: tag.name} }).to_json %>"></se-select><% end %>
     <se-select label="Format" name="format_name" value="yaml" options='[{"id":"yaml","label":"YAML"},{"id":"csv","label":"CSV"},{"id":"xlsx","label":"Excel"}]'></se-select>
   <% end %>
   <%= render "shared/modal_footer", confirm: "Export" %>
-</se-modal>
+</se-modal><% end %>

@@ -47,13 +47,15 @@ class CatalogTest < ActiveSupport::TestCase
     assert_nil key('items.few')
   end
 
-  test "scalar placeholders preserve last accepted translation until draft is valid" do
+  test "standalone invalid translations are persisted without pending GitHub changes" do
     edit { |w| w.add_key("greeting") }
     edit { |w| w.translate(key("greeting").id, "en", "Hello %{name}") }
     edit { |w| w.translate(key("greeting").id, "nl", "Hallo %{name}") }
     edit { |w| w.translate(key("greeting").id, "nl", "Hallo") }
-    assert_equal "Hallo %{name}", exported.dig("nl", "greeting")
-    assert_equal 1, @project.catalog_drafts.count
+    assert_nil exported.dig("nl", "greeting")
+    assert_equal "Hallo", CatalogState.new(@project).translation(key("greeting").id, "nl").payload.value
+    assert_empty @project.catalog_drafts
+    assert_empty CatalogPending.outgoing(@project)
     edit { |w| w.translate(key("greeting").id, "nl", "Welkom %{name}") }
     assert_equal "Welkom %{name}", exported.dig("nl", "greeting")
     assert_empty @project.catalog_drafts
@@ -66,7 +68,8 @@ class CatalogTest < ActiveSupport::TestCase
     edit { |w| w.translate(key("items.other").id, "en", "%{count} items") }
     assert_equal({"items.one"=>"One item", "items.other"=>"%{count} items"}, exported["en"])
     edit { |w| w.translate(key("items.other").id, "en", "Items") }
-    assert_equal "%{count} items", exported.dig("en", "items.other")
+    assert_nil exported.dig("en", "items.other")
+    assert_equal "Items", CatalogState.new(@project).translation(key("items.other").id, "en").payload.value
   end
 
   test "restore is inclusive with backward deltas across moves and deletes" do
@@ -115,11 +118,12 @@ class CatalogTest < ActiveSupport::TestCase
     assert @project.reload.sync_error.present?
   end
 
-  test "source placeholder changes wait for dependent translations" do
+  test "standalone source changes are saved while dependent translations stay invalid" do
     edit { |w| w.add_key("hello") }
     edit { |w| w.translate(key("hello").id, "en", "Hi %{name}"); w.translate(key("hello").id, "nl", "Hoi %{name}") }
     edit { |w| w.translate(key("hello").id, "en", "Hi %{username}") }
-    assert_equal "Hi %{name}", exported.dig("en", "hello")
+    assert_equal "Hi %{username}", exported.dig("en", "hello")
+    assert_nil exported.dig("nl", "hello")
     edit { |w| w.translate(key("hello").id, "nl", "Hoi %{username}") }
     assert_equal "Hi %{username}", exported.dig("en", "hello")
     assert_empty @project.catalog_drafts
