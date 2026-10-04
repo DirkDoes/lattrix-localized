@@ -7,7 +7,7 @@ class CatalogPullRequestCache < ApplicationRecord
   end
 
   def connection_key
-    Digest::SHA256.hexdigest([project.repository, project.installation_id, project.git_branch, project.locale_directory,
+    Digest::SHA256.hexdigest([2, project.repository, project.installation_id, project.git_branch, project.locale_directory,
       project.max_locale_files, project.max_locale_file_mb, project.max_locale_total_mb].to_json)
   end
 

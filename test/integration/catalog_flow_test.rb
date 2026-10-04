@@ -35,7 +35,8 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     api.define_singleton_method(:repo_path) { '/repos/example/test' }
     api.define_singleton_method(:escape) { |value| value }
     api.define_singleton_method(:incoming) do |_page, include_outgoing:|
-      [[{'number'=>12, 'title'=>'Translation update', 'base'=>{'sha'=>'base'}, 'head'=>{'sha'=>'head'}}], false]
+      [[{'number'=>12, 'title'=>'Translation update', 'base'=>{'sha'=>'base'}, 'head'=>{'sha'=>'head'}},
+        {'number'=>13, 'title'=>'Broken translation', 'base'=>{'sha'=>'base'}, 'head'=>{'sha'=>'broken'}}], false]
     end
     api.define_singleton_method(:request) do |_method, path|
       if path.include?('/compare/')
@@ -47,7 +48,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     refs = []
     api.define_singleton_method(:snapshot) do |ref|
       refs << ref
-      [{}, {'en'=>"en:\n  label: #{ref == 'ancestor' ? 'Before' : 'After'}\n"}]
+      [{}, {'en'=>"en:\n  label: #{ref == 'broken' ? 'Invalid: YAML' : ref == 'ancestor' ? 'Before' : 'After'}\n"}]
     end
     revision = @project.revision
     cache = CatalogPullRequestCache.for(@project)
@@ -60,11 +61,18 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.body, 'No outgoing changes'
       assert_select 'se-collection', count: 1
+      assert_select 'se-badge[text="Invalid translations"]', count: 1
+      assert_select 'se-button[data-pending-diff]', count: 1
+      assert_select 'se-button[data-pending-diff*="pull=13"]', count: 0
       get pending_diff_project_path(@project, pull: 12)
       assert_response :success
       assert_select 'se-diff[before="Before"][after="After"]'
+      assert_select 'se-diff[title="label · English · en.yml"][language="text"]'
+      get pending_diff_project_path(@project, pull: 13)
+      assert_select 'se-diff', count: 0
+      assert_includes response.body, 'Invalid YAML'
     end
-    assert_equal %w[ancestor head], refs
+    assert_equal %w[ancestor head ancestor broken], refs
     assert_equal revision, @project.reload.revision
     assert_empty @project.catalog_nodes
   end

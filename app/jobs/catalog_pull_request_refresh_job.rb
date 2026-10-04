@@ -22,7 +22,9 @@ class CatalogPullRequestRefreshJob < ApplicationJob
               _, before = api.snapshot(comparison.fetch('merge_base_commit').fetch('sha'))
               _, after = api.snapshot(identity[1])
               result['changes'] = CatalogPending.file_diff(before, after, project)
-            rescue CatalogGithub::Error, ArgumentError => error
+            rescue ArgumentError => error
+              result.merge!('changes' => [], 'error' => error.message, 'invalid' => true)
+            rescue CatalogGithub::Error => error
               result.merge!('changes' => [], 'error' => error.message)
             end
           end

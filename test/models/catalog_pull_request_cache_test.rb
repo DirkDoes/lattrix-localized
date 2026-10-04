@@ -8,17 +8,14 @@ class CatalogPullRequestCacheTest < ActiveSupport::TestCase
     @cache.update!(connection: @cache.connection_key, refresh_token: 'test', requested_at: Time.current)
   end
 
-  test 'changed malformed YAML is previewed raw and unrelated invalid files do not block valid diffs' do
+  test 'changed malformed YAML rejects the preview and unrelated invalid files do not block valid diffs' do
     before = {'en'=>"en:\n  label: Before\n", 'devise.en'=>"en: broken: yaml"}
     after = before.merge('en'=>"en:\n  label: After\n")
     changes = CatalogPending.file_diff(before, after, @project)
     assert_equal 1, changes.size
     assert_equal 'After', changes.first[:after]
     after['en'] = "en:\n  label: After: broken\n"
-    change = CatalogPending.file_diff(before, after, @project).first
-    assert_equal 'yaml', change[:language]
-    assert_includes change[:warning], 'raw YAML'
-    assert_equal after['en'], change[:after]
+    assert_raises(ArgumentError) { CatalogPending.file_diff(before, after, @project) }
   end
 
   test 'fresh snapshots do not enqueue refresh on every visit and reconnects hide old PRs' do

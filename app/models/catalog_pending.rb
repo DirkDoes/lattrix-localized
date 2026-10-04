@@ -30,15 +30,9 @@ class CatalogPending
   def self.file_diff(before, after, project)
     (before.keys | after.keys).sort.flat_map do |file|
       next [] if before[file] == after[file]
-      begin
-        old = before.key?(file) ? files({file => before[file]}, project) : {}
-        new = after.key?(file) ? files({file => after[file]}, project) : {}
-        diff(old, new).map { |change| change.merge(file: CatalogYaml.filename(file)) }
-      rescue ArgumentError => error
-        # Broken PRs still need an inspectable diff; never import or repair their contents here.
-        [{file: CatalogYaml.filename(file), path: 'File changes', before: before[file], after: after[file],
-          warning: "Showing raw YAML because this file cannot be parsed: #{error.message}", language: 'yaml'}]
-      end
+      old = before.key?(file) ? files({file => before[file]}, project) : {}
+      new = after.key?(file) ? files({file => after[file]}, project) : {}
+      diff(old, new).map { |change| change.merge(file: CatalogYaml.filename(file)) }
     end
   end
 

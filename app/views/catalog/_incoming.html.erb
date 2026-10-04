@@ -4,7 +4,11 @@
       <% @pulls.each do |pull| %><se-list-row>
         <div><se-text><%= pull['title'] %></se-text><se-text muted>#<%= pull['number'] %> · <%= pull.dig('user', 'login') %></se-text></div>
         <se-button variant="link" text="Open PR" icon="external-link" href="https://github.com/<%= @project.repository %>/pull/<%= pull['number'] %>" target="_blank" rel="noopener noreferrer"></se-button>
-        <se-button variant="secondary" text="View changes" data-pending-diff="<%= pending_diff_project_path(@project, pull: pull['number']) %>"></se-button>
+        <% if pull['error'].present? %>
+          <se-tooltip><se-badge data-se-region="trigger" tone="error" text="<%= pull['invalid'] ? 'Invalid translations' : 'Preview unavailable' %>"></se-badge><%= pull['error'] %></se-tooltip>
+        <% else %>
+          <se-button variant="secondary" text="View changes" data-pending-diff="<%= pending_diff_project_path(@project, pull: pull['number']) %>"></se-button>
+        <% end %>
       </se-list-row><% end %>
     </se-collection><% end %>
     <div class="app-row-actions"><% if @page > 1 %><se-button variant="secondary" text="Previous" href="<%= incoming_project_path(@project, page: @page - 1) %>"></se-button><% end %><% if @more %><se-button variant="secondary" text="Next pull requests" href="<%= incoming_project_path(@project, page: @page + 1) %>"></se-button><% end %></div>

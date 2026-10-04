@@ -50,8 +50,9 @@ valuable catalog data without a separate migration/backup plan.
   `catalog_pull_request_caches`, refreshed in background after sync/webhooks or
   when a visited snapshot is over ten minutes old. Unchanged base/head SHAs reuse
   their diffs. Closed PRs are removed, and reconnects invalidate the old cache.
-  Browsing PRs never modifies the catalog. Changed malformed YAML is shown as a
-  raw file diff with a parsing warning; unrelated unchanged files are not parsed.
+  Browsing PRs never modifies the catalog. Changed malformed YAML marks the PR
+  as invalid without a diff button; unrelated unchanged files are not parsed.
+  Previews show translation values by key and language, never raw YAML.
   Empty outgoing batches show an empty state rather than a table or old PR link.
 - Restore computes the net difference to the selected inclusive change set;
   it is a normal edit, including draft validation and GitHub publication rules.
