@@ -14,6 +14,10 @@ on:
         description: Version tag, for example v0.1.0
         required: true
         type: string
+      reuse_image:
+        description: Reuse the already-published image for this environment and version (rollout retry)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -80,14 +84,19 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          REUSE_IMAGE: ${{ inputs.reuse_image }}
         run: |
           set -euo pipefail
           image_version="${DEPLOY_ENVIRONMENT}-${VERSION}"
+          destination=()
           if [[ "$DEPLOY_ENVIRONMENT" == "staging" ]]; then
-            bundle exec kamal setup -d staging --version "$image_version"
-          else
-            bundle exec kamal setup --version "$image_version"
+            destination=(-d staging)
           fi
+          # Build before opening the setup SSH session; long builds can expire it.
+          if [[ "$REUSE_IMAGE" != "true" ]]; then
+            bundle exec kamal build push "${destination[@]}" --version "$image_version"
+          fi
+          bundle exec kamal setup "${destination[@]}" --version "$image_version" --skip-push
 
       - name: Verify deployment
         shell: bash
