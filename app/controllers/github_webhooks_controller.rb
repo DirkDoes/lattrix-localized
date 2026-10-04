@@ -16,6 +16,11 @@ class GithubWebhooksController < ActionController::Base
       when "push"
         CatalogSyncJob.perform_later(project.id) if payload["ref"] == "refs/heads/#{project.git_branch}"
       when "pull_request"
+        cache = CatalogPullRequestCache.for(project)
+        if payload['action'] == 'closed'
+          cache.with_lock { cache.update!(pulls: cache.pulls.reject { |pull| pull['number'] == payload['number'] }, refresh_token: nil) }
+        end
+        cache.refresh_later(force: true)
         if %w[opened synchronize reopened].include?(payload["action"]) && payload.dig("pull_request", "base", "ref") == project.git_branch
           CatalogCheckJob.perform_later(project.id, payload.fetch("number"))
         end

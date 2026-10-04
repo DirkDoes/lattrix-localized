@@ -1,14 +1,4 @@
 <section class="app-page catalog-page"><%= render "projects/navigation" %>
-  <se-title level="section">Outgoing changes</se-title>
-  <se-collection type="table" columns="minmax(0,1fr) auto auto">
-    <se-list-header><span>Changes in Lattrix</span><span>Pull request</span><span>Diff</span></se-list-header>
-    <se-list-row>
-      <div><se-text>Outgoing translations</se-text><se-text muted><%= pluralize(@outgoing.size, 'translation change') %> compared with the last synchronized <%= @project.git_branch %></se-text></div>
-      <div><% if @project.pull_request_number %><se-button variant="link" icon="external-link" text="#<%= @project.pull_request_number %>" href="https://github.com/<%= @project.repository %>/pull/<%= @project.pull_request_number %>" target="_blank" rel="noopener noreferrer"></se-button><% else %><se-text muted>Not created yet</se-text><% end %></div>
-      <se-button variant="secondary" text="View changes" data-pending-diff="<%= pending_diff_project_path(@project) %>"></se-button>
-    </se-list-row>
-  </se-collection>
-  <se-title level="section">Incoming pull requests</se-title>
-  <turbo-frame id="incoming-pulls" src="<%= incoming_project_path(@project) %>" loading="lazy"><se-text muted>Loading incoming pull requests…</se-text></turbo-frame>
+  <%= render 'pending_batches' %>
   <se-modal id="pending-diff" title="Translation changes" size="large"><div data-pending-content></div></se-modal>
 </section>

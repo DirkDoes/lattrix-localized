@@ -467,6 +467,43 @@ ALTER SEQUENCE public.catalog_nodes_id_seq OWNED BY public.catalog_nodes.id;
 
 
 --
+-- Name: catalog_pull_request_caches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.catalog_pull_request_caches (
+    id bigint NOT NULL,
+    project_id bigint NOT NULL,
+    connection character varying,
+    pulls jsonb DEFAULT '[]'::jsonb NOT NULL,
+    refresh_token character varying,
+    requested_at timestamp(6) without time zone,
+    fetched_at timestamp(6) without time zone,
+    error text,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: catalog_pull_request_caches_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.catalog_pull_request_caches_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: catalog_pull_request_caches_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.catalog_pull_request_caches_id_seq OWNED BY public.catalog_pull_request_caches.id;
+
+
+--
 -- Name: catalog_reviews; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1336,6 +1373,13 @@ ALTER TABLE ONLY public.catalog_nodes ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: catalog_pull_request_caches id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_pull_request_caches ALTER COLUMN id SET DEFAULT nextval('public.catalog_pull_request_caches_id_seq'::regclass);
+
+
+--
 -- Name: catalog_reviews id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1567,6 +1611,14 @@ ALTER TABLE ONLY public.catalog_keys
 
 ALTER TABLE ONLY public.catalog_nodes
     ADD CONSTRAINT catalog_nodes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: catalog_pull_request_caches catalog_pull_request_caches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_pull_request_caches
+    ADD CONSTRAINT catalog_pull_request_caches_pkey PRIMARY KEY (id);
 
 
 --
@@ -1906,6 +1958,13 @@ CREATE INDEX index_catalog_nodes_on_payload_type_and_payload_id ON public.catalo
 --
 
 CREATE INDEX index_catalog_nodes_on_project_id ON public.catalog_nodes USING btree (project_id);
+
+
+--
+-- Name: index_catalog_pull_request_caches_on_project_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_catalog_pull_request_caches_on_project_id ON public.catalog_pull_request_caches USING btree (project_id);
 
 
 --
@@ -2559,6 +2618,14 @@ ALTER TABLE ONLY public.catalog_events
 
 
 --
+-- Name: catalog_pull_request_caches fk_rails_e9fa2e2e28; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.catalog_pull_request_caches
+    ADD CONSTRAINT fk_rails_e9fa2e2e28 FOREIGN KEY (project_id) REFERENCES public.projects(id);
+
+
+--
 -- Name: catalog_drafts fk_rails_eda0426685; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2589,6 +2656,7 @@ ALTER TABLE ONLY public.auth_identities
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261004002000'),
 ('20261004001000'),
 ('20261003003000'),
 ('20261003002000'),

@@ -38,9 +38,9 @@ class CatalogGithub
   def repo_path = "/repos/#{project.repository}"
   def escape(value) = ERB::Util.url_encode(value)
   def repository = request(:get, repo_path)
-  def incoming(page)
+  def incoming(page, include_outgoing: false)
     pulls = request(:get, "#{repo_path}/pulls?state=open&base=#{escape(project.git_branch)}&per_page=10&page=#{page}")
-    relevant = pulls.reject { |pull| pull['number'] == project.pull_request_number }.select do |pull|
+    relevant = pulls.reject { |pull| !include_outgoing && pull['number'] == project.pull_request_number }.select do |pull|
       file_page = 1
       loop do
         files = request(:get, "#{repo_path}/pulls/#{pull.fetch('number')}/files?per_page=100&page=#{file_page}")

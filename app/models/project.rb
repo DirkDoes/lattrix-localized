@@ -49,6 +49,7 @@ class Project < ApplicationRecord
   has_many :catalog_draft_edits, dependent: :delete_all
   has_many :catalog_git_revisions, dependent: :delete_all
   has_many :catalog_tags, dependent: :delete_all
+  has_one :catalog_pull_request_cache, dependent: :destroy
   validates :source_locale, inclusion: {in: ->(_) { CatalogLocale::DATA.keys }}
   validates :repository, format: {with: /\A[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\z/}, allow_blank: true
   validates :locale_directory, format: {with: /\A[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\z/}

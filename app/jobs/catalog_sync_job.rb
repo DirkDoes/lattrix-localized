@@ -51,6 +51,7 @@ class CatalogSyncJob < ApplicationJob
     end
     end
     tracking.update_all(sync_status: "succeeded", sync_message: message, sync_finished_at: Time.current)
+    CatalogPullRequestCache.for(project).refresh_later(force: true)
   rescue CatalogGithub::Error, ArgumentError, ActiveRecord::RecordInvalid, KeyError, Timeout::Error => error
     project&.update!(sync_error: error.message)
     tracking&.update_all(sync_status: "failed", sync_message: error.is_a?(Timeout::Error) ? "Synchronization timed out. Please retry." : error.message, sync_finished_at: Time.current)

@@ -1,10 +1,31 @@
+function refreshPendingSnapshot() {
+  const frame = document.querySelector('[data-pending-refresh]');
+  if (!frame || frame.dataset.polling) return;
+  frame.dataset.polling = 'true';
+  setTimeout(async () => {
+    if (!frame.isConnected) return;
+    try {
+      const response = await fetch(frame.dataset.pendingRefresh, {headers: {Accept: 'text/html'}, signal: AbortSignal.timeout(15000)});
+      if (!response.ok || response.redirected) throw new Error('Refresh unavailable');
+      const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const replacement = doc.getElementById('incoming-pulls');
+      if (replacement && frame.isConnected) { frame.replaceWith(replacement); refreshPendingSnapshot(); }
+    } catch (_) {
+      if (frame.isConnected) { delete frame.dataset.polling; refreshPendingSnapshot(); }
+    }
+  }, 3000);
+}
+document.addEventListener('DOMContentLoaded', refreshPendingSnapshot);
+document.addEventListener('turbo:load', refreshPendingSnapshot);
+document.addEventListener('turbo:frame-load', refreshPendingSnapshot);
+
 document.addEventListener("click", async event => {
   const button = event.target.closest('[data-pending-diff]');
   if (!button) return;
   event.preventDefault();
   const modal = document.getElementById('pending-diff');
   const content = modal.querySelector('[data-pending-content]');
-  content.textContent = 'Loading translation changes…';
+  content.innerHTML = '<div class="app-row-actions" role="status"><se-spinner></se-spinner><se-text>Loading translation changes…</se-text></div>';
   modal.open();
   const url = button.dataset.pendingDiff;
   content.dataset.request = url;

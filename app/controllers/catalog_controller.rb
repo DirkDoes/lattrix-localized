@@ -66,29 +66,29 @@ class CatalogController < ApplicationController
 
   def pending
     authorize @project, :pending?
+    @cache = CatalogPullRequestCache.for(@project)
+    @cache.refresh_later
     @outgoing = CatalogPending.outgoing(@project)
+    @page = 1
   end
 
   def incoming
     authorize @project, :pending?
+    @cache = CatalogPullRequestCache.for(@project)
+    @cache.refresh_later
+    @outgoing = CatalogPending.outgoing(@project)
     @page = [params[:page].to_i, 1].max
-    @pulls, @more = CatalogGithub.new(@project).incoming(@page)
-    render partial: "incoming"
-  rescue CatalogGithub::Error => error
-    @error = error.message
-    render partial: "incoming"
+    render partial: "pending_batches"
   end
 
   def pending_diff
     authorize @project, :pending?
     if params[:pull].present?
-      github = CatalogGithub.new(@project)
-      pull = github.request(:get, "#{github.repo_path}/pulls/#{Integer(params[:pull], 10)}")
-      raise ArgumentError, "This pull request does not target the project's branch" unless pull.dig("base", "ref") == @project.git_branch && pull["state"] == "open"
-      comparison = github.request(:get, "#{github.repo_path}/compare/#{github.escape(pull.fetch('base').fetch('sha'))}...#{github.escape(pull.fetch('head').fetch('sha'))}")
-      _, before = github.snapshot(comparison.fetch("merge_base_commit").fetch("sha"))
-      _, after = github.snapshot(pull.fetch("head").fetch("sha"))
-      @changes = CatalogPending.diff(CatalogPending.files(before, @project), CatalogPending.files(after, @project))
+      cache = CatalogPullRequestCache.for(@project)
+      pull = cache.current_pulls.find { |item| item['number'] == Integer(params[:pull], 10) }
+      raise ArgumentError, "This pull request is no longer open or its snapshot is not ready. Refresh the pending changes page." unless pull
+      raise ArgumentError, pull['error'] if pull['error'].present?
+      @changes = pull.fetch('changes').map(&:symbolize_keys)
       @conflicts = []
     else
       @changes = CatalogPending.outgoing(@project)

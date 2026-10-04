@@ -46,6 +46,13 @@ valuable catalog data without a separate migration/backup plan.
   Descriptions are accepted locally with history even while a key has a pending
   rename. Translation rows do not display Pending badges; conflicts and validation
   remain separate. The branch badge stays unchanged.
+- PR overviews and diffs are display-only JSONB snapshots in
+  `catalog_pull_request_caches`, refreshed in background after sync/webhooks or
+  when a visited snapshot is over ten minutes old. Unchanged base/head SHAs reuse
+  their diffs. Closed PRs are removed, and reconnects invalidate the old cache.
+  Browsing PRs never modifies the catalog. Changed malformed YAML is shown as a
+  raw file diff with a parsing warning; unrelated unchanged files are not parsed.
+  Empty outgoing batches show an empty state rather than a table or old PR link.
 - Restore computes the net difference to the selected inclusive change set;
   it is a normal edit, including draft validation and GitHub publication rules.
 

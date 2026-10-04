@@ -1,0 +1,20 @@
+<%= tag.turbo_frame id: 'incoming-pulls', data: {pending_refresh: (@cache.refreshing? ? incoming_project_path(@project, page: @page) : nil)} do %>
+  <se-title level="section">Outgoing changes</se-title>
+  <% if @outgoing.empty? %>
+    <se-empty-state title="No outgoing changes" subtitle="Your translations match the last synchronized GitHub version."></se-empty-state>
+  <% else %>
+    <se-collection type="table" columns="minmax(0,1fr) auto auto">
+      <se-list-header><span>Changes in Lattrix</span><span>Pull request</span><span>Diff</span></se-list-header>
+      <se-list-row>
+        <div><se-text>Outgoing translations</se-text><se-text muted><%= pluralize(@outgoing.size, 'translation change') %> compared with the last synchronized <%= @project.git_branch %></se-text></div>
+        <div><% if @cache.current_pulls.any? { |pull| pull['number'] == @project.pull_request_number } %><se-button variant="link" icon="external-link" text="#<%= @project.pull_request_number %>" href="https://github.com/<%= @project.repository %>/pull/<%= @project.pull_request_number %>" target="_blank" rel="noopener noreferrer"></se-button><% else %><se-text muted>No open pull request</se-text><% end %></div>
+        <se-button variant="secondary" text="View changes" data-pending-diff="<%= pending_diff_project_path(@project) %>"></se-button>
+      </se-list-row>
+    </se-collection>
+  <% end %>
+  <se-title level="section">Incoming pull requests</se-title>
+  <% if @cache.refreshing? %><div class="app-row-actions" role="status"><se-spinner></se-spinner><se-text muted>Refreshing pull requests…</se-text></div><% end %>
+  <% if @cache.error.present? %><se-empty-state title="Could not refresh pull requests" subtitle="<%= @cache.error %>"></se-empty-state><% end %>
+  <% @pulls = @cache.current_pulls.reject { |pull| pull['number'] == @project.pull_request_number }; @more = @pulls.size > @page * 10; @pulls = @pulls.slice((@page - 1) * 10, 10) || [] %>
+  <%= render 'incoming' %>
+<% end %>

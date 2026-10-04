@@ -34,6 +34,9 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     api = Object.new
     api.define_singleton_method(:repo_path) { '/repos/example/test' }
     api.define_singleton_method(:escape) { |value| value }
+    api.define_singleton_method(:incoming) do |_page, include_outgoing:|
+      [[{'number'=>12, 'title'=>'Translation update', 'base'=>{'sha'=>'base'}, 'head'=>{'sha'=>'head'}}], false]
+    end
     api.define_singleton_method(:request) do |_method, path|
       if path.include?('/compare/')
         {'merge_base_commit'=>{'sha'=>'ancestor'}}
@@ -47,7 +50,16 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
       [{}, {'en'=>"en:\n  label: #{ref == 'ancestor' ? 'Before' : 'After'}\n"}]
     end
     revision = @project.revision
+    cache = CatalogPullRequestCache.for(@project)
+    cache.update!(connection: cache.connection_key, refresh_token: 'test', requested_at: Time.current)
     CatalogGithub.stub(:new, api) do
+      CatalogPullRequestRefreshJob.perform_now(@project.id, 'test')
+    end
+    CatalogGithub.stub(:new, ->(*) { raise 'Page rendering must not call GitHub' }) do
+      get pending_project_path(@project)
+      assert_response :success
+      assert_includes response.body, 'No outgoing changes'
+      assert_select 'se-collection', count: 1
       get pending_diff_project_path(@project, pull: 12)
       assert_response :success
       assert_select 'se-diff[before="Before"][after="After"]'

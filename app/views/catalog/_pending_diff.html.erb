@@ -2,7 +2,8 @@
 <% else %>
   <% if @changes.empty? %><se-empty-state title="No translation changes" subtitle="Descriptions and review status are local metadata and are not sent to GitHub."></se-empty-state><% end %>
   <% @changes.each do |change| %>
-    <se-diff title="<%= change[:path] %> · <%= change[:file] %>" before-label="GitHub base" after-label="Proposed" before="<%= change[:before] %>" after="<%= change[:after] %>" language="text"></se-diff>
+    <% if change[:warning] %><se-text><%= change[:warning] %></se-text><% end %>
+    <se-diff title="<%= change[:path] %> · <%= change[:file] %>" before-label="GitHub base" after-label="Proposed" before="<%= change[:before] %>" after="<%= change[:after] %>" language="<%= change[:language] || 'text' %>"></se-diff>
   <% end %>
   <% if @total > 50 %><div class="app-row-actions">
     <se-text muted>Page <%= @page %> of <%= (@total / 50.0).ceil %> · <%= @total %> changes</se-text>
