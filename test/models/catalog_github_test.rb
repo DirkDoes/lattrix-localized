@@ -255,6 +255,36 @@ class CatalogGithubTest < ActiveSupport::TestCase
     assert_equal({"en"=>{"name"=>"Name", "enabled"=>true, "amount"=>7}}, YAML.safe_load(files["en"]))
   end
 
+  test "mixed plural groups retain ordinary siblings and do not treat unrelated other keys as plurals" do
+    @project.update!(pluralization_mode: "simple")
+    files = {
+      "en" => {"en" => {"players" => {"none" => "No players", "one" => "One player", "other" => "%{count} players", "extra" => {"note" => "A note"}}, "placement" => {"first" => "First", "other" => "Other"}}},
+      "nl" => {"nl" => {"players" => {"none" => "Geen spelers", "one" => "Een speler", "other" => "%{count} spelers", "extra" => {"note" => "Een notitie"}}, "placement" => {"first" => "Eerste", "other" => "Anders"}}}
+    }
+    sync(files)
+    state = CatalogState.new(@project)
+    assert state.plural?(key("players"))
+    assert state.plural_parent(key("players.one"))
+    assert_nil state.plural_parent(key("players.none"))
+    assert state.translatable?(key("players.none"), "nl")
+    assert_equal "branch", key("players.extra").payload.kind
+    assert_equal "branch", key("placement").payload.kind
+    assert_empty state.invalid_groups
+    assert_equal "Geen spelers", state.translation(key("players.none").id, "nl").payload.value
+    exported = CatalogExport.new(@project).files
+    assert_equal files.fetch("nl"), YAML.safe_load(exported.fetch("nl"))
+
+    edit { |writer| writer.translate(key("players.none").id, "nl", "Niemand") }
+    assert_equal "Niemand", CatalogExport.new(@project).values.dig("nl", "players.none")
+    edit { |writer| writer.translate(key("players.one").id, "nl", "") }
+    state = CatalogState.new(@project)
+    assert_includes state.plural_group_errors(key("players"), "nl"), "Missing plural forms: one"
+    assert_equal "Niemand", CatalogExport.new(@project).values.dig("nl", "players.none")
+    assert_nil CatalogExport.new(@project).values.dig("nl", "players.other")
+    edit { |writer| writer.change_key(key("players").id, name: "players", kind: "branch") }
+    assert_equal "Een notitie", CatalogExport.new(@project).values.dig("nl", "players.extra.note")
+  end
+
   test "other only source languages infer plural nodes" do
     @project.update!(source_locale: "ja")
     sync("ja"=>{"ja"=>{"items"=>{"other"=>"%{count} items"}}})

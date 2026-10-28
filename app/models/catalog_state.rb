@@ -57,7 +57,7 @@ class CatalogState
   end
   def plural_parent(key)
     parent = items[key.parent_id]
-    parent if parent&.key? && plural?(parent)
+    parent if parent&.key? && plural?(parent) && CatalogKey::CATEGORIES.include?(key.payload.name)
   end
   def plural?(key) = project.pluralization? && key.payload.kind == "plural"
   def check?(name) = !@pr_check || project.pr_check?(name)
@@ -94,7 +94,7 @@ class CatalogState
   def warnings(key, locale)
     parent = plural_parent(key)
     return [] unless parent && (value = translation(key.id, locale))
-    expected = children(parent.id).select(&:key?).flat_map { |form| placeholders(translation(form.id, project.source_locale)&.payload&.value.to_s).to_a }.to_set - ["count"]
+    expected = children(parent.id).select { |form| form.key? && plural_parent(form) }.flat_map { |form| placeholders(translation(form.id, project.source_locale)&.payload&.value.to_s).to_a }.to_set - ["count"]
     actual = placeholders(value.payload.value) - ["count"]
     expected == actual ? [] : ["Source placeholders differ: #{expected.to_a.join(', ')}"]
   end
@@ -107,7 +107,7 @@ class CatalogState
       errors << "#{path(key)}: scalar cannot contain keys" if key.payload.kind == "scalar" && descendants.any?(&:key?)
       errors << "#{path(key)}: branches cannot contain translations" if key.payload.kind != "scalar" && descendants.any?(&:text?)
       if plural?(key)
-        errors << "#{path(key)}: invalid plural child" if descendants.any? { |i| !i.key? || i.payload.kind != "scalar" || !CatalogKey::CATEGORIES.include?(i.payload.name) }
+        errors << "#{path(key)}: invalid plural child" if descendants.any? { |i| !i.key? || (CatalogKey::CATEGORIES.include?(i.payload.name) && i.payload.kind != "scalar") }
       end
     end
     texts.group_by { |i| [i.parent_id, i.payload.locale] }.each { |_, group| errors << "Duplicate locale translation" if group.size > 1 }
@@ -116,7 +116,7 @@ class CatalogState
 
   def plural_group_errors(key, locale)
     return [] unless plural?(key) && check?(:plural_completeness)
-    forms = children(key.id).select(&:key?).index_by { |item| item.payload.name }
+    forms = children(key.id).select { |item| item.key? && plural_parent(item) }.index_by { |item| item.payload.name }
     return [] unless forms.values.any? { |form| translation(form.id, locale) }
     missing = project.plural_categories(locale).reject { |name| forms[name] && translation(forms[name].id, locale) }
     missing.any? ? ["Missing plural forms: #{missing.join(', ')}"] : []
@@ -126,7 +126,7 @@ class CatalogState
     errors = {}
     keys.each do |key|
       if plural?(key)
-        forms = children(key.id).select(&:key?).index_by { |i| i.payload.name }
+        forms = children(key.id).select { |i| i.key? && plural_parent(i) }.index_by { |i| i.payload.name }
         locales.each do |locale|
           next unless forms.values.any? { |form| translation(form.id, locale) }
           messages = plural_group_errors(key, locale)

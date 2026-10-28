@@ -41,7 +41,7 @@ class CatalogReconcile
       plural_paths = paths.select do |path|
         next false unless @project.pluralization?
         children = source.keys.filter_map { |candidate| candidate.delete_prefix("#{path}.") if candidate.start_with?("#{path}.") }
-        children.include?("other") && children.all? { |name| CatalogKey::CATEGORIES.include?(name) }
+        children.include?("other") && (children.all? { |name| CatalogKey::CATEGORIES.include?(name) } || children.include?("one"))
       end.to_set
       plural_paths.each do |path|
         @project.languages.active.flat_map { |l| @project.plural_categories(l.identifier) }.uniq.each { |name| paths << "#{path}.#{name}" }
@@ -49,7 +49,7 @@ class CatalogReconcile
       desired.items.each_value { |item| item.deleted = true }
       paths.uniq.sort_by { |path| [path.count("."), path] }.each do |path|
         parts = path.split("."); name = parts.pop
-        kind = plural_paths.include?(path) ? "plural" : (source.key?(path) || plural_paths.include?(parts.join(".")) ? "scalar" : "branch")
+        kind = plural_paths.include?(path) ? "plural" : (source.key?(path) || (plural_paths.include?(parts.join(".")) && CatalogKey::CATEGORIES.include?(name)) ? "scalar" : "branch")
         previous = by_path[path]
         payload = previous&.payload
         file_group = parts.empty? ? @yaml.root_groups.fetch(name, "") : ""

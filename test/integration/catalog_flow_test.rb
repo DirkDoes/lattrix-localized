@@ -296,6 +296,20 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_includes response.parsed_body['error'], 'not used by English'
   end
+  test "plural groups show and edit ordinary sibling keys" do
+    @project.update!(pluralization_mode: "simple")
+    files = {"en" => {"en" => {"players" => {"none" => "No players", "one" => "One player", "other" => "%{count} players"}}}, "nl" => {"nl" => {"players" => {"none" => "Geen spelers", "one" => "Een speler", "other" => "%{count} spelers"}}}}
+    CatalogReconcile.new(@project, files.transform_values { |value| YAML.dump(value) }, sha: "mixed").apply!
+    state = CatalogState.new(@project)
+    none = state.keys.find { |item| state.path(item) == "players.none" }
+    get translations_project_path(@project), params: {locale: "nl"}
+    assert_response :success
+    assert_select ".catalog-key se-code", text: "none"
+    assert_select "[data-catalog-cell-node-value='#{none.id}'][data-catalog-cell-locale-value='nl']"
+    change(operation: "translate", inline: "1", node_id: none.id, locale: "nl", value: "Niemand")
+    assert_response :success
+  end
+
   test "inline editing returns safe text, refreshed status and revision without navigation" do
     change(operation: "add", path: "account.email")
     key = @project.catalog_nodes.where(payload_type: "CatalogKey", deleted: false).detect { |node| node.payload.name == "email" }

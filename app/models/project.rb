@@ -88,7 +88,7 @@ class Project < ApplicationRecord
           end
         end
         state.keys.select { |key| key.payload.kind == "plural" }.each do |key|
-          forms = state.children(key.id).select(&:key?)
+          forms = state.children(key.id).select { |form| form.key? && state.plural_parent(form) }
           next unless forms.any? { |form| state.children(form.id).any?(&:text?) }
           missing = plural_categories(locale).reject { |name| forms.any? { |form| form.payload.name == name && state.translation(form.id, locale) } }
           errors << "#{state.path(key)} needs source plural forms: #{missing.join(', ')}" if missing.any?

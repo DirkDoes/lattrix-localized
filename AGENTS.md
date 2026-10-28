@@ -97,3 +97,5 @@ The role of this file is to describe common mistakes and confusion points that a
 - Download forms need `data-download`: normal attachment responses do not trigger a navigation/submit-end lifecycle. The shared handler fetches the file, resets loading on success/failure and closes the modal only after receiving the file.
 
 - Account-security forms can redirect between the settings content frame and full-page authentication screens. Keep these forms data-turbo="false". Deletion initiation must never implicitly issue an email code; require the explicit identity-verification action first.
+
+- Imported plural groups may contain ordinary sibling keys such as none. Only category children are plural forms; keep extra keys independently editable, validated and exportable. Infer mixed groups only when both one and other exist to avoid treating unrelated other keys as plurals.

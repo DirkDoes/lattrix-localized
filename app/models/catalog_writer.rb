@@ -85,7 +85,7 @@ class CatalogWriter
     name = item.payload.name if path
     raise ArgumentError, "Move this scalar into a child first" if item.payload.kind == "scalar" && kind != "scalar"
     if @state.plural?(item) && kind == "branch"
-      @state.children(item.id).select(&:key?).each { |child| remove(child.id) if @state.children(child.id).none?(&:text?) }
+      @state.children(item.id).select { |child| child.key? && @state.plural_parent(child) }.each { |child| remove(child.id) if @state.children(child.id).none?(&:text?) }
     end
     raise ArgumentError, "File groups can only be assigned to root keys" if item.parent_id && file_group.present?
     item.payload = CatalogKey.create!(name: name, kind: kind, description: description, file_group: item.parent_id ? "" : (file_group || item.payload.file_group))

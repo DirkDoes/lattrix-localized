@@ -67,7 +67,7 @@ Update this data as a reviewed dependency upgrade, not a runtime network lookup.
 
 The source locale defines structure. Projects choose Off, Simple, or Unicode CLDR
 pluralization. Existing projects migrate to CLDR; new projects default to Simple.
-Simple requires one/other in every language. Off interprets stored plural nodes
+Simple requires one/other in every language. Imported groups with one and other may also contain ordinary keys such as none; only recognized category keys participate in plural validation. An other-only group is inferred as plural when all its children are plural categories. Off interprets stored plural nodes
 as ordinary branches without deleting their translations; count has no special
 validation and is suggested on keys named other. Mode changes retain extra forms
 and refresh required category nodes. Switching back restores the interpretation
