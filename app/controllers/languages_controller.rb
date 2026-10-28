@@ -4,6 +4,32 @@ class LanguagesController < ApplicationController
   def archive = change_language(:archive)
   def restore = change_language(:restore)
 
+  def approve_all
+    project = policy_scope(Project).find_by!(slug: params[:project_id])
+    project.with_lock do
+      language = project.languages.find(params[:id])
+      authorize language, :approve_all?
+      raise ArgumentError, "Finish or repair synchronization first" unless project.writable?
+      raise ArgumentError, "Choose an active target language" unless language.active? && language.identifier != project.source_locale
+      raise ActiveRecord::StaleObjectError.new(project, "approve translations") unless params[:revision].to_s == project.revision.to_s
+
+      state = CatalogState.new(project, pending: true)
+      reviews = state.texts.filter_map do |value|
+        next unless value.payload.locale == language.identifier
+        key = state.items.fetch(value.parent_id)
+        next unless state.translatable?(key, language.identifier)
+        {catalog_node_id: value.id, actor_id: current_user.id, source_digest: state.source_digest(key), translation_payload_id: value.payload.id}
+      end
+      CatalogReview.upsert_all(reviews, unique_by: :catalog_node_id) if reviews.any?
+      flash[:notice] = "All existing #{language.name} translations marked as reviewed."
+    end
+    render json: {location: settings_project_path(project)}
+  rescue ActiveRecord::StaleObjectError
+    render json: {error: "The catalog changed. Reload settings before approving translations."}, status: :conflict
+  rescue ArgumentError => error
+    render json: {error: error.message}, status: :unprocessable_entity
+  end
+
   private
   def change_language(operation)
     project = policy_scope(Project).find_by!(slug: params[:project_id])

@@ -23,6 +23,7 @@ Rails.application.routes.draw do
     post :connect, on: :member, to: "catalog#connect"
     post :source_locale, on: :member, to: "catalog#source_locale"
     resources :languages, only: [:create] do
+      post :approve_all, on: :member
       patch :archive, on: :member
       patch :restore, on: :member
     end

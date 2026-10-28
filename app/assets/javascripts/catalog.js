@@ -116,6 +116,10 @@ document.addEventListener("change", async event => {
 });
 
 document.addEventListener("select", event => {
+  if (event.target.matches("se-menu[data-language-actions]") && !event.detail.disabled) {
+    if (event.detail.modal) document.getElementById(event.detail.modal)?.open();
+    if (event.detail.form) document.getElementById(event.detail.form)?.requestSubmit();
+  }
   if (event.target.matches("se-menu[data-catalog-history-menu]") && event.detail.modal) {
     const modal = document.getElementById(event.detail.modal);
     if (event.detail.id === "add-child") {

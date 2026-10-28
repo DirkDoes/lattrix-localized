@@ -80,6 +80,13 @@ optional in zero/one/two, and invalid for scalar translations. Ordinary
 match; plural ordinary-placeholder differences are warnings. Reviews record
 both source and translation revisions so stale reviews cannot be submitted.
 
+Project settings managers can approve all existing translations for an active
+target language from its three-dot menu in Settings. Bulk approval records the
+current source and translation payloads without changing strings or accepting
+GitHub drafts. Missing translations, conflicts and validation issues remain;
+later source edits require review again. A stale settings page must be reloaded
+before approval.
+
 ## GitHub App setup
 
 Login OAuth and repository integration are separate. An application owner can

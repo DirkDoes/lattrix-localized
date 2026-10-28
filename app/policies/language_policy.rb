@@ -3,5 +3,6 @@ class LanguagePolicy < ApplicationPolicy
   def update? = create?
   def archive? = update?
   def restore? = update?
+  def approve_all? = update?
   def destroy? = update?
 end

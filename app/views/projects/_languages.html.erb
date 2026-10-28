@@ -3,7 +3,17 @@
   <se-list-header><span>Language</span><span>Identifier</span><span>Status</span><span>Actions</span></se-list-header>
   <% @project.languages.order(:name).each do |language| %>
     <se-list-row><span><%= language.name %><% if language.identifier == @project.source_locale %> <se-badge text="Source" tone="brand"></se-badge><% end %></span><span><se-code><%= language.identifier %></se-code></span><span><se-badge text="<%= language.active? ? 'Active' : 'Archived' %>" tone="<%= language.active? ? 'success' : 'warning' %>"></se-badge></span>
-      <div><% unless @project.linked? || language.identifier == @project.source_locale %><%= catalog_form(language.active? ? archive_project_language_path(@project, language) : restore_project_language_path(@project, language), method: :patch) do %><se-button type="submit" variant="secondary" icon="<%= language.active? ? 'archive' : 'rotate-ccw' %>" aria-label="<%= language.active? ? 'Archive language' : 'Restore language' %>"></se-button><% end %><% end %></div>
+      <div>
+        <% actions = [] %>
+        <% if policy(language).approve_all? && language.active? && language.identifier != @project.source_locale %>
+          <% actions << {id: 'approve', label: 'Approve all translations', icon: 'check', modal: "language-approve-#{language.id}", disabled: !@project.writable?} %>
+        <% end %>
+        <% if policy(language).update? && !@project.linked? && language.identifier != @project.source_locale %>
+          <% actions << {id: 'lifecycle', label: language.active? ? 'Archive language' : 'Restore language', icon: language.active? ? 'archive' : 'rotate-ccw', form: "language-lifecycle-#{language.id}", disabled: !@project.writable?} %>
+          <%= catalog_form(language.active? ? archive_project_language_path(@project, language) : restore_project_language_path(@project, language), method: :patch, id: "language-lifecycle-#{language.id}", hidden: true) do %><% end %>
+        <% end %>
+        <% if actions.any? %><se-menu icon-only variant="mini" label="Actions for <%= language.name %>" data-language-actions options="<%= actions.to_json %>"></se-menu><% end %>
+      </div>
     </se-list-row>
   <% end %>
 </se-collection>
@@ -12,6 +22,16 @@
   <se-modal id="catalog-language" title="Support another language" size="medium"><%= catalog_form project_languages_path(@project) do %><se-select label="Language" name="identifier" searchable options="<%= CatalogLocale.options.to_json %>"></se-select><% end %><%= render 'shared/modal_footer', confirm: 'Add language' %></se-modal>
 <% end %>
 </div></se-card>
+<% @project.languages.active.order(:name).each do |language| %>
+  <% next unless policy(language).approve_all? && language.identifier != @project.source_locale %>
+  <se-modal id="language-approve-<%= language.id %>" title="Approve all <%= language.name %> translations?" size="medium">
+    <%= catalog_form approve_all_project_language_path(@project, language) do %>
+      <%= hidden_field_tag :revision, @project.revision %>
+      <se-text>Mark all existing <%= language.name %> translations as reviewed against the current source. Missing translations, conflicts and validation issues will still need attention.</se-text>
+    <% end %>
+    <%= render 'shared/modal_footer', confirm: 'Approve all translations' %>
+  </se-modal>
+<% end %>
 <se-modal id="catalog-source-language" title="Change source language" size="medium">
   <%= catalog_form source_locale_project_path(@project), class: 'app-form' do %>
     <%= hidden_field_tag :revision, @project.revision %>
