@@ -23,6 +23,9 @@ class Users::EmailCodesController < ApplicationController
     if security_verified?
       return finish_security_check
     end
+    if session.delete(:security_next) == "delete"
+      return redirect_to edit_settings_user_path(current_user), alert: "Verify your identity in Sign-in methods before deleting your account.", status: :see_other
+    end
     issue(email: current_user.email, purpose: "security")
   end
 

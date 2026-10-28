@@ -44,7 +44,7 @@ class OauthFlowsTest < ActionDispatch::IntegrationTest
       assert_empty user.encrypted_password
       get edit_settings_user_path(user)
       assert_select "se-text", text: "Email-code sign-in is enabled."
-      assert_select "se-button[text='Verify identity']"
+      assert_select "se-button[text='Email me a verification code']"
       sign_out user
       assert_no_difference "User.count" do
         provider_auth(provider, email: "changed-#{provider}@example.com")

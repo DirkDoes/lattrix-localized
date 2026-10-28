@@ -31,7 +31,7 @@ class EmailChangesTest < ActionDispatch::IntegrationTest
 
   test "card verification enables email editing without automatically opening the modal" do
     get edit_settings_user_path(@user)
-    assert_select "header.app-method-heading se-button[text='Verify identity']"
+    assert_select "header.app-method-heading se-button[text='Email me a verification code']"
     assert_select "se-button[data-open-email-modal][disabled]"
     post users_security_verification_path
     assert_redirected_to users_email_code_path

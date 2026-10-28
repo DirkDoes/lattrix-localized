@@ -12,8 +12,9 @@ class AccountDeletionTest < ActionDispatch::IntegrationTest
   end
 
   def confirm_identity
-    post users_security_verification_path, params: { next: "delete" }
+    post users_security_verification_path
     patch users_email_code_path, params: { code: email_code_from_last_delivery }
+    post users_security_verification_path, params: { next: "delete" }
     assert_redirected_to edit_settings_user_path(@user, account_action: "delete")
   end
 
@@ -37,6 +38,26 @@ class AccountDeletionTest < ActionDispatch::IntegrationTest
     assert_not EmailChallenge.exists?(challenge.id)
     get projects_path
     assert_redirected_to new_user_session_path
+  end
+
+  test "opening settings and starting deletion never implicitly sends a code" do
+    assert_no_difference "ActionMailer::Base.deliveries.size" do
+      get edit_settings_user_path(@user)
+      assert_select "se-button[data-open-delete-modal][disabled]"
+      assert_select "form[action=?][data-turbo=false]", users_security_verification_path
+      post users_security_verification_path, params: { next: "delete" }, headers: { "Turbo-Frame" => "app-content" }
+    end
+    assert_redirected_to edit_settings_user_path(@user)
+    follow_redirect!
+    assert_select "turbo-frame#app-content"
+  end
+
+  test "account security forms navigate outside the content frame" do
+    confirm_identity
+    follow_redirect!
+    [users_security_verification_path, user_registration_path, users_change_email_path, authentication_methods_path].each do |path|
+      assert_select "form[action=?][data-turbo=false]", path
+    end
   end
 
   test "expired proof cannot delete an account" do
