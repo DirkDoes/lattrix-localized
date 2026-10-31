@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     get :members, on: :member
 
     get :translations, on: :member, to: "catalog#translations"
+    get :editor, on: :member, to: "catalog#editor"
     get :pending, on: :member, to: "catalog#pending"
     get :incoming, on: :member, to: "catalog#incoming"
     get :pending_diff, on: :member, to: "catalog#pending_diff"

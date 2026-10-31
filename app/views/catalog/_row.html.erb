@@ -1,0 +1,10 @@
+<% parent_plural = @state.plural_parent(key) %>
+    <se-list-row data-catalog-key="<%= key.id %>" class="<%= 'catalog-scalar-row' if key.payload.kind == 'scalar' %>" guides level="<%= @flat_results ? 0 : @state.path(key).count('.') %>" <%= 'collapsible'.html_safe if key.payload.kind != 'scalar' && !@flat_results %> <%= 'variant="secondary"'.html_safe if key.payload.kind != 'scalar' %>>
+      <div class="catalog-key"><se-code><%= @flat_results ? @state.path(key) : key.payload.name %></se-code><% if @state.plural?(key) %><se-tooltip><se-badge data-se-region="trigger" tabindex="0" tone="important" text="Plural"></se-badge><%= @project.pluralization_mode == 'simple' ? 'Uses one and other for every language.' : 'Uses Unicode CLDR cardinal plural rules. Each language has its own required plural forms.' %></se-tooltip><% end %>
+    <% if key.parent_id.nil? && key.payload.file_group.present? %><se-tooltip><se-badge data-se-region="trigger" tabindex="0" tone="info" text="<%= key.payload.file_group %>"></se-badge>File group: this key and its descendants export to <%= key.payload.file_group %>.&lt;language&gt;.yml.</se-tooltip><% end %>
+    <% if @drafts[key.id]&.conflict? %><se-badge tone="error" text="Conflict"></se-badge><% end %>
+    <% if catalog_manage_keys? && @project.writable? %><se-menu variant="mini" icon-only label="Key actions" data-catalog-history-menu options="<%= ([{id: 'edit', label: 'Edit key', icon: 'pencil', modal: "catalog-key-#{key.id}", editor: editor_project_path(@project, node_id: key.id, kind: 'key')}] + (key.payload.kind != 'scalar' ? [{id: 'add-child', label: 'Add child key', icon: 'plus', modal: 'catalog-add-key', path: "#{@state.path(key)}."}] : []) + [{id: 'remove', label: 'Remove key', icon: 'trash', modal: "catalog-delete-#{key.id}", editor: editor_project_path(@project, node_id: key.id, kind: 'key')}]).to_json %>"></se-menu><% end %>
+      </div>
+      <%= render 'cell', key: key, locale: @project.source_locale, target: false %>
+      <%= render 'cell', key: key, locale: @locale, target: true %>
+    </se-list-row>

@@ -59,10 +59,7 @@ export function registerCatalogCell(application, Controller) {
               if (region.dataset.catalogStatus === update.id) region.innerHTML = update.html;
             });
           }
-          for (const update of result.modals || []) {
-            const modal = document.getElementById(update.id);
-            if (modal && !modal.hasAttribute("open")) modal.outerHTML = update.html;
-          }
+
         } catch (error) {
           this.statusTarget.innerHTML = '<span class="translation-status-label">Not saved</span>';
           input.setAttribute("aria-invalid", "true");

@@ -1,24 +1,34 @@
 class CatalogController < ApplicationController
+  include CatalogReading
   layout "settings"
   allow_unauthenticated_access only: [:translations, :export, :sync_status]
   before_action :set_project
   after_action :verify_authorized
 
   def translations
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     authorize @project, :show?
-    @state = CatalogState.new(@project, pending: current_user && policy(@project).members?)
     @languages = @project.languages.active.order(:name).to_a
     @locale = params[:locale].presence_in(@languages.map(&:identifier)) || (@languages.map(&:identifier) - [@project.source_locale]).first || @project.source_locale
     @query = params[:q].to_s.first(200)
     @status = params[:status].presence_in(%w[all incomplete review]) || "all"
     @kind = params[:kind].presence_in(%w[all scalar plural]) || "all"
     @sort = params[:sort].presence_in(%w[path oldest newest]) || "path"
+    @catalog_etag = catalog_read_etag
+    if request.format.json?
+      response.set_header("ETag", @catalog_etag)
+      response.cache_control.replace(private: true, max_age: 0, must_revalidate: true)
+      return head :not_modified if request.headers["If-None-Match"].to_s.split(/,\s*/).include?(@catalog_etag)
+    end
+    # Cross-language search and edit-date sorting retain their existing catalog-wide semantics.
+    locales = @query.present? || @sort != "path" ? nil : [@project.source_locale, @locale].uniq
+    @state = CatalogState.new(@project, pending: current_user && policy(@project).members?, locales: locales)
     @file_group_options = [{id: ":default", label: "Default"}] + @state.keys.select { |key| key.parent_id.nil? }.map { |key| key.payload.file_group }.reject(&:blank?).uniq.sort.map { |group| {id: group, label: group} }
     @file_groups = Array(params[:file_groups]) & @file_group_options.map { |option| option[:id] }
     @filters_active = @query.present? || @status != "all" || @kind != "all" || @sort != "path" || Array(params[:file_groups]).any?
     @flat_results = @query.present? || @status != "all" || @kind != "all" || @sort != "path"
     @reviews = CatalogReview.where(catalog_node_id: @state.texts.map(&:id)).index_by(&:catalog_node_id)
-    @invalid = @state.invalid_groups
+    @invalid = %w[incomplete review].include?(@status) ? @state.invalid_groups(locales: [@locale]) : {}
     @drafts = current_user && policy(@project).pending? ? @project.catalog_drafts.index_by(&:catalog_node_id) : {}
     @all_keys = @state.keys.sort_by do |key|
       parts = @state.path(key).split(".")
@@ -52,15 +62,44 @@ class CatalogController < ApplicationController
     end
     @page = [params[:page].to_i, 1].max
     @keys = @all_keys.slice((@page - 1) * 40, 40) || []
-    if request.format.json?
+    if request.format.json? && params[:batch] != "1"
       # Keep the loaded range, including newly applicable plural forms.
       through = @all_keys.index { |key| key.id.to_s == params[:through].to_s }
       @page = [[@page, (through.to_i / 40) + 1].max, [(@all_keys.size / 40.0).ceil, 1].max].min
       @keys = @all_keys.first(@page * 40)
-      render json: {locale: @locale, revision: @project.revision,
-        rows: render_to_string(partial: "rows", formats: [:html]),
-        modals: render_to_string(partial: "row_modals", formats: [:html]),
-        more: render_to_string(partial: "more", formats: [:html])}
+    end
+    @known_keys = (params[:known].is_a?(String) ? params[:known].split(',') : Array(params[:known]).map(&:to_s)).to_set if request.format.json?
+    @catalog_projection_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000
+    render_catalog_read do
+      if request.format.json?
+        render json: {locale: @locale, revision: @project.revision,
+          rows: render_to_string(partial: "rows", formats: [:html]),
+          more: render_to_string(partial: "more", formats: [:html])}
+      else
+        render :translations
+      end
+    end
+  end
+
+  def editor
+    authorize @project, :show?
+    return head :conflict unless @project.writable?
+    if params[:kind] == "key"
+      authorize @project, :update?
+      locales = []
+    elsif params[:kind] == "text"
+      raise Pundit::NotAuthorizedError unless policy(@project).edit_locale?(params[:locale])
+      locales = [@project.source_locale, params[:locale]].uniq
+    else
+      return head :not_found
+    end
+    @state = CatalogState.new(@project, pending: current_user && policy(@project).members?, locales: locales)
+    key = @state.items[params[:node_id].to_i]
+    return head :not_found unless key&.key? && @state.active?(key)
+    return head :not_found if params[:kind] == "text" && !@state.translatable?(key, params[:locale])
+    response.set_header("Cache-Control", "no-store")
+    render_catalog_read do
+      render partial: params[:kind] == "key" ? "key_modal" : "translation_modal", locals: {key: key, locale: params[:locale]}
     end
   end
 
@@ -167,10 +206,7 @@ class CatalogController < ApplicationController
       statuses = keys.product(@project.languages.active.pluck(:identifier)).map do |item, locale|
         {id: "#{item.id}-#{locale}", html: render_to_string(partial: "cell_status", formats: [:html], locals: {key: item, locale: locale})}
       end
-      modals = @project.languages.active.pluck(:identifier).select { |locale| @state.translatable?(key, locale) && policy(@project).edit_locale?(locale) }.map do |locale|
-        {id: "catalog-text-#{key.id}-#{locale}", html: render_to_string(partial: "translation_modal", formats: [:html], locals: {key: key, locale: locale})}
-      end
-      render json: {revision: @project.reload.revision, value: value, html: helpers.catalog_text(value), statuses: statuses, modals: modals}
+      render json: {revision: @project.reload.revision, value: value, html: helpers.catalog_text(value), statuses: statuses}
     else
       render json: {location: translations_project_path(@project, locale: params[:locale])}
     end

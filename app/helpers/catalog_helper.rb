@@ -1,4 +1,14 @@
 module CatalogHelper
+  def catalog_manage_keys?
+    @catalog_permissions ||= {manage: policy(@project).update?, locales: {}}
+    @catalog_permissions[:manage]
+  end
+
+  def catalog_edit_locale?(locale)
+    catalog_manage_keys?
+    @catalog_permissions[:locales].fetch(locale) { @catalog_permissions[:locales][locale] = policy(@project).edit_locale?(locale) }
+  end
+
   def catalog_text(value)
     return "—" if value.nil?
     safe_join(value.split(/((?<!%)%\{[^}]+\})/).map do |part|

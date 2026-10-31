@@ -112,11 +112,14 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     change(operation: 'add', path: 'account.name')
     key = CatalogState.new(@project).keys.find { |item| item.payload.name == 'name' }
     get translations_project_path(@project)
+    assert_select "#catalog-key-#{key.id}", count: 0
+    menus = css_select('se-menu[data-catalog-history-menu]').flat_map { |menu| JSON.parse(menu['options']) }
+    assert menus.any? { |option| option['id'] == 'remove' && option['modal'] == "catalog-delete-#{key.id}" }
+    get editor_project_path(@project), params: {kind: 'key', node_id: key.id}
+    assert_response :success
     assert_select "#catalog-key-#{key.id} se-input[label='Key'][name='path'][value='account.name']"
     assert_select "#catalog-key-#{key.id} se-button[text='Remove']", count: 0
     assert_select 'se-modal[id^="catalog-move-"]', count: 0
-    menus = css_select('se-menu[data-catalog-history-menu]').flat_map { |menu| JSON.parse(menu['options']) }
-    assert menus.any? { |option| option['id'] == 'remove' && option['modal'] == "catalog-delete-#{key.id}" }
     change(operation: 'update', node_id: key.id, path: 'profile.full_name', kind: 'scalar', description: 'Name')
     assert_response :success
     state = CatalogState.new(@project)

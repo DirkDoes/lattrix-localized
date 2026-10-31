@@ -11,11 +11,17 @@ class CatalogState
     @project = project
     @pr_check = pr_check
     @locales = locales || project.languages.active.pluck(:identifier)
-    @items = items || project.catalog_nodes.includes(:payload).to_h { |n| [n.id, Item.new(id: n.id, parent_id: n.parent_id, payload: n.payload, deleted: n.deleted)] }
+    nodes = project.catalog_nodes
+    if locales
+      nodes = nodes.where(payload_type: "CatalogKey").or(nodes.where(payload_type: "CatalogText", payload_id: CatalogText.where(locale: locales).select(:id)))
+    end
+    @items = items || nodes.includes(:payload).to_h { |n| [n.id, Item.new(id: n.id, parent_id: n.parent_id, payload: n.payload, deleted: n.deleted)] }
     if at
       project.catalog_events.where("catalog_events.id > ?", at).reorder(id: :desc).each { |event| undo(event) }
     elsif pending
-      project.catalog_drafts.where(conflict: false).includes(:payload).each { |d| @items[d.catalog_node_id] = Item.new(id: d.catalog_node_id, parent_id: d.parent_id, payload: d.payload, deleted: d.deleted) }
+      drafts = project.catalog_drafts.where(conflict: false)
+      drafts = drafts.where(catalog_node_id: nodes.select(:id)) if locales
+      drafts.includes(:payload).each { |d| @items[d.catalog_node_id] = Item.new(id: d.catalog_node_id, parent_id: d.parent_id, payload: d.payload, deleted: d.deleted) }
     end
   end
 
@@ -36,19 +42,22 @@ class CatalogState
   end
 
   def changed!
-    @keys = @texts = @children = @translations = nil
+    @keys = @texts = @children = @translations = @paths = nil
   end
   def keys = @keys ||= items.values.select { |i| i.key? && active?(i) }
   def texts = @texts ||= items.values.select { |i| i.text? && active?(i) }
   def children(id) = (@children ||= items.values.group_by(&:parent_id)).fetch(id, []).select { |i| active?(i) }
   def path(item)
+    @paths ||= {}
+    return @paths[item.id] if @paths.key?(item.id)
+    id = item.id
     parts = []; seen = Set.new
     while item
       raise ArgumentError, "Key cycle" unless seen.add?(item.id)
       parts.unshift(item.payload.name) if item.key?
       item = items[item.parent_id]
     end
-    parts.join(".")
+    @paths[id] = parts.join(".")
   end
   def translation(key_id, locale) = (@translations ||= texts.index_by { |i| [i.parent_id, i.payload.locale] })[[key_id, locale]]
   def file_group(item)
@@ -122,7 +131,7 @@ class CatalogState
     missing.any? ? ["Missing plural forms: #{missing.join(', ')}"] : []
   end
 
-  def invalid_groups
+  def invalid_groups(locales: self.locales)
     errors = {}
     keys.each do |key|
       if plural?(key)

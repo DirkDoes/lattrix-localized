@@ -12,7 +12,7 @@ document.addEventListener("click", (event) => {
 
   const modalTrigger = event.target.closest("[data-open-modal]");
 
-  if (modalTrigger) {
+  if (modalTrigger && !modalTrigger.hasAttribute("data-catalog-editor")) {
     document.getElementById(modalTrigger.dataset.openModal).open();
   }
 

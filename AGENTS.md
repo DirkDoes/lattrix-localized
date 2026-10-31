@@ -99,3 +99,9 @@ The role of this file is to describe common mistakes and confusion points that a
 - Account-security forms can redirect between the settings content frame and full-page authentication screens. Keep these forms data-turbo="false". Deletion initiation must never implicitly issue an email code; require the explicit identity-verification action first.
 
 - Imported plural groups may contain ordinary sibling keys such as none. Only category children are plural forms; keep extra keys independently editable, validated and exportable. Infer mixed groups only when both one and other exist to avoid treating unrelated other keys as plurals.
+
+- Catalog revisions do not change for review approvals or membership/assignment changes. Read-cache validators must also cover review timestamps, language/settings state and the current user's permissions; a revision-only cache can restore stale review badges or editing controls.
+
+- The deferred catalog_shape constraint runs a project-wide hierarchy/uniqueness check per changed node. Large synthetic imports can spend minutes committing. Keep benchmark fixtures modest; do not disable these integrity safeguards to speed up tests.
+
+- With the Windows bind mount, the running web process can retain stale Propshaft/importmap fingerprints after JavaScript module changes. If browser behavior disagrees with the edited source, restart `web` and reload before debugging the component API.

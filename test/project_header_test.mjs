@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../app/assets/javascripts/app_forms.js', import.meta.url), 'utf8');
 let Header;
-vm.runInNewContext(source.slice(source.indexOf('application.register("project-header"'), source.indexOf('application.register("catalog-more"')), {
+vm.runInNewContext(source.slice(source.indexOf('application.register("project-header"'), source.indexOf('application.register("slug-mirror"')), {
   Controller: class {},
   application: {register: (_, controller) => Header = controller},
   getComputedStyle: () => ({paddingTop: '48px'}),

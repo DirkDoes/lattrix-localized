@@ -6,9 +6,9 @@
   <% needs_review = value && locale != @project.source_locale && (!review || review.source_digest != @state.source_digest(key)) %>
   <% warnings << 'Needs review: check this translation against the source.' if needs_review %>
   <% if errors.any? || warnings.any? %>
-    <% message = (errors + warnings).uniq.join('; '); can_review = value && policy(@project).edit_locale?(locale) && @project.writable? %>
+    <% message = (errors + warnings).uniq.join('; '); can_review = value && catalog_edit_locale?(locale) && @project.writable? %>
     <se-tooltip>
-      <%= content_tag(can_review ? :button : :span, class: "catalog-status-icon catalog-status-icon--#{errors.any? ? 'error' : 'warning'}", type: can_review ? 'button' : nil, tabindex: 0, aria: {label: message}, data: {se_region: 'trigger', open_modal: can_review ? "catalog-text-#{key.id}-#{locale}" : nil}) do %>
+      <%= content_tag(can_review ? :button : :span, class: "catalog-status-icon catalog-status-icon--#{errors.any? ? 'error' : 'warning'}", type: can_review ? 'button' : nil, tabindex: 0, aria: {label: message}, data: {se_region: 'trigger', open_modal: can_review ? "catalog-text-#{key.id}-#{locale}" : nil, catalog_editor: can_review ? editor_project_path(@project, kind: 'text', node_id: key.id, locale: locale) : nil}) do %>
         <se-icon name='{"light":"/icons/translation-warning.svg","preserveLightColors":false}' aria-hidden="true"></se-icon>
       <% end %>
       <%= message %>

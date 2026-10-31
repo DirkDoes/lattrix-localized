@@ -20,8 +20,8 @@
   <% if @keys.empty? %>
     <se-empty-illustration variant="search" title="<%= @filters_active ? 'No matching keys' : 'Your catalog is empty' %>" subtitle="<%= @filters_active ? 'Try changing your filters or search.' : 'Add keys or connect a repository in Settings.' %>"></se-empty-illustration>
   <% else %>
-    <se-collection id="catalog-rows" data-revision="<%= @project.revision %>" type="table" dividers="1" guides columns="minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr)" mobile-columns="minmax(0, 1fr)">
-      <se-list-header><span>Key</span><span><%= CatalogLocale.name(@project.source_locale) %></span><span><se-select size="small" searchable aria-label="Target language" data-catalog-locale value="<%= @locale %>" options="<%= @languages.map { |l| {id: l.identifier, label: l.name} }.to_json %>"></se-select></span></se-list-header>
+    <se-collection id="catalog-rows" data-revision="<%= @project.revision %>" data-catalog-etag="<%= @catalog_etag %>" type="table" dividers="1" guides columns="minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr)" mobile-columns="minmax(0, 1fr)">
+      <se-list-header><span>Key</span><span><%= CatalogLocale.name(@project.source_locale) %></span><span class="catalog-language-header"><se-select size="small" searchable aria-label="Target language" data-catalog-locale value="<%= @locale %>" options="<%= @languages.map { |l| {id: l.identifier, label: l.name} }.to_json %>"></se-select><span class="catalog-language-status" data-catalog-language-status role="status" aria-live="polite" hidden><se-spinner size="small" label="Loading translations"></se-spinner><se-text></se-text></span></span></se-list-header>
       <%= render "rows" %>
     </se-collection>
     <%= render "more" %>
@@ -37,5 +37,6 @@
       <% end %><%= render "shared/modal_footer", confirm: "Add key" %>
     </se-modal>
   <% end %>
-  <div id="catalog-modals"><%= render "row_modals" %></div>
+  <div id="catalog-modals"></div>
+  <se-modal id="catalog-editor-loading" title="Loading editor" size="medium"><div class="catalog-loading"><se-spinner label="Loading editor"></se-spinner><se-text>Loading editor…</se-text></div></se-modal>
 </section>

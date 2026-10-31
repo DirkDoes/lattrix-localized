@@ -166,6 +166,10 @@ se-list-header .app-row-actions > se-select { flex: 1; min-width: 0; }
 .public-login { position: fixed; top: 1rem; right: 1rem; z-index: 20; }
 .app-shell:has(> .public-login) .project-header .app-heading { padding-right: 6rem; }
 #catalog-rows[aria-busy] { cursor: progress; overflow-anchor: none; }
+#catalog-rows[aria-busy] [data-catalog-target] { opacity: .35; }
+.catalog-language-header { position: relative; }
+.catalog-language-status { position: absolute; top: calc(100% + .5rem); left: 0; right: 0; display: flex; align-items: center; gap: .5rem; padding: .5rem; background: var(--se-surface); border: 1px solid var(--se-border); border-radius: var(--se-radius); font-weight: normal; }
+.catalog-language-status[hidden] { display: none; }
 se-button[aria-disabled="true"] { opacity: .55; }
 .catalog-filters { display: flex; align-items: end; gap: .75rem; flex-wrap: wrap; }
 .catalog-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }

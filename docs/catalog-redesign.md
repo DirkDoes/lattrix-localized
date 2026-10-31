@@ -191,6 +191,48 @@ Manual Sync first reconciles GitHub, then publishes eligible local drafts or new
 
 The header uses a direct split button: Export, disabled Import, and (for connected projects with management permissions) Sync. Sync is the connected administrator's default; Export is the default otherwise. Branch/plural key menus offer Add child key, prefilling the existing add-key dialog with the full parent path.
 
+## Translation editor loading
+
+Ordinary editor reads load source and selected-target payloads, and calculate
+whole-catalog target validation only for status filters. Cross-language search
+and edit-date sorting retain their catalog-wide behavior. Full write/export/sync
+validation is unchanged. View permission checks and key paths are reused within
+one request; policy reauthorization under write locks still reads current roles.
+
+Language switches send target cells for known rows and complete rows only for
+newly applicable keys. Source cells, tree state and the visible scroll anchor
+are preserved. A header spinner identifies the language being loaded; the
+selector stays usable and a newer selection cancels the previous request. Large
+DOM updates yield between batches. Key and translation dialogs are fetched only
+when opened, with normal project/language authorization and fresh revisions.
+
+Scrolling prefetches one 40-row batch up to two viewports before the sentinel,
+holding it until the reader is within 400 pixels. Language changes, navigation
+and edits abort or discard obsolete work. A table-local memory cache is limited
+to four responses / roughly 2 MB of markup. Reuse requires a conditional GET; its private ETag
+covers project revision/settings, review timestamps, languages and the current
+user's role/membership/assignments. Changed metadata refreshes the page rather
+than restoring stale controls. Initialized component nodes are retained rather
+than serialized and reconstructed from their generated markup.
+
+`Server-Timing` reports catalog, database, projection and rendering durations.
+Browser Performance measures use `catalog-language-fetch`,
+`catalog-language-render`, `catalog-prefetch-fetch` and
+`catalog-prefetch-render`. A local 320-key / four-language development fixture
+reduced the median page-eight switch from 5.49 s / 3.10 MB to 0.74 s / 0.73 MB.
+Initial reads fell from 1.24 s to 0.60 s, and 40-row batches from 1.18 s to
+0.62 s. Revalidation returned an empty 304 response with about 10 ms in the
+catalog action; development request middleware added further overhead. These
+are local uncompressed-response measurements, not production latency claims.
+
+The loading regression checks cover cancellation, rollback of partially applied
+cells, bounded prefetch/cache behavior, fresh review/permission validators and
+authorized lazy editors. Five older JavaScript harnesses already fail on the
+unchanged base: `app_forms_test.cjs`, `sheet_import_form_test.cjs`,
+`table_action_test.cjs`, `translations_test.cjs` and
+`wildcard_highlight_test.cjs` (missing registration mocks or the removed
+`translations.js`). They are unrelated to this loading change.
+
 ## File limits and PR validation settings
 
 Project owners can set file-count/per-file/combined limits, defaulting to

@@ -39,88 +39,12 @@ document.addEventListener("click", async event => {
   }
 });
 
-document.addEventListener("change", async event => {
-  if (!event.target.matches("se-select[data-catalog-locale]")) return;
-  const form = document.getElementById("catalog-filters");
-  const table = document.getElementById("catalog-rows");
-  const previous = form.elements.locale.value;
-  const selected = event.detail.value;
-  if (selected === previous) return;
-  if (!document.dispatchEvent(new CustomEvent('catalog:before-language', {cancelable: true}))) {
-    event.target.value = previous;
-    return;
-  }
-  const scroller = table.closest('main');
-  const url = new URL(window.location.href);
-  url.searchParams.set('locale', selected);
-  url.searchParams.delete('page');
-  const requestUrl = new URL(url);
-  const rows = [...table.querySelectorAll('[data-catalog-key]')];
-  requestUrl.searchParams.set('page', Math.ceil(rows.length / 40));
-  requestUrl.searchParams.set('through', rows.at(-1).dataset.catalogKey);
-  table.inert = true;
-  table.setAttribute('aria-busy', 'true');
-  document.dispatchEvent(new Event('catalog:language-start'));
-  try {
-    const response = await fetch(requestUrl, {headers: {Accept: 'application/json'}, signal: AbortSignal.timeout(30000)});
-    if (!response.ok || response.redirected) throw new Error('Could not change language. Please try again.');
-    const result = await response.json();
-    if (!table.isConnected) return;
-    // A concurrent catalog edit needs the full fresh projection, not a partial cell swap.
-    if (String(result.revision) !== table.dataset.revision || !result.rows.trim()) {
-      window.Turbo.visit(url.href, {frame: 'app-content', action: 'replace'});
-      return;
-    }
-    const incoming = new DOMParser().parseFromString(result.rows, 'text/html');
-    const nextRows = [...incoming.querySelectorAll('[data-catalog-key]')];
-    const ids = new Set(nextRows.map(row => row.dataset.catalogKey));
-    const top = table.querySelector('se-list-header').getBoundingClientRect().bottom;
-    const anchor = rows.find(row => ids.has(row.dataset.catalogKey) && row.getBoundingClientRect().height > 0 && row.getBoundingClientRect().bottom > top);
-    const offset = anchor?.getBoundingClientRect().top;
-    const originalRows = new Map(rows.map(row => [row.dataset.catalogKey, row]));
-    rows.filter(row => !ids.has(row.dataset.catalogKey)).forEach(row => row.remove());
-    let preceding = table.querySelector('se-list-header');
-    for (const row of nextRows) {
-      const existing = originalRows.get(row.dataset.catalogKey);
-      if (existing) {
-        existing.querySelector('[data-catalog-target]').replaceWith(row.querySelector('[data-catalog-target]'));
-        preceding = existing;
-      } else {
-        preceding.after(row);
-        preceding = row;
-      }
-    }
-    document.getElementById('catalog-modals').innerHTML = result.modals;
-    document.getElementById('catalog-more').outerHTML = result.more;
-    form.elements.locale.value = result.locale;
-    history.replaceState(history.state, '', url);
-    // Anchor a visible key rather than scrollTop: rows above it can change height.
-    const holdAnchor = () => {
-      if (anchor?.isConnected) scroller.scrollTop += anchor.getBoundingClientRect().top - offset;
-    };
-    holdAnchor();
-    const resize = new ResizeObserver(holdAnchor);
-    resize.observe(table);
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    holdAnchor();
-    resize.disconnect();
-  } catch (error) {
-    event.target.value = previous;
-    const toast = document.createElement('se-toast');
-    toast.setAttribute('tone', 'error'); toast.setAttribute('message', 'Could not change language. Please try again.'); toast.setAttribute('open', ''); document.body.append(toast);
-  } finally {
-    table.inert = false;
-    table.removeAttribute('aria-busy');
-    document.dispatchEvent(new Event('catalog:language-end'));
-  }
-});
-
 document.addEventListener("select", event => {
   if (event.target.matches("se-menu[data-language-actions]") && !event.detail.disabled) {
     if (event.detail.modal) document.getElementById(event.detail.modal)?.open();
     if (event.detail.form) document.getElementById(event.detail.form)?.requestSubmit();
   }
-  if (event.target.matches("se-menu[data-catalog-history-menu]") && event.detail.modal) {
+  if (event.target.matches("se-menu[data-catalog-history-menu]") && event.detail.modal && !event.detail.editor) {
     const modal = document.getElementById(event.detail.modal);
     if (event.detail.id === "add-child") {
       modal.querySelector('form').reset();

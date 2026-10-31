@@ -1,6 +1,7 @@
 pin "auth_forms"
 pin "app_forms"
 pin "catalog_cell"
+pin "catalog_loading"
 pin "catalog_completions"
 pin "catalog_options"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
