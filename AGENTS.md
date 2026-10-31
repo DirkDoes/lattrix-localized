@@ -105,3 +105,5 @@ The role of this file is to describe common mistakes and confusion points that a
 - The deferred catalog_shape constraint runs a project-wide hierarchy/uniqueness check per changed node. Large synthetic imports can spend minutes committing. Keep benchmark fixtures modest; do not disable these integrity safeguards to speed up tests.
 
 - With the Windows bind mount, the running web process can retain stale Propshaft/importmap fingerprints after JavaScript module changes. If browser behavior disagrees with the edited source, restart `web` and reload before debugging the component API.
+
+- Pagination can connect while a language render still marks the table busy. Restart its IntersectionObservers after the render; observing an already-observed sentinel does not emit another intersection event and can leave pagination stalled.

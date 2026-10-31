@@ -216,7 +216,11 @@ export function registerCatalogLoading(application, Controller) {
       document.addEventListener('catalog:translation-saved', this.pauseForEdit = () => { this.pause(); this.resume(); });
       this.observe();
     }
-    observe() { this.prefetch.observe(this.element); this.append.observe(this.element); }
+    observe() {
+      // Recheck intersections skipped while language rendering kept the table busy.
+      this.prefetch.disconnect(); this.append.disconnect();
+      this.prefetch.observe(this.element); this.append.observe(this.element);
+    }
     disconnect() {
       this.pause();
       document.removeEventListener('catalog:language-start', this.pause);

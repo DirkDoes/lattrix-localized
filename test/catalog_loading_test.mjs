@@ -87,6 +87,44 @@ test('prefetch holds a single next batch until the reader approaches the end and
   more.disconnect();
 });
 
+test('pagination connected during a language render restarts when the render finishes', async () => {
+  let More, busy = true, reads = 0, appended = 0;
+  const listeners = new Map();
+  const table = {dataset: {revision: '1'}, hasAttribute: () => busy,
+    querySelectorAll: () => [], append() { appended++; }};
+  const context = vm.createContext({Map, WeakMap, Set, URL, AbortController, DOMException, JSON,
+    performance: {now: () => 1, measure() {}},
+    fetch: async () => { reads++; return {status: 200, ok: true, headers: {get: () => 'etag'},
+      text: async () => '{"rows":"rows","revision":1,"more":"next"}'}; },
+    IntersectionObserver: class {
+      constructor(callback) { this.callback = callback; }
+      observe() {
+        if (this.observed) return;
+        this.observed = true;
+        this.callback([{isIntersecting: true}]);
+      }
+      disconnect() { this.observed = false; }
+    },
+    DOMParser: class { parseFromString() { return {querySelectorAll: () => [{dataset: {catalogKey: '2'}}]}; } },
+    window: {location: {href: 'http://localhost/translations'}},
+    document: {getElementById: id => id === 'catalog-rows' ? table : {},
+      addEventListener: (name, listener) => listeners.set(name, listener), removeEventListener() {}}
+  });
+  vm.runInContext(source + '; globalThis.register = registerCatalogLoading;', context);
+  context.register({register: (_name, type) => { More = type; }}, class {});
+  const more = new More();
+  more.element = {isConnected: true, closest: () => ({clientHeight: 600})};
+  more.urlValue = '/translations?page=2'; more.statusTarget = {}; more.retryTarget = {};
+  more.connect();
+  assert.equal(reads, 0);
+  busy = false;
+  listeners.get('catalog:language-end')();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(reads, 1);
+  assert.equal(appended, 1);
+  more.disconnect();
+});
+
 test('a late cancelled language response cannot replace or unlock the latest selection', async () => {
   const listeners = new Map(), pending = [], visits = [], attributes = new Set();
   const target = {outerHTML: '<div>Original translation</div>'};
