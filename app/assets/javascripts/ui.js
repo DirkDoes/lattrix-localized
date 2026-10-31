@@ -131,13 +131,16 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("dragstart", (event) => {
-  if (event.target.closest("se-layout-brand")) event.preventDefault();
+  if (event.target.closest("se-brand")) event.preventDefault();
 });
 
 document.addEventListener("turbo:frame-load", (event) => {
   if (event.target.id !== "app-content") return;
+  const heading = document.getElementById("app-project-heading");
+  const incomingHeading = event.target.querySelector("template[data-project-heading]");
+  if (heading && incomingHeading) heading.replaceChildren(incomingHeading.content.cloneNode(true));
   const path = window.location.pathname.replace(/\/$/, "");
-  const items = [...document.querySelectorAll("#app-navigation :is(se-sidebar-button, se-sidebar-group)[href]")];
+  const items = [...document.querySelectorAll("#app-navigation :is(se-nav-item, se-nav-group)[href]")];
   const active = items.filter((item) => {
     const target = new URL(item.getAttribute("href"), window.location.origin).pathname.replace(/\/$/, "");
     return path === target || path.startsWith(`${target}/`);

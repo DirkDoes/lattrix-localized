@@ -17,16 +17,16 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
 
   test "viewer landing and personal settings retain the header with global navigation" do
     get projects_path
-    assert_select "se-topbar se-profile"
+    assert_select "header.app-topbar se-profile"
     assert_select "se-empty-illustration[title][subtitle]"
     assert_select "se-title[level=page]", text: "Projects"
     assert_select "se-card", count: 0
-    assert_select "se-sidebar", count: 1
-    assert_select "se-sidebar-toggle", count: 1
+    assert_select "aside.app-navigation", count: 1
+    assert_select "se-panel-toggle[for=app-sidebar][mode=collapse]", count: 1
     get edit_settings_user_path(@viewer)
     assert_response :success
     assert_select "se-profile"
-    assert_select "se-sidebar", count: 1
+    assert_select "aside.app-navigation", count: 1
     assert_select "se-button[data-open-delete-modal]"
     get projects_path
     assert_select "se-workspace-card", count: 0
@@ -40,7 +40,7 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
   test "shared public catalogs allow reading but not private data or mutations" do
     get translations_project_path(@public)
     assert_response :success
-    assert_select "se-sidebar", count: 1
+    assert_select "aside.app-navigation", count: 1
     assert_select "se-button[data-open-modal=catalog-add-key]", count: 0
     get translations_project_path(@private)
     assert_response :not_found
@@ -65,7 +65,7 @@ class ViewerNavigationTest < ActionDispatch::IntegrationTest
     assert_select "se-list-row", count: 2
     assert_select "se-workspace-card", count: 0
     assert_select "se-button[variant=link][href=?]", project_path(@private)
-    assert_select "se-sidebar-chapter[title=Administration] se-sidebar-button[href=?]", settings_projects_path
+    assert_select "aside.app-settings-navigation se-nav-item[href=?]", settings_projects_path
   end
 
   test "banned tab excludes unverified accounts and replaces an empty table with illustration" do

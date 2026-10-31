@@ -39,12 +39,12 @@ class GlobalRolesTest < ActionDispatch::IntegrationTest
     get projects_path
     assert_select "header se-button[data-open-modal=project-create-modal]", count: 0
     assert_select "se-empty-illustration se-button[text='Create new project']"
-    assert_select "se-sidebar-button[label=Invitations][href=?]", project_invites_path
+    assert_select "se-nav-item[label=Invitations][href=?]", project_invites_path
     assert_select "header se-button[href=?]", project_invites_path, count: 0
-    assert_select "se-sidebar-chapter[title=Administration]", count: 0
-    assert_select "se-sidebar[data-navigation-user=?]", @user.id
-    assert_select "se-sidebar-group#projects-navigation", count: 0
-    assert_select "se-sidebar-button[label=Projects]"
+    assert_select "se-nav-item[label=Administration]", count: 0
+    assert_select "aside.app-navigation[data-navigation-user=?]", @user.id
+    assert_select "se-nav-group#projects-navigation", count: 0
+    assert_select "se-nav-item[label=Projects]"
     @user.update!(role: :guest)
     get projects_path
     assert_select "se-empty-illustration[subtitle*='invite you']"
@@ -80,7 +80,7 @@ class GlobalRolesTest < ActionDispatch::IntegrationTest
   test "global admins manage unrelated private projects" do
     @user.update!(role: :admin)
     get projects_path
-    assert_select "se-sidebar-chapter#administration-navigation[collapsible][collapsed]"
+    assert_select "se-nav-item[label=Administration][href]"
     project = Project.create!(name: "Private unrelated")
     get settings_project_path(project)
     assert_response :success

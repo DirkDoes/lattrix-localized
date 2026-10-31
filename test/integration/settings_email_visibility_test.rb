@@ -10,7 +10,7 @@ class SettingsEmailVisibilityTest < ActionDispatch::IntegrationTest
     get edit_settings_user_path(person)
     assert_response :success
     assert_select "se-card se-profile[subtitle=?]", person.email
-    assert_select "se-topbar se-profile[subtitle]", count: 0
+    assert_select "header.app-topbar se-profile[subtitle]", count: 0
     other = users(:two)
     other.update!(email_verified_at: Time.current, role: :admin)
     sign_in other

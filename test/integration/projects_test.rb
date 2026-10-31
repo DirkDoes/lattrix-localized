@@ -23,14 +23,14 @@ class ProjectsTest < ActionDispatch::IntegrationTest
     assert_select "se-modal#project-create-modal[open][size=medium]"
     get projects_path
     assert_select "se-workspace-card[title='Localization']"
-    assert_select "se-sidebar-group[variant=page][href=?]", projects_path do
-      assert_select "se-sidebar-button[href=?]", project_path(@project)
+    assert_select "se-nav-group[variant=page][href=?]", projects_path do
+      assert_select "se-nav-item[href=?]", project_path(@project)
     end
     assert_select "se-modal#project-create-modal:not([open]) form[novalidate]"
     sign_in @recipient
     get projects_path
     assert_select "se-workspace-card[title='Localization']", count: 0
-    assert_select "se-sidebar-group se-sidebar-button[href=?]", project_path(@project), count: 0
+    assert_select "se-nav-group se-nav-item[href=?]", project_path(@project), count: 0
     get translations_project_path(@project)
     assert_response :not_found
     sign_out @recipient
@@ -168,8 +168,8 @@ class ProjectsTest < ActionDispatch::IntegrationTest
     get members_project_path(@project)
     assert_select "se-nav-tabs[value=members]"
     assert_select "se-title[level=page]", text: "Members"
-    assert_select "se-title[level=section]", count: 1
-    assert_select '[data-project-header-target="compact"][hidden] se-title[level=section]', text: @project.name
+    assert_select "#app-project-heading se-title[level=section]", count: 1
+    assert_select '#app-project-heading se-title[level=section]', text: @project.name
     assert_select "se-collection[type=table]"
     assert_select "se-menu[data-members-menu]"
     sign_in @recipient

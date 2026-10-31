@@ -1,4 +1,4 @@
-<se-card>
+<se-card id="project-rules" tabindex="-1">
   <%= form_with model: @project, class: 'app-form', data: {catalog_options: true} do %>
     <se-title level="section">Plurality support</se-title>
     <se-segmented-control name="project[pluralization_mode]" aria-label="Plurality support" value="<%= @project.pluralization_mode %>" options='[{"id":"off","label":"Off"},{"id":"simple","label":"Simple"},{"id":"cldr","label":"Unicode CLDR"}]'></se-segmented-control>
@@ -31,7 +31,7 @@
   <% end %>
 </se-card>
 <% if policy(@project).change_locale_limits? %>
-  <se-card>
+  <se-card id="project-limits" tabindex="-1">
     <%= form_with model: @project, class: 'app-form' do %>
       <se-title level="section">Translation file limits</se-title>
       <div class="catalog-limit-fields">

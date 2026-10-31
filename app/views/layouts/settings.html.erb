@@ -4,6 +4,9 @@
   theme_preference = current_user&.theme_preference.presence_in(User::THEME_PREFERENCES) || "system"
   sidebar_projects = current_user ? policy_scope(Project).where(id: current_user.projects.select(:id)).order(:name).to_a : []
   show_sidebar = current_user.present?
+  project_context = @project&.persisted? && !controller_path.start_with?("settings/")
+  project_settings = project_context && controller_name == "projects" && %w[settings update destroy].include?(action_name)
+  settings_context = !project_context && (controller_path.start_with?("settings/") || @user&.persisted?)
 %>
 <!DOCTYPE html>
 <html data-theme="<%= theme_preference == "dark" ? "dark" : "light" %>" data-se-theme="<%= theme_preference == "dark" ? "flat" : "clean" %>" data-theme-preference="<%= theme_preference %>">
@@ -18,56 +21,60 @@
   </head>
   <body>
     <div class="app-shell">
-      <% if show_sidebar %>
-      <se-topbar layout-mode="mobile-only">
-        <section data-start>
-          <% if show_sidebar %><se-sidebar-toggle for="app-sidebar" layout-mode="mobile-only"></se-sidebar-toggle><% end %>
+      <header class="app-topbar">
+        <div class="app-topbar-start">
+          <% if show_sidebar %><se-panel-toggle class="app-mobile-only" for="app-sidebar" mode="collapse" variant="menu" label="Toggle navigation"></se-panel-toggle><% end %>
           <%= render "shared/layout_brand" %>
-
-        </section>
-        <section data-end>
-          <% if current_user %>
+        </div>
+        <div id="app-project-heading"><%= render "projects/identity" if project_context %></div>
+        <% if current_user %>
           <%= render "shared/layout_profile", profile_name: profile_name, initials: initials %>
-          <% else %><se-button text="Log in" href="<%= new_user_session_path %>"></se-button><% end %>
-        </section>
-      </se-topbar>
-      <% else %>
-        <se-button class="public-login" text="Log in" href="<%= new_user_session_path %>"></se-button>
-      <% end %>
+        <% else %>
+          <se-button text="Log in" href="<%= new_user_session_path %>"></se-button>
+        <% end %>
+      </header>
       <div class="app-scope-row">
         <% if show_sidebar %>
-        <turbo-frame id="app-navigation" target="app-content">
-        <se-sidebar id="app-sidebar" data-navigation-user="<%= current_user&.id || 'anonymous' %>" layout-mode="responsive" <%= "collapsed" if cookies[:sidebar_collapsed] == "true" %>>
-          <header layout-mode="desktop-only"><%= render "shared/layout_brand", collapsible: true %></header>
-          <section>
-            <% if current_user %>
-            <se-sidebar-chapter title="Project">
-              <% if sidebar_projects.any? %>
-              <se-sidebar-group id="projects-navigation" variant="page" label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>>
-                <% sidebar_projects.each do |sidebar_project| %>
-                  <se-sidebar-button label="<%= sidebar_project.name %>" href="<%= project_path(sidebar_project) %>" icon="folder" <%= "active" if @project&.id == sidebar_project.id %>></se-sidebar-button>
-                <% end %>
-              </se-sidebar-group>
-              <% else %>
-                <se-sidebar-button label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>></se-sidebar-button>
-              <% end %>
-              <se-sidebar-button href="<%= project_invites_path %>" label="Invitations" icon="mail" <%= "active" if controller_name == "project_invites" && action_name == "index" && params[:project_id].blank? %>></se-sidebar-button>
-              <se-sidebar-button href="<%= import_export_path %>" label="Import and Export" icon="download" <%= "active" if controller_name == "formats" %>></se-sidebar-button>
-            </se-sidebar-chapter>
-            <% end %>
-            <% if policy(User).index? %>
-              <se-sidebar-chapter id="administration-navigation" title="Administration" collapsible collapsed>
-                <se-sidebar-button href="<%= settings_users_path %>" label="Users" icon="users" <%= "active" if controller_name == "users" && action_name == "index" %>></se-sidebar-button>
-                <se-sidebar-button href="<%= settings_projects_path %>" label="Projects" icon="folder" <%= "active" if controller_path == "settings/projects" %>></se-sidebar-button>
-                <% if policy(GithubAppConfiguration).show? %><se-sidebar-button href="<%= settings_github_app_path %>" label="GitHub App" icon="code" <%= "active" if controller_path == "settings/github_apps" %>></se-sidebar-button><% end %>
-              </se-sidebar-chapter>
-            <% end %>
-          </section>
-          <footer layout-mode="desktop-only"><%= render "shared/layout_profile", profile_name: profile_name, initials: initials %></footer>
-        </se-sidebar>
-        </turbo-frame>
+          <turbo-frame id="app-navigation" target="app-content">
+            <aside id="app-sidebar" class="app-navigation" aria-label="Workspace navigation" data-navigation-user="<%= current_user.id %>" data-se-minimized="<%= cookies[:sidebar_collapsed] == 'true' %>">
+              <se-panel-toggle class="app-desktop-only" for="app-sidebar" mode="minimize" variant="edge" placement="edge-end" label="Minimize navigation"></se-panel-toggle>
+              <nav class="app-navigation-scroll" aria-label="Main navigation">
+                <se-nav-section title="Workspace">
+                  <% if sidebar_projects.any? %>
+                    <se-nav-group id="projects-navigation" variant="page" label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>>
+                      <% sidebar_projects.each do |sidebar_project| %>
+                        <se-nav-item label="<%= sidebar_project.name %>" href="<%= project_path(sidebar_project) %>" icon="folder" <%= "active" if project_context && @project.id == sidebar_project.id %>></se-nav-item>
+                      <% end %>
+                    </se-nav-group>
+                  <% else %>
+                    <se-nav-item label="Projects" icon="folder" href="<%= projects_path %>" <%= "active" if controller_path == "projects" && action_name == "index" %>></se-nav-item>
+                  <% end %>
+                  <se-nav-item href="<%= project_invites_path %>" label="Invitations" icon="mail" <%= "active" if controller_name == "project_invites" && params[:project_id].blank? %>></se-nav-item>
+                  <se-nav-item href="<%= import_export_path %>" label="Import and Export" icon="download" <%= "active" if controller_name == "formats" %>></se-nav-item>
+                </se-nav-section>
+                <se-nav-section title="Settings">
+                  <se-nav-item href="<%= edit_settings_user_path(current_user) %>" label="Personal settings" icon="user" <%= "active" if settings_context && @user == current_user %>></se-nav-item>
+                  <% if policy(User).index? %>
+                    <se-nav-item href="<%= settings_users_path %>" label="Administration" icon="shield" <%= "active" if settings_context && @user != current_user %>></se-nav-item>
+                  <% end %>
+                </se-nav-section>
+              </nav>
+            </aside>
+          </turbo-frame>
+          <button class="app-navigation-backdrop" aria-label="Close navigation" tabindex="-1" hidden></button>
         <% end %>
-        <main class="se-page-layout__content app-content"><%= turbo_frame_tag "app-content", data: { turbo: true, turbo_action: "advance" } do %><%= render "shared/toasts" %><%= yield %><% end %></main>
+        <%= turbo_frame_tag "app-content", class: "app-workspace", data: { turbo: true, turbo_action: "advance" } do %>
+          <template data-project-heading><%= render "projects/identity" if project_context %></template>
+          <%= render "projects/navigation" if project_context %>
+          <div class="app-content-row">
+            <% if show_sidebar && (project_settings || settings_context) %>
+              <%= render "shared/settings_navigation", project_settings: project_settings %>
+            <% end %>
+            <main class="app-content" id="main-content" tabindex="-1">
+              <div class="app-content-inner"><%= render "shared/toasts" %><%= yield %></div>
+            </main>
+          </div>
+        <% end %>
       </div>
     </div>
     <% if current_user %><%= button_to "Log out", destroy_user_session_path, method: :delete, form: { id: "logout-form", hidden: true } %><% end %>

@@ -20,8 +20,8 @@ class ProjectPermissionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     get projects_path
     assert_select "se-workspace-card", count: 0
-    assert_select "se-sidebar-group#projects-navigation", count: 0
-    assert_select "se-sidebar-button[label=Projects]"
+    assert_select "se-nav-group#projects-navigation", count: 0
+    assert_select "se-nav-item[label=Projects]"
     assert_empty @other.project_memberships
     @project.update!(visibility: "private")
     get translations_project_path(@project)
@@ -33,7 +33,7 @@ class ProjectPermissionsTest < ActionDispatch::IntegrationTest
       assert_response :success
       get projects_path
       assert_select "se-workspace-card[title=Team]"
-      assert_select "se-sidebar-group#projects-navigation"
+      assert_select "se-nav-group#projects-navigation"
     end
   end
 

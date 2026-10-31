@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../app/assets/javascripts/app_forms.js', import.meta.url), 'utf8');
 let Sync, next = {status: 'running', busy: true, message: 'Synchronizing'}, timer, visit, aborted = false;
 const badge = {replaceWith(replacement) { this.replacement = replacement; }};
-vm.runInNewContext(source.slice(source.indexOf('application.register("catalog-sync"'), source.indexOf('application.register("project-header"')), {
+vm.runInNewContext(source.slice(source.indexOf('application.register("catalog-sync"'), source.indexOf('application.register("slug-mirror"')), {
   Controller: class {}, application: {register: (_, type) => Sync = type},
   AbortController: class { abort() { aborted = true; } },
   document: {createElement: () => ({attributes: {}, setAttribute(k, v) { this.attributes[k] = v; }})},

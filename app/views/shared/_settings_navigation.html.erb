@@ -1,0 +1,26 @@
+<aside class="app-settings-navigation" aria-label="<%= project_settings ? 'Project settings' : 'Application settings' %>">
+  <se-title level="sidebar"><%= project_settings ? 'Project settings' : 'Settings' %></se-title>
+  <nav class="app-context-links" aria-label="<%= project_settings ? 'Project settings sections' : 'Settings sections' %>">
+    <% if project_settings %>
+      <% sections = [['project-general', 'General', 'settings'], ['project-rules', 'Translation rules', 'list-checks']] %>
+      <% sections << ['project-limits', 'File limits', 'files'] if policy(@project).change_locale_limits? %>
+      <% sections.concat([['project-suggestions', 'Suggestions', 'text-cursor-input'], ['project-languages', 'Languages', 'languages'], ['project-repository', 'GitHub', 'code']]) %>
+      <% sections << ['project-danger', 'Danger zone', 'triangle-alert'] if policy(@project).destroy? %>
+      <% sections.each_with_index do |(id, label, icon), index| %>
+        <se-nav-item href="#<%= id %>" label="<%= label %>" icon="<%= icon %>" data-settings-anchor data-turbo="false" <%= 'active' if index.zero? %>></se-nav-item>
+      <% end %>
+    <% else %>
+      <% unless @user == current_user %><se-nav-item href="<%= edit_settings_user_path(current_user) %>" label="Personal settings" icon="user"></se-nav-item><% end %>
+      <% if @user == current_user %>
+        <% [['account-photo', 'Profile picture', 'image'], ['account-details', 'Account details', 'settings'], ['account-security', 'Sign-in methods', 'lock'], ['account-danger', 'Delete account', 'triangle-alert']].each do |id, label, icon| %>
+          <se-nav-item href="#<%= id %>" label="<%= label %>" icon="<%= icon %>" data-settings-anchor data-turbo="false"></se-nav-item>
+        <% end %>
+      <% end %>
+      <% if policy(User).index? %>
+        <se-nav-item href="<%= settings_users_path %>" label="Users" icon="users" <%= 'active' if controller_path == 'settings/users' && @user != current_user %>></se-nav-item>
+        <se-nav-item href="<%= settings_projects_path %>" label="Projects" icon="folder" <%= 'active' if controller_path == 'settings/projects' %>></se-nav-item>
+        <% if policy(GithubAppConfiguration).show? %><se-nav-item href="<%= settings_github_app_path %>" label="GitHub App" icon="code" <%= 'active' if controller_path == 'settings/github_apps' %>></se-nav-item><% end %>
+      <% end %>
+    <% end %>
+  </nav>
+</aside>

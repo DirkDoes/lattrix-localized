@@ -50,32 +50,6 @@ application.register("catalog-sync", class extends Controller {
     this.timer = setTimeout(() => this.poll(), 3000);
   }
 });
-application.register("project-header", class extends Controller {
-  static targets = ["original", "compact"];
-  connect() {
-    this.scroller = this.element.closest("main");
-    this.update = () => {
-      const root = this.scroller.getBoundingClientRect();
-      const bounds = this.originalTarget.getBoundingClientRect();
-      const compact = this.compactTarget;
-      compact.hidden = bounds.bottom > root.top;
-      compact.style.top = `${root.top}px`;
-      compact.style.left = `${bounds.left}px`;
-      compact.style.width = `${bounds.width}px`;
-      const inset = (compact.hidden ? 0 : compact.offsetHeight) - parseFloat(getComputedStyle(this.scroller).paddingTop);
-      this.scroller.style.setProperty("--project-header-offset", `${inset}px`);
-    };
-    this.scroller.addEventListener("scroll", this.update, {passive: true});
-    this.resize = new ResizeObserver(this.update);
-    [this.scroller, this.originalTarget, this.compactTarget].forEach(element => this.resize.observe(element));
-    this.update();
-  }
-  disconnect() {
-    this.scroller.removeEventListener("scroll", this.update);
-    this.resize.disconnect();
-    this.scroller.style.removeProperty("--project-header-offset");
-  }
-});
 application.register("slug-mirror", class extends Controller {
   static targets = ["source", "destination"];
   static values = { separator: { type: String, default: "_" } };

@@ -1,4 +1,4 @@
-<section class="app-page catalog-page"><%= render "projects/navigation" %>
+<section class="app-page catalog-page">
   <%= form_with url: history_project_path(@project), method: :get, class: "catalog-filters catalog-filters--right" do %>
     <se-input type="search" name="q" aria-label="Search keys" placeholder="Search keys" value="<%= @query %>"></se-input>
     <se-popover icon="funnel" icon-only label="History filters">

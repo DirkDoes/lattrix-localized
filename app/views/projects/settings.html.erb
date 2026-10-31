@@ -1,8 +1,7 @@
 <section class="app-page">
-  <%= render "projects/navigation" %>
   <div class="app-stack app-settings-body">
   <header class="app-heading"><se-title level="page">Settings</se-title></header>
-  <se-card><se-collection type="table" columns="10rem minmax(0, 1fr)" mobile-columns="minmax(0, 1fr)">
+  <se-card id="project-general" tabindex="-1"><se-collection type="table" columns="10rem minmax(0, 1fr)" mobile-columns="minmax(0, 1fr)">
     <se-list-row>
       <span>Project name</span>
       <%= form_with model: @project, class: "app-setting-form", html: { novalidate: true } do %>
@@ -53,7 +52,7 @@
   <%= render "projects/completion_terms" %>
   <%= render "projects/languages" %>
   <% if policy(@project).destroy? %>
-    <se-card><div class="app-method-heading">
+    <se-card id="project-danger" tabindex="-1"><div class="app-method-heading">
       <div><se-title level="section">Delete project</se-title><se-text muted>Permanently remove this project, its translations, memberships and pending invitations. This cannot be undone.</se-text></div>
       <se-button variant="danger" text="Delete project" data-open-modal="project-delete-warning"></se-button>
     </div></se-card>

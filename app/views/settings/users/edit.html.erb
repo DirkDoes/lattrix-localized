@@ -1,7 +1,7 @@
 <section class="app-page app-account-page">
   <header class="app-heading"><se-title level="page"><%= @user == current_user ? "Personal settings" : "Edit user" %></se-title><se-button variant="ghost" href="<%= policy(User).index? ? settings_users_path : projects_path %>" text="Back"></se-button></header>
   <%= render "settings/users/profile_photo", user: @user %>
-  <se-card>
+  <se-card id="account-details" tabindex="-1">
     <%= form_with model: @user, url: settings_user_path(@user), class: "app-form", html: { novalidate: true } do %>
       <se-title level="section">Account details</se-title>
       <% @user.errors[:base].each do |error| %><se-text><%= error %></se-text><% end %>
@@ -17,7 +17,7 @@
   <% if @user == current_user %>
     <%= render "settings/users/delete_account" %>
   <% end %>
-  <% if policy(@user).ban? %><se-card><div class="app-stack">
+  <% if policy(@user).ban? %><se-card id="account-access" tabindex="-1"><div class="app-stack">
     <se-title level="section">Manage access</se-title>
     <%= form_with url: ban_settings_user_path(@user), method: :patch do %><se-button type="submit" variant="ghost" text="<%= @user.banned_at ? "Restore access" : "Ban user" %>"></se-button><% end %>
     <% if policy(@user).destroy? %>

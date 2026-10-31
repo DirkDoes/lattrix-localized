@@ -1,7 +1,6 @@
 <% show_emails = policy(@project).view_member_emails? %>
 <% manage_members = policy(@project).update? %>
 <section class="app-page">
-  <%= render "projects/navigation" %>
   <header class="app-heading">
     <se-title level="page">Members</se-title>
     <div class="app-method-label">

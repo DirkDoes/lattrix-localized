@@ -1,0 +1,9 @@
+<% feedback = @project.sync_feedback %>
+<div class="app-project-identity" <%= 'data-controller=catalog-sync' if @project.linked? && feedback[:busy] %> data-catalog-sync-url-value="<%= sync_status_project_path(@project) %>">
+  <se-title level="section" title="<%= @project.name %>"><%= @project.name %></se-title>
+  <% if @project.linked? %><a class="app-project-branch" href="https://github.com/<%= @project.repository %><%= "/tree/#{ERB::Util.url_encode(@project.git_branch)}" if @project.git_branch.present? %>" target="_blank" rel="noopener noreferrer" aria-label="Open GitHub branch"><se-badge tone="brand" icon="git-branch" text="<%= @project.git_branch.presence || 'GitHub' %>"></se-badge></a><% end %>
+  <% if current_user && @project.linked? %>
+    <% failed = feedback[:status] == 'failed' || @project.sync_error.present?; status_text = feedback[:busy] ? 'Syncing' : failed ? 'Sync Failed' : feedback[:status] == 'succeeded' ? 'Synced' : 'Not synced' %>
+    <se-tooltip><span data-se-region="trigger" tabindex="0" class="project-sync-badge" role="status"><% if feedback[:busy] %><se-spinner size="small" label="Synchronizing"></se-spinner><% end %><se-badge tone="<%= feedback[:busy] ? 'warning' : failed ? 'error' : feedback[:status] == 'succeeded' ? 'success' : 'gray' %>" text="<%= status_text %>"></se-badge></span><span data-catalog-sync-target="message"><%= feedback[:message].presence || @project.sync_error.presence || 'This repository has not been synchronized yet.' %></span><% if @project.sync_finished_at %><span> Last attempt: <%= l(@project.sync_finished_at, format: :short) %>.</span><% end %></se-tooltip>
+  <% end %>
+</div>

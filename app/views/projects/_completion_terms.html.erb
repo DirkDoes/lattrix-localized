@@ -1,4 +1,4 @@
-<se-card>
+<se-card id="project-suggestions" tabindex="-1">
   <se-title level="section">Translation suggestions</se-title>
   <%= form_with model: @project, class: "app-form", data: {completion_terms: true} do %>
     <input type="hidden" name="project[completion_terms][][text]" value="">

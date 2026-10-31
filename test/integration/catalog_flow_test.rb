@@ -149,7 +149,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
   test "split actions and add child shortcut respect connection and permissions" do
     change(operation: 'add', path: 'account.name')
     get translations_project_path(@project)
-    assert_select 'se-split-button[direct="true"][data-default-action="export"]', count: 2
+    assert_select 'se-split-button[direct="true"][data-default-action="export"]', count: 1
     actions = JSON.parse(css_select('se-split-button').first['options'])
     assert_equal %w[export import], actions.map { |a| a['id'] }
     assert actions.last['disabled']
@@ -157,7 +157,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert_equal ['account.'], menus.select { |m| m['id'] == 'add-child' }.map { |m| m['path'] }
     @project.update!(repository: 'org/repo', installation_id: 1)
     get translations_project_path(@project)
-    assert_select 'se-split-button[data-default-action="sync"]', count: 2
+    assert_select 'se-split-button[data-default-action="sync"]', count: 1
     actions = JSON.parse(css_select('se-split-button').first['options'])
     assert_equal %w[export import sync], actions.map { |a| a['id'] }
   end
@@ -176,7 +176,7 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert response.parsed_body['busy']
     get translations_project_path(@project)
     assert_select '[data-controller~="catalog-sync"]'
-    assert_select 'se-split-button[disabled]', count: 2
+    assert_select 'se-split-button[disabled]', count: 1
     @project.update!(sync_status: 'succeeded', sync_message: 'Already up to date.', sync_finished_at: Time.current)
     get sync_status_project_path(@project), as: :json
     assert_not response.parsed_body['busy']
@@ -267,8 +267,8 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     assert_select "[data-catalog-status='#{parent.id}-en'] .catalog-status-icon--error", count: 1
     assert_select "[data-catalog-status='#{one.id}-en'] .catalog-status-icon", count: 0
     assert_select "[data-catalog-status='#{other.id}-en'] .catalog-status-icon", count: 0
-    assert_select '[data-project-header-target="original"] se-title[level="page"]'
-    assert_select '[data-project-header-target="compact"][hidden] se-title[level="section"]'
+    assert_select '#app-project-heading se-title[level="section"]', count: 1
+    assert_select 'main .app-project-bar', count: 0
     change(operation: 'translate', inline: '1', node_id: other.id, locale: 'en', value: 'Notifications')
     statuses = response.parsed_body.fetch('statuses').index_by { |status| status['id'] }
     assert_not_includes statuses.fetch("#{parent.id}-en")['html'], 'catalog-status-icon'
@@ -391,8 +391,8 @@ class CatalogFlowTest < ActionDispatch::IntegrationTest
     get translations_project_path(@project)
     assert_response :success
     assert_select "se-button[data-open-modal=catalog-add-key]", count: 0
-    assert_select 'se-topbar', count: 0
-    assert_select '.public-login[text="Log in"]'
+    assert_select 'header.app-topbar', count: 1
+    assert_select 'header.app-topbar se-button[text="Log in"]'
     assert_select '[data-catalog-actions], .project-sync-badge, #catalog-export', count: 0
     @project.update!(visibility: "private")
     get translations_project_path(@project)

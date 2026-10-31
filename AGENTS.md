@@ -12,6 +12,10 @@ The role of this file is to describe common mistakes and confusion points that a
 
 ## Agent Notes (Surprises Encountered)
 
+- Simple Elements v0.17.0 removes the layout shell tags. The app now owns its top bar, primary/secondary navigation and scrolling main pane. Keep project navigation outside `main` but inside `app-content` so Turbo updates the complete project scope. The existing per-user v1 sidebar boolean is migrated to `data-se-minimized`; mobile `hidden` must not overwrite that desktop preference.
+
+- The project identity lives in the global top bar, outside `app-content`. Its inert `data-project-heading` template travels with each content-frame response; ui.js copies it into the top bar after navigation, including an empty template when leaving a project. Keep the template uninitialized so cloned components connect normally.
+
 - Simple Elements v0.16.3 keeps the legacy upload -> UploadCloud alias even after icons-all registration. Import uses the Lucide Upload SVG asset via the public icon API to display the intended arrow/tray icon.
 
 - Plural semantics are project-specific: use project.plural_categories and state.plural?, not CatalogLocale.categories or raw kind checks, for behavior. Stored plural nodes are ordinary branches while mode is Off; payloads and extra translations are retained. PR-check switches do not disable editor validation.

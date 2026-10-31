@@ -1,6 +1,5 @@
 <% root_groups = @state.keys.select { |key| key.parent_id.nil? }.to_h { |key| [key.payload.name, key.payload.file_group] } %>
 <section class="app-page catalog-page" data-completion-catalog="<%= {paths: @state.keys.map { |key| @state.path(key) }, groups: root_groups.values.compact_blank.uniq, rootGroups: root_groups, terms: @project.completion_terms, source: @project.source_locale}.to_json %>">
-  <%= render "projects/navigation" %>
   <div class="catalog-toolbar">
     <% if policy(@project).update? && @project.writable? %><se-button text="Add key" icon="plus" data-open-modal="catalog-add-key"></se-button><% end %>
     <% if @state.keys.any? || @filters_active %>
